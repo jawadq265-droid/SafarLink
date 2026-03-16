@@ -25,10 +25,10 @@ const Navbar = () => {
           {/* Auth Buttons */}
           <div className="flex items-center space-x-1 md:space-x-4 lg:space-x-4">
             <Link to="/login">
-              <button className="px-4 py-2 text-sky-600 font-medium hover:text-sky-800 transition">Login</button>
+              <button onClick={()=>window.scrollTo(0,0)} className="px-4 py-2 text-sky-600 font-medium hover:text-sky-800 transition">Login</button>
             </Link>
             <Link to="/signup">
-              <button className="text-md px-3 lg:px-6 py-2 bg-sky-600 text-white rounded-full lg:font-medium hover:bg-sky-700 transition shadow-lg">
+              <button onClick={()=>window.scrollTo(0,0)} className="text-md px-3 lg:px-6 py-2 bg-sky-600 text-white rounded-full lg:font-medium hover:bg-sky-700 transition shadow-lg">
                 Sign Up
               </button>
             </Link>

@@ -25,13 +25,13 @@ const Footer = () => {
                     </div>
 
                     {/* Quick Links */}
-                    <div>
+                    <div className='pl-30'>
                         <h4 className="text-lg font-bold text-white mb-6">Quick Links</h4>
                         <ul className="space-y-4">
-                            <li><Link to="/" className="text-gray-400 hover:text-sky-500 transition">Home</Link></li>
-                            <li><Link to="/bus" className="text-gray-400 hover:text-sky-500 transition">Bus Tickets</Link></li>
-                            <li><Link to="/train" className="text-gray-400 hover:text-sky-500 transition">Train Tickets</Link></li>
-                            <li><Link to="/admin/bookings" className="text-gray-400 hover:text-sky-500 transition">My Bookings</Link></li>
+                            <li><Link to="/"  onClick={()=>window.scrollTo(0,0)}  className="text-gray-400 hover:text-sky-500 transition">Home</Link></li>
+                            <li><Link to="/bus" onClick={()=>window.scrollTo(0,0)}  className="text-gray-400 hover:text-sky-500 transition">Bus Tickets</Link></li>
+                            <li><Link to="/train"  onClick={()=>window.scrollTo(0,0)} className="text-gray-400 hover:text-sky-500 transition">Train Tickets</Link></li>
+                            <li><Link to="/contact" onClick={()=>window.scrollTo(0,0)}  className="text-gray-400 hover:text-sky-500 transition">Contact</Link></li>
                         </ul>
                     </div>
 
