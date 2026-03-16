@@ -1,14 +1,18 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
 //User Side Pages
-import HOME from '../pages/home.page'
-import BusPage from '../pages/bus.page';
-import TrainPage from '../pages/train.page';
-import MyBookingsPage from '../pages/my-bookings.page';
-import ContactPage from '../pages/contact.page';
-import LoginPage from '../pages/login.page';
-import SignupPage from '../pages/signup.page';
-import MainLayout from '../components/layout/main.layout';
+import HOME from '../pages/user/home.page'
+import BusPage from '../pages/user/bus.page';
+import TrainPage from '../pages/user/train.page';
+import ContactPage from '../pages/user/contact.page';
+import LoginPage from '../pages/user/login.page';
+import SignupPage from '../pages/user/signup.page';
+import MainLayout from '../layout/main.layout';
+
+// Admin Side pages
+import MyBookingsPage from '../pages/admin/my-bookings.page';
+
+
 
 const Router = () => {
 
@@ -29,10 +33,6 @@ const Router = () => {
                     element: <TrainPage />
                 },
                 {
-                    path: "/bookings",
-                    element: <MyBookingsPage />
-                },
-                {
                     path: "/contact",
                     element: <ContactPage />
                 },
@@ -45,7 +45,13 @@ const Router = () => {
                     element: <SignupPage />
                 }
             ]
-        }
+           
+        },
+         {
+                    path: "/admin/bookings",
+                    element: <MyBookingsPage />
+                },
+
     ])
 
     return <RouterProvider router={router} />
