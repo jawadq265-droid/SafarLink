@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
@@ -14,6 +14,7 @@ const SignupPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +55,11 @@ const SignupPage = () => {
         setPassword("");
         setConfirmPassword("");
 
+        // Redirect to login page after short delay or immediately
+        setTimeout(() => {
+          navigate("/login");
+        }, 1500);
+
       } else {
         toast.error(data.message);
       }
@@ -73,7 +79,7 @@ const SignupPage = () => {
 
       <div className="relative z-10 flex flex-col min-h-screen">
 
-        <div className="flex-grow flex items-center px-50 pt-12 ">
+        <div className="flex-grow flex items-center justify-center px-4 pt-12 ">
 
           <div className="bg-transparent backdrop-blur-sm px-10 py-5 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
 
@@ -210,4 +216,3 @@ const SignupPage = () => {
 };
 
 export default SignupPage;
-
