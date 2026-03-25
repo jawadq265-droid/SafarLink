@@ -79,7 +79,7 @@ catch (err) {
         <label className="block text-sm font-medium text-white">
             Password
         </label>
-        <a href="#" className="text-sm text-sky-600 hover:text-sky-800 font-medium">
+        <a href="/forget" className="text-sm text-sky-600 hover:text-sky-800 font-medium">
             Forgot Password?
         </a>
     </div>

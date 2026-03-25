@@ -8,6 +8,7 @@ import ContactPage from '../pages/user/contact.page';
 import LoginPage from '../pages/user/login.page';
 import SignupPage from '../pages/user/signup.page';
 import MainLayout from '../layout/main.layout';
+import ForgotPassword from '../pages/user/forget.page';
 
 // Admin Side pages
 import MyBookingsPage from '../pages/admin/my-bookings.page';
@@ -43,7 +44,11 @@ const Router = () => {
                 {
                     path: "/signup",
                     element: <SignupPage />
-                }
+                },
+                {
+                    path: "/forget",
+                    element: <ForgotPassword />
+                },
             ]
            
         },

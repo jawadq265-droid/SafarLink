@@ -1,8 +1,9 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 
-// SIGNUP (already yours)
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -51,8 +52,6 @@ export const signup = async (req, res) => {
 };
 
 
-
-// ✅ LOGIN FUNCTION
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -110,5 +109,93 @@ export const login = async (req, res) => {
       success: false,
       message: "Server Error"
     });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // generate token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 min
+
+    await user.save();
+
+    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+
+    // email config (Gmail example)
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    await transporter.sendMail({
+      to: user.email,
+      subject: "Password Reset",
+      html: `
+        <h3>Reset Your Password</h3>
+        <p>Click below link:</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+      `
+    });
+
+    res.json({
+      success: true,
+      message: "Reset link sent to email"
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired token"
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Password reset successful"
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
