@@ -75,8 +75,6 @@ const SignupPage = () => {
       className="min-h-[90vh] flex flex-col bg-cover bg-center relative border-b-8 overflow-x-hidden">
        <div className="absolute inset-0 bg-black/40 -z-10"> <img src={main} alt=""  className="absolute inset-0 w-full h-full object-cover "/>
         </div>
-      <div className="absolute inset-0 bg-black/40 z-0"></div>
-
       <div className="relative z-10 flex flex-col min-h-screen">
 
         <div className="flex-grow flex items-center justify-center px-4 pt-12 ">

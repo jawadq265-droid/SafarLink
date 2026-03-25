@@ -9,6 +9,7 @@ import LoginPage from '../pages/user/login.page';
 import SignupPage from '../pages/user/signup.page';
 import MainLayout from '../layout/main.layout';
 import ForgotPassword from '../pages/user/forget.page';
+import ResetPassword from '../pages/user/reset.page';
 
 // Admin Side pages
 import MyBookingsPage from '../pages/admin/my-bookings.page';
@@ -48,6 +49,10 @@ const Router = () => {
                 {
                     path: "/forget",
                     element: <ForgotPassword />
+                },
+                {
+                    path: "/reset-password/:token",
+                    element: <ResetPassword />
                 },
             ]
            
