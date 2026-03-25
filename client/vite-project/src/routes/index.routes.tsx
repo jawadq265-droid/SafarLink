@@ -51,6 +51,14 @@ const Router = () => {
                     path: "/forget",
                     element: <ForgotPassword />
                 },
+                {
+                    path: "/AboutUs",
+                    element: <AboutUs />
+                },
+                {
+                    path: "/reset-password/:token",
+                    element: <ResetPassword />
+                },
             ]
            
         },
