@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
-import main from "../../assets/images/mainbg.jpg";
 
 const LoginPage = () => {
 
@@ -41,11 +40,13 @@ catch (err) {
 }
     };
 
+    const busBg = "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=2071&auto=format&fit=crop";
+
     return (
         <div className="min-h-screen flex flex-col bg-cover bg-center relative">
 
             <div className="absolute inset-0 bg-black/40 z-0">
-                <img src={main} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={busBg} alt="Bus Background" className="absolute inset-0 w-full h-full object-cover" />
             </div>
 
             <div className="relative z-10 flex flex-col min-h-screen">

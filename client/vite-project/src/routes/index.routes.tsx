@@ -6,6 +6,7 @@ import BusPage from '../pages/user/bus.page';
 import TrainPage from '../pages/user/train.page';
 import ContactPage from '../pages/user/contact.page';
 import LoginPage from '../pages/user/login.page';
+import AboutUs from '../pages/user/AboutUs';
 import SignupPage from '../pages/user/signup.page';
 import MainLayout from '../layout/main.layout';
 import ForgotPassword from '../pages/user/forget.page';
@@ -48,6 +49,10 @@ const Router = () => {
                 {
                     path: "/forget",
                     element: <ForgotPassword />
+                },
+                {
+                    path: "/AboutUs", // Matches the path used in your Navbar
+                    element: <AboutUs />
                 },
             ]
            
