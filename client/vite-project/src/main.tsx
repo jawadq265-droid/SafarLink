@@ -18,6 +18,7 @@ createRoot(document.getElementById('root')!).render(
           borderRadius: '12px',
           fontSize: '14px',
           padding: '14px 18px',
+          marginTop: '80px',
           boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
         },
 
