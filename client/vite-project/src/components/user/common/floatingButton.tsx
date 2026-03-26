@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence} from "framer-motion";
-// import chatbot from "../../../assets/images/chatbot.png";
 import chatbot1 from "../../../assets/images/chatbot1.png"
-// import botSound from "@/assets/sound/botsound.mp3";
-// import sendsound from "@/assets/sound/botsound.mp3";
+import botSound from "../../../assets/sound/botsound.mp3";
+import sendsound from "../../../assets/sound/botsound.mp3";
 
 
-// const sendSound = new Audio(sendsound);
-// const receiveSound = new Audio(botSound);
+const sendSound = new Audio(sendsound);
+const receiveSound = new Audio(botSound);
 
 
 const FloatingBotButton = () => {
@@ -47,8 +46,8 @@ const sendMessage = async () => {
   const userMsg = input;
   console.log("Sending:", userMsg);
 
-  // sendSound.currentTime = 0;
-  // sendSound.play();
+  sendSound.currentTime = 0;
+  sendSound.play();
 
   setMessages(prev => [...prev, { sender: "user", text: userMsg }]);
   setInput("");
@@ -77,11 +76,11 @@ const sendMessage = async () => {
       { sender: "bot", text: data?.reply || "No reply field" }
     ]);
 
-    // receiveSound.currentTime = 0;
-    // receiveSound.play();
+    receiveSound.currentTime = 0;
+    receiveSound.play();
 
   } catch (err) {
-    console.error("Chat fetch error:", err);  // ⭐ IMPORTANT
+    console.error("Chat fetch error:", err); 
     setTyping(false);
 
     setMessages(prev => [

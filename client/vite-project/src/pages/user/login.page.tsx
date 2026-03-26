@@ -18,7 +18,7 @@ const LoginPage = () => {
     const handleLogin = async () => {
         try {
             const res = await axios.post(
-                "http://localhost:3000/api/v1/auth/login",
+                "http://localhost:5000/api/v1/auth/login",
                 {
                     email,
                     password
