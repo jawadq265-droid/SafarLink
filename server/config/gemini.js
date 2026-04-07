@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 export const geminiModel = genAI.getGenerativeModel({
   model: "gemini-2.5-flash",
- systemInstruction: `
+  systemInstruction: `
 You are SafarLink AI Assistant.
 
 SafarLink is a Online Ticket Reservation System, Where you can Reserve your ticket from home at anytime to anyplace.
@@ -17,7 +17,7 @@ Answer clearly and professionally.
 Limit to about 4–6 lines unless user asks for more.
 `,
   generationConfig: {
-  maxOutputTokens: 300,
-  temperature: 0.4,
-},
+    maxOutputTokens: 300,
+    temperature: 0.4,
+  },
 });

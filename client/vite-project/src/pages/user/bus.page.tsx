@@ -4,8 +4,8 @@ import CitySearchInput from '../../components/user/common/city-search-input';
 const BusPage = () => {
     const buses = [
         { id: 1, name: 'Safar Express', from: 'Lahore', to: 'Karachi', time: '10:00 AM', price: '1500 PKR', seats: 12, backgroundImage: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=2071&auto=format&fit=crop' },
-        { id: 2, name: 'Sky Ways', from: 'Karachi', to: 'Hyderabad', time: '02:00 PM', price: '800 PKR', seats: 25, backgroundImage: 'https://images.unsplash.com/photo-1607207807806-075f273b0d0d?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'},
-        { id: 3, name: 'Daewoo', from: 'Peshawar', to: 'Rawalpindi', time: '05:00 PM', price: '1200 PKR', seats: 5, backgroundImage: 'https://images.unsplash.com/photo-1557223562-6c77ef16210f?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'},
+        { id: 2, name: 'Sky Ways', from: 'Karachi', to: 'Hyderabad', time: '02:00 PM', price: '800 PKR', seats: 25, backgroundImage: 'https://images.unsplash.com/photo-1607207807806-075f273b0d0d?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+        { id: 3, name: 'Daewoo', from: 'Peshawar', to: 'Rawalpindi', time: '05:00 PM', price: '1200 PKR', seats: 5, backgroundImage: 'https://images.unsplash.com/photo-1557223562-6c77ef16210f?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
     ];
 
     return (
