@@ -8,8 +8,8 @@ const Footer = () => {
                     {/* Brand Section */}
                     <div>
                         <h3 className="text-2xl font-bold text-sky-500 mb-6">SafarLink</h3>
-                        <p className="text-gray-400 mb-6">
-                            Your trusted travel partner for seamless bus and train journeys across Pakistan. Experience comfort and reliability.
+                        <p className="text-gray-400 leading-relaxed mb-6">
+                            Your trusted travel partner for seamless bus journeys across Pakistan. Experience comfort and reliability.
                         </p>
                         <div className="flex space-x-4">
                             <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-sky-600 transition">
@@ -29,9 +29,8 @@ const Footer = () => {
                         <h4 className="text-lg font-bold text-white mb-6">Quick Links</h4>
                         <ul className="space-y-4">
                             <li><Link to="/"  onClick={()=>window.scrollTo(0,0)}  className="text-gray-400 hover:text-sky-500 transition">Home</Link></li>
-                            <li><Link to="/bus" onClick={()=>window.scrollTo(0,0)}  className="text-gray-400 hover:text-sky-500 transition">Bus Tickets</Link></li>
-                            <li><Link to="/train"  onClick={()=>window.scrollTo(0,0)} className="text-gray-400 hover:text-sky-500 transition">Train Tickets</Link></li>
-                            <li><Link to="/contact" onClick={()=>window.scrollTo(0,0)}  className="text-gray-400 hover:text-sky-500 transition">Contact</Link></li>
+                            <li><Link to="/bus"  onClick={()=>window.scrollTo(0,0)} className="text-gray-400 hover:text-sky-500 transition">Bus Tickets</Link></li>
+                            <li><Link to="/contact"  onClick={()=>window.scrollTo(0,0)} className="text-gray-400 hover:text-sky-500 transition">Feedback</Link></li>
                         </ul>
                     </div>
 

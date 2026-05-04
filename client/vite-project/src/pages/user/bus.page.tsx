@@ -1,12 +1,23 @@
+import { useNavigate } from 'react-router-dom';
 import CitySearchInput from '../../components/user/common/city-search-input';
 // import FloatingButton from '../../components/user/common/floatingButton'
 
 const BusPage = () => {
+    const navigate = useNavigate();
     const buses = [
         { id: 1, name: 'Safar Express', from: 'Lahore', to: 'Karachi', time: '10:00 AM', price: '1500 PKR', seats: 12, backgroundImage: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=2071&auto=format&fit=crop' },
         { id: 2, name: 'Sky Ways', from: 'Karachi', to: 'Hyderabad', time: '02:00 PM', price: '800 PKR', seats: 25, backgroundImage: 'https://images.unsplash.com/photo-1607207807806-075f273b0d0d?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
         { id: 3, name: 'Daewoo', from: 'Peshawar', to: 'Rawalpindi', time: '05:00 PM', price: '1200 PKR', seats: 5, backgroundImage: 'https://images.unsplash.com/photo-1557223562-6c77ef16210f?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
     ];
+
+    const handleBook = () => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            navigate("/book-now");
+        } else {
+            navigate("/login");
+        }
+    };
 
     return (
         <div className="bg-gray-50 min-h-screen">
@@ -58,7 +69,7 @@ const BusPage = () => {
                             <div className="relative z-10 text-center md:text-right mt-4 md:mt-0">
                                 <div className={`text-2xl font-bold ${bus.backgroundImage ? 'text-orange-400' : 'text-orange-500'}`}>{bus.price}</div>
                                 <p className={`text-sm font-medium mb-3 ${bus.backgroundImage ? 'text-green-300' : 'text-green-600'}`}>{bus.seats} seats left</p>
-                                <button className="px-6 py-2 bg-sky-600 text-white rounded-lg font-semibold hover:bg-sky-700 transition">Book Now</button>
+                                <button onClick={handleBook} className="px-6 py-2 bg-sky-600 text-white rounded-lg font-semibold hover:bg-sky-700 transition">Book Now</button>
                             </div>
                         </div>
                     ))}

@@ -1,7 +1,6 @@
 const MyBookingsPage = () => {
     const bookings = [
         { id: 101, type: 'Bus', service: 'Safar Express', from: 'Lahore', to: 'Islamabad', date: '2023-10-15', status: 'Completed', price: '1500 PKR' },
-        { id: 102, type: 'Train', service: 'Green Line', from: 'Karachi', to: 'Lahore', date: '2023-11-20', status: 'Upcoming', price: '5000 PKR' },
     ];
 
     return (

@@ -1,6 +1,5 @@
 import { getRuleReply } from "../chatbot/rules.js";
 import { geminiModel } from "../config/gemini.js";
-import { askOpenRouter } from "../config/openrouter.js";
 
 export const chatWithBot = async (req, res) => {
   const { message } = req.body;

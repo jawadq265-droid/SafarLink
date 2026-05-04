@@ -26,9 +26,17 @@ const LoginPage = () => {
             );
 
             localStorage.setItem("token", res.data.token);
+            const role = res.data.user.role;
+            const email = res.data.user.email;
+            const name = res.data.user.name;
+            localStorage.setItem("role", role);
+            localStorage.setItem("userEmail", email);
+            localStorage.setItem("userName", name);
 
             toast.success("Login Successful ");
-            navigate("/dashboard");
+            
+            // All users are treated as "admin" of their portal after login
+            navigate("/admin");
 
         } 
 catch (err) {
@@ -49,7 +57,7 @@ catch (err) {
             </div>
 
             <div className="relative z-10 flex flex-col min-h-screen">
-                <div className="flex-grow flex items-center justify-center px-6 py-12">
+                <div className="flex-grow flex items-center lg:px-30 px-6 py-12">
 
                     <div className="bg-transparent backdrop-blur-sm p-10 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
 

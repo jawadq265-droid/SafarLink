@@ -12,10 +12,6 @@ const HOME = () => {
       subtitle: 'Experience comfort on the road'
     },
     {
-      title: 'Scenic Train Journeys',
-      subtitle: 'Discover Pakistan on rails'
-    },
-    {
       title: 'Explore New Destinations',
       subtitle: 'Your adventure begins here'
     }
@@ -32,7 +28,7 @@ const HOME = () => {
     imagesRef.current = images;
 
     const slideInterval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % 3);
+      setCurrentSlide((prev) => (prev + 1) % 2);
     }, 5000);
 
     return () => {
@@ -79,8 +75,8 @@ const HOME = () => {
   const changeSlide = (direction: number) => {
     setCurrentSlide((prev) => {
       const newSlide = prev + direction;
-      if (newSlide >= 3) return 0;
-      if (newSlide < 0) return 2;
+      if (newSlide >= 2) return 0;
+      if (newSlide < 0) return 1;
       return newSlide;
     });
   };
@@ -138,7 +134,6 @@ const HOME = () => {
           <div className="backdrop-blur-md bg-white/95 rounded-2xl shadow-2xl p-8 max-w-5xl mx-auto border border-white/20">
             <div className="flex gap-4 mb-6">
               <button className="flex-1 py-3 bg-sky-600 text-white rounded-lg font-semibold shadow-md">Bus</button>
-              <button className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Train</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
