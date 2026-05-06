@@ -82,6 +82,14 @@ export const login = async (req, res) => {
     }
 
     // 3. Compare password
+    if (!user.password) {
+      console.log(`Login attempt failed: User ${email} exists but has no password field in DB.`);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email or password"
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {

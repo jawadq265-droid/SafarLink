@@ -1,200 +1,220 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, MapPin, Bus, Clock, ArrowRight, ShieldCheck, Globe, Star, Search } from 'lucide-react';
 import CitySearchInput from '../../components/user/common/city-search-input';
+import { useLenis } from '../../lib/lenis';
 
 const HOME = () => {
+  useLenis();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imagesRef = useRef<HTMLImageElement[]>([]);
 
-  const slides = [
+  const heroSlides = [
     {
-      title: 'Premium Bus Travel',
-      subtitle: 'Experience comfort on the road'
+      subtitle: "PAKISTAN'S PREMIER TICKET PORTAL",
+      title: "Your Gateway To Every",
+      accentTitle: "Destination",
+      image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2000&auto=format&fit=crop"
     },
     {
-      title: 'Explore New Destinations',
-      subtitle: 'Your adventure begins here'
+      subtitle: "ALL MAJOR BUS OPERATORS IN ONE PLACE",
+      title: "Book Your Journey",
+      accentTitle: "Instantly Online",
+      image: "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=2000&auto=format&fit=crop"
     }
   ];
 
-  useEffect(() => {
-    // Preload animation frames
-    const images: HTMLImageElement[] = [];
-    for (let i = 1; i <= 240; i++) {
-      const img = new Image();
-      img.src = `/home_animation/ezgif-frame-${i.toString().padStart(3, '0')}.jpg`;
-      images.push(img);
-    }
-    imagesRef.current = images;
-
-    const slideInterval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % 2);
-    }, 5000);
-
-    return () => {
-      clearInterval(slideInterval);
-    };
-  }, []);
+  const routes_data = [
+    { from: 'Lahore', to: 'Karachi', price: '4500', image: 'https://images.unsplash.com/photo-1596468138838-067a3036495b?q=80&w=1000&auto=format&fit=crop', company: 'Daewoo Express' },
+    { from: 'Islamabad', to: 'Lahore', price: '1200', image: 'https://images.unsplash.com/photo-1563297677-4401a89c922a?q=80&w=1000&auto=format&fit=crop', company: 'Faisal Movers' },
+    { from: 'Karachi', to: 'Multan', price: '2800', image: 'https://images.unsplash.com/photo-1622320496181-7053e77f00f1?q=80&w=1000&auto=format&fit=crop', company: 'Bilal Travels' },
+    { from: 'Peshawar', to: 'Islamabad', price: '800', image: 'https://images.unsplash.com/photo-1627806551676-e9100411a76c?q=80&w=1000&auto=format&fit=crop', company: 'Sania Express' },
+  ];
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let frame = 1;
-    let animationId: number;
-    let lastTime = 0;
-    const fps = 24;
-    const interval = 1000 / fps;
-
-    const render = (time: number) => {
-      animationId = requestAnimationFrame(render);
-      const deltaTime = time - lastTime;
-
-      if (deltaTime > interval) {
-        lastTime = time - (deltaTime % interval);
-        const img = imagesRef.current[frame - 1];
-
-        if (img && img.complete && img.naturalWidth) {
-          if (canvas.width !== img.naturalWidth) {
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-          }
-          ctx.drawImage(img, 0, 0);
-        }
-
-        frame = frame >= 240 ? 1 : frame + 1;
-      }
-    };
-
-    animationId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animationId);
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 6000);
+    return () => clearInterval(timer);
   }, []);
-
-  const changeSlide = (direction: number) => {
-    setCurrentSlide((prev) => {
-      const newSlide = prev + direction;
-      if (newSlide >= 2) return 0;
-      if (newSlide < 0) return 1;
-      return newSlide;
-    });
-  };
-
 
   return (
-    <>
-      <div className="relative overflow-hidden bg-transparent">
+    <div className="bg-white">
 
-        {/* Hero Carousel */}
-        <div className="relative h-150 overflow-hidden -mt-20">
-          {/* Animated Background via Canvas to prevent flickering */}
-          <canvas
-            ref={canvasRef}
-            className="absolute inset-0 w-full h-full object-cover -z-10"
-          />
+      {/* Hero Section */}
+      <section className="relative h-screen min-h-[850px] flex items-center overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentSlide}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 2, ease: "easeOut" }}
+            className="absolute inset-0 z-0"
+          >
+            <div className="absolute inset-0 bg-black/75 z-10" />
+            <img
+              src={heroSlides[currentSlide].image}
+              className="w-full h-full object-cover"
+              alt="Hero Background"
+            />
+          </motion.div>
+        </AnimatePresence>
 
-          {slides.map((slide, index) => (
-            <div
-              key={index}
-              className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'
-                }`}
+        <div className="container mx-auto px-6 relative z-20 pt-20">
+          <div className="max-w-4xl">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1 }}
             >
-              <div className="absolute inset-0 bg-black/40" /> {/* Overlay for text readability */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-white px-6">
-                  <h1 className="text-5xl md:text-6xl font-bold mb-6 text-white drop-shadow-lg">{slide.title}</h1>
-                  <p className="text-xl md:text-2xl mb-8 opacity-95 drop-shadow-md">{slide.subtitle}</p>
+              <p className="text-[#aa8453] text-xs tracking-[0.6em] uppercase font-condensed mb-6 bg-[#aa8453]/10 inline-block px-4 py-2 border border-[#aa8453]/20">
+                {heroSlides[currentSlide].subtitle}
+              </p>
+              <h1 className="text-6xl md:text-8xl text-white font-serif leading-[1.1] mb-8">
+                {heroSlides[currentSlide].title} <br />
+                <span className="italic font-light text-[#aa8453]">{heroSlides[currentSlide].accentTitle}</span>
+              </h1>
+              <p className="text-white/60 text-lg md:text-xl font-light max-w-2xl leading-relaxed mb-12">
+                We bring together Pakistan's most trusted bus companies. Compare prices, check real-time seat availability, and book your tickets in seconds.
+              </p>
+              <div className="flex flex-wrap gap-6">
+                <button className="luxury-button !px-12 flex items-center space-x-3">
+                  <span>BOOK YOUR TICKET</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+
+      </section>
+
+      {/* About Section */}
+      <section className="py-48 pt-80 container mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
+          <div className="relative">
+            <div className="absolute -top-10 -left-10 w-40 h-40 border-l border-t border-[#aa8453]/30 hidden md:block"></div>
+            <div className="relative overflow-hidden rounded-sm shadow-2xl group">
+              <img
+                src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2000&auto=format&fit=crop"
+                className="w-full h-[600px] object-cover transition-transform duration-[20s] group-hover:scale-110"
+                alt="Bus Terminal"
+              />
+              <div className="absolute inset-0 bg-black/20" />
+            </div>
+            <div className="absolute -bottom-10 -right-10 w-40 h-40 border-r border-b border-[#aa8453]/30 hidden md:block"></div>
+          </div>
+
+          <div className="space-y-10">
+            <div className="space-y-4">
+              <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">PAKISTAN'S #1 BUS TICKET PORTAL</p>
+              <h2 className="text-5xl md:text-6xl font-serif leading-tight">Connecting You to <br /> Every Destination</h2>
+            </div>
+            <p className="text-gray-500 leading-relaxed max-w-xl text-lg">
+              SafarLink is your unified digital window to Pakistan's vast bus network. We provide a seamless bridge between you and the country's most reliable transport operators, making travel planning effortless.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+              <div className="flex items-start space-x-5">
+                <div className="p-4 bg-[#fcfbf9] text-[#aa8453] rounded-none border border-gray-100">
+                  <Globe size={32} />
+                </div>
+                <div>
+                  <h4 className="text-lg font-serif mb-2">Unified Network</h4>
+                  <p className="text-sm text-gray-400 font-light">Access schedules for all major operators in one platform.</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-5">
+                <div className="p-4 bg-[#fcfbf9] text-[#aa8453] rounded-none border border-gray-100">
+                  <ShieldCheck size={32} />
+                </div>
+                <div>
+                  <h4 className="text-lg font-serif mb-2">Safe & Secure</h4>
+                  <p className="text-sm text-gray-400 font-light">Your data and payments are protected by high-end encryption.</p>
                 </div>
               </div>
             </div>
-          ))}
-
-          {/* Carousel Controls */}
-          <button
-            onClick={() => changeSlide(-1)}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-3 rounded-full backdrop-blur-sm transition"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            onClick={() => changeSlide(1)}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-3 rounded-full backdrop-blur-sm transition"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Search Box */}
-        <div className="container mx-auto px-6 -mt-24 relative z-30 mb-20">
-          <div className="backdrop-blur-md bg-white/95 rounded-2xl shadow-2xl p-8 max-w-5xl mx-auto border border-white/20">
-            <div className="flex gap-4 mb-6">
-              <button className="flex-1 py-3 bg-sky-600 text-white rounded-lg font-semibold shadow-md">Bus</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <CitySearchInput label="From" placeholder="Departure City" />
-              </div>
-              <div>
-                <CitySearchInput label="To" placeholder="Arrival City" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                <input type="date" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none transition" />
-              </div>
-              <div className="flex items-end">
-                <button className="w-full py-3 bg-sky-600 text-white rounded-lg font-semibold hover:bg-sky-700 shadow-md transition hover:scale-105">Search</button>
-              </div>
+            <div className="pt-6">
+              <button className="luxury-button !px-12">LEARN MORE</button>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Features Section */}
-        <div className="container mx-auto px-6 py-20">
-          <h2 className="text-4xl font-bold text-center text-gray-800 mb-4">Next-Gen Travel Platform</h2>
-          <p className="text-center text-gray-600 mb-12 text-lg">Technology meets convenience</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Feature Card 1 */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-sky-100 transition hover:-translate-y-2">
-              <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center mb-6">
-                <svg className="w-8 h-8 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">Mobile First</h3>
-              <p className="text-gray-600">Book on-the-go with our intuitive mobile app. Your tickets, always accessible.</p>
+      {/* Routes Section - Clean Single Row Card Design */}
+      <section className="py-32 bg-[#fcfbf9]">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-20">
+            <div className="space-y-4">
+              <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">POPULAR INTER-CITY ROUTES</p>
+              <h2 className="text-5xl md:text-6xl font-serif">Plan Your Next Trip</h2>
             </div>
+            <button className="text-[#aa8453] text-xs tracking-widest font-condensed flex items-center space-x-3 group uppercase">
+              <span>EXPLORE ALL ROUTES</span>
+              <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+            </button>
+          </div>
 
-            {/* Feature Card 2 */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-cyan-100 transition hover:-translate-y-2">
-              <div className="w-16 h-16 bg-cyan-100 rounded-full flex items-center justify-center mb-6">
-                <svg className="w-8 h-8 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">Real-Time Updates</h3>
-              <p className="text-gray-600">Live tracking, instant notifications, and up-to-date schedule information.</p>
-            </div>
-
-            {/* Feature Card 3 */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-blue-100 transition hover:-translate-y-2">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-6">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">Lightning Fast</h3>
-              <p className="text-gray-600">Blazing-fast booking experience with our optimized platform technology.</p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {routes_data.map((route, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="luxury-card h-[500px]"
+              >
+                <img
+                  src={route.image}
+                  className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110"
+                  alt={route.from}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Bus size={12} className="text-[#aa8453]" />
+                    <span className="text-[10px] text-[#aa8453] tracking-[0.2em] uppercase font-condensed">{route.company}</span>
+                  </div>
+                  <h3 className="text-3xl font-serif mb-6">{route.from} <br /> to {route.to}</h3>
+                  <div className="flex items-end justify-between border-t border-white/20 pt-6">
+                    <div>
+                      <p className="text-[10px] text-gray-400 tracking-[0.1em] uppercase font-condensed mb-1">Starting from</p>
+                      <p className="text-2xl font-serif">{route.price} <span className="text-xs font-light text-white/50 tracking-normal">PKR</span></p>
+                    </div>
+                    <button className="w-12 h-12 border border-white/30 rounded-none flex items-center justify-center hover:bg-[#aa8453] hover:border-[#aa8453] transition-all">
+                      <ArrowRight size={20} />
+                    </button>
+                  </div>
+                </div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button className="luxury-button !py-3 !px-8 !text-[10px]">BUY TICKET</button>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </div>
-    </>
+      </section>
+
+      {/* Trust Quote Section */}
+      <section className="py-40 bg-[#1b1b1b] text-center px-6 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[15rem] font-serif text-white opacity-[0.01] whitespace-nowrap pointer-events-none">
+          SAFARLINK
+        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="relative z-10"
+        >
+          <span className="text-[10px] text-[#aa8453] tracking-[0.6em] uppercase mb-10 block">TRUSTED BY MILLIONS</span>
+          <h2 className="text-4xl md:text-7xl font-serif text-white italic max-w-4xl mx-auto leading-tight">
+            "Your journey matters to us. We ensure every ticket booked is a step towards a safe adventure."
+          </h2>
+          <div className="mt-12 w-20 h-[1px] bg-[#aa8453] mx-auto"></div>
+        </motion.div>
+      </section>
+    </div>
   );
 };
+
 export default HOME;

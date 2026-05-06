@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  Bus, 
-  Users, 
-  Settings, 
-  LogOut, 
-  Plus, 
-  Search, 
-  TrendingUp, 
+import {
+  LayoutDashboard,
+  Bus,
+  Users,
+  Settings,
+  LogOut,
+  Plus,
+  Search,
+  TrendingUp,
   Calendar,
   MoreVertical,
   Edit,
@@ -23,7 +23,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  
+
   const userRole = localStorage.getItem("role") || "user";
   const userEmail = localStorage.getItem("userEmail") || "";
   const userName = localStorage.getItem("userName") || "User";
@@ -61,12 +61,12 @@ const AdminDashboard = () => {
     { id: 'BK-001', userName: 'You', bus: 'Safar Express', date: '2024-05-10', amount: '1500 PKR', phone: '0300-1234567', cnic: '35201-0000000-1', seats: ['A1', 'A2'], status: 'Upcoming' },
   ];
 
-  const filteredBookings = isSuperAdmin 
+  const filteredBookings = isSuperAdmin
     ? allBookings.filter(booking => {
-        const matchesSearch = booking.userName.toLowerCase().includes(searchTerm.toLowerCase()) || booking.id.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesDate = dateFilter ? booking.date === dateFilter : true;
-        return matchesSearch && matchesDate;
-      })
+      const matchesSearch = booking.userName.toLowerCase().includes(searchTerm.toLowerCase()) || booking.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDate = dateFilter ? booking.date === dateFilter : true;
+      return matchesSearch && matchesDate;
+    })
     : myBookings;
 
   const handleLogout = () => {
@@ -82,39 +82,39 @@ const AdminDashboard = () => {
           <Link to="/" className="flex items-center space-x-2">
             <span className="text-2xl font-black text-white tracking-tighter">SafarLink</span>
             <span className={`text-[9px] uppercase tracking-widest font-black px-2 py-0.5 rounded-full ${isSuperAdmin ? 'bg-red-500 text-white' : 'bg-white text-sky-600'}`}>
-                {isSuperAdmin ? 'Super' : 'Portal'}
+              {isSuperAdmin ? 'Super' : 'Portal'}
             </span>
           </Link>
         </div>
-        
+
         <nav className="flex-1 p-4 space-y-1 mt-4">
           {isSuperAdmin ? (
             <>
-              <button 
+              <button
                 onClick={() => setActiveTab('dashboard')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition ${activeTab === 'dashboard' ? 'bg-sky-50 text-sky-600 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
               >
                 <LayoutDashboard size={20} />
                 <span className="font-bold text-sm">Overview</span>
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => setActiveTab('buses')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition ${activeTab === 'buses' ? 'bg-sky-50 text-sky-600 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
               >
                 <Bus size={20} />
                 <span className="font-bold text-sm">Manage Fleet</span>
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => setActiveTab('bookings')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition ${activeTab === 'bookings' ? 'bg-sky-50 text-sky-600 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
               >
                 <Calendar size={20} />
                 <span className="font-bold text-sm">All Bookings</span>
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => setActiveTab('users')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition ${activeTab === 'users' ? 'bg-sky-50 text-sky-600 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
               >
@@ -124,14 +124,14 @@ const AdminDashboard = () => {
             </>
           ) : (
             <>
-              <button 
+              <button
                 onClick={() => setActiveTab('my-bookings')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition ${activeTab === 'my-bookings' ? 'bg-sky-50 text-sky-600 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
               >
                 <Ticket size={20} />
                 <span className="font-bold text-sm">My Bookings</span>
               </button>
-              <Link 
+              <Link
                 to="/book-now"
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition text-gray-500 hover:bg-gray-50`}
               >
@@ -141,9 +141,9 @@ const AdminDashboard = () => {
             </>
           )}
         </nav>
-        
+
         <div className="p-4 border-t border-gray-100">
-          <button 
+          <button
             className="w-full flex items-center justify-center space-x-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition shadow-sm shadow-red-50"
             onClick={handleLogout}
           >
@@ -160,8 +160,8 @@ const AdminDashboard = () => {
           <div className="flex items-center space-x-4">
             {activeTab === 'dashboard' ? (
               <Link to="/" className="flex items-center space-x-2 text-gray-500 hover:text-sky-600 transition-colors group">
-                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                <span className="text-lg font-bold">Home</span>
+                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform " />
+                <span className="text-lg font-bold text-sky-600">Home</span>
               </Link>
             ) : (
               <h1 className="text-2xl font-black text-gray-800 capitalize tracking-tight">
@@ -169,30 +169,18 @@ const AdminDashboard = () => {
               </h1>
             )}
           </div>
-          
+
           <div className="flex items-center space-x-4">
-            {isSuperAdmin && (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Search fleet or users..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full focus:ring-2 focus:ring-sky-500 outline-none w-64 transition-all text-sm font-medium"
+            {isSuperAdmin && activeTab === 'bookings' && (
+              <div className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-sm">
+                <Filter size={16} className="text-gray-400" />
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="text-xs font-bold text-gray-600 outline-none border-none bg-transparent"
                 />
               </div>
-            )}
-            {isSuperAdmin && activeTab === 'bookings' && (
-                <div className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-sm">
-                    <Filter size={16} className="text-gray-400" />
-                    <input 
-                        type="date" 
-                        value={dateFilter}
-                        onChange={(e) => setDateFilter(e.target.value)}
-                        className="text-xs font-bold text-gray-600 outline-none border-none bg-transparent"
-                    />
-                </div>
             )}
             <div className="flex items-center space-x-3 ml-4 border-l pl-4 border-gray-200">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-black shadow-lg ${isSuperAdmin ? 'bg-red-500' : 'bg-sky-500'}`}>
@@ -259,35 +247,34 @@ const AdminDashboard = () => {
                                   <Bus size={18} />
                                 </div>
                                 <div>
-                                    <p className="font-black text-gray-800 text-sm leading-none mb-1">{bus.name}</p>
-                                    <p className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">{bus.route}</p>
+                                  <p className="font-black text-gray-800 text-sm leading-none mb-1">{bus.name}</p>
+                                  <p className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">{bus.route}</p>
                                 </div>
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                                <div className="flex items-center space-x-2">
-                                    <span className={`text-sm font-black ${bus.seatsLeft < 10 ? 'text-red-500' : 'text-emerald-500'}`}>
-                                        {bus.seatsLeft}
-                                    </span>
-                                    <span className="text-[10px] font-bold text-gray-400 tracking-tighter uppercase">Seats Left</span>
-                                </div>
+                              <div className="flex items-center space-x-2">
+                                <span className={`text-sm font-black ${bus.seatsLeft < 10 ? 'text-red-500' : 'text-emerald-500'}`}>
+                                  {bus.seatsLeft}
+                                </span>
+                                <span className="text-[10px] font-bold text-gray-400 tracking-tighter uppercase">Seats Left</span>
+                              </div>
                             </td>
                             <td className="px-6 py-4">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                bus.status === 'Active' ? 'bg-emerald-100 text-emerald-600' : 
-                                bus.status === 'On Trip' ? 'bg-sky-100 text-sky-600' : 
-                                'bg-orange-100 text-orange-600'
-                              }`}>
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${bus.status === 'Active' ? 'bg-emerald-100 text-emerald-600' :
+                                bus.status === 'On Trip' ? 'bg-sky-100 text-sky-600' :
+                                  'bg-orange-100 text-orange-600'
+                                }`}>
                                 {bus.status}
                               </span>
                             </td>
                             <td className="px-6 py-4">
-                                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner">
-                                    <div 
-                                        className={`h-full transition-all duration-1000 ${bus.seatsLeft === 0 ? 'bg-red-500' : 'bg-sky-600'}`}
-                                        style={{ width: `${((bus.totalSeats - bus.seatsLeft) / bus.totalSeats) * 100}%` }}
-                                    ></div>
-                                </div>
+                              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner">
+                                <div
+                                  className={`h-full transition-all duration-1000 ${bus.seatsLeft === 0 ? 'bg-red-500' : 'bg-sky-600'}`}
+                                  style={{ width: `${((bus.totalSeats - bus.seatsLeft) / bus.totalSeats) * 100}%` }}
+                                ></div>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -313,13 +300,13 @@ const AdminDashboard = () => {
 
                   <div className="bg-gradient-to-br from-indigo-900 to-black p-8 rounded-3xl shadow-2xl text-white relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-150 transition-all duration-700">
-                        <TrendingUp size={120} />
+                      <TrendingUp size={120} />
                     </div>
                     <h4 className="text-xl font-black mb-2 relative z-10">Neural Sync</h4>
                     <p className="text-sm text-gray-400 mb-8 relative z-10 leading-relaxed">System-wide terminal synchronization is active at 99.9% precision.</p>
                     <div className="flex items-center space-x-3 text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em] relative z-10 bg-emerald-400/10 w-fit px-4 py-2 rounded-full border border-emerald-400/20">
-                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></div>
-                        <span>Live Cloud Matrix Active</span>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></div>
+                      <span>Live Cloud Matrix Active</span>
                     </div>
                   </div>
                 </div>
@@ -327,77 +314,141 @@ const AdminDashboard = () => {
             </>
           )}
 
+          {activeTab === 'buses' && isSuperAdmin && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-gray-800">Fleet Management</h3>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Manage your vehicles</p>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search fleet..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 bg-gray-50 border-none rounded-full focus:ring-2 focus:ring-sky-500 outline-none w-64 transition-all text-sm font-medium shadow-inner"
+                  />
+                </div>
+              </div>
+              <div className="p-12 text-center">
+                <Bus size={48} className="mx-auto text-gray-200 mb-4" />
+                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Fleet directory coming soon</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'users' && isSuperAdmin && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-gray-800">User Directory</h3>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Manage registered passengers</p>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search users..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 bg-gray-50 border-none rounded-full focus:ring-2 focus:ring-sky-500 outline-none w-64 transition-all text-sm font-medium shadow-inner"
+                  />
+                </div>
+              </div>
+              <div className="p-12 text-center">
+                <Users size={48} className="mx-auto text-gray-200 mb-4" />
+                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">User directory coming soon</p>
+              </div>
+            </div>
+          )}
+
           {(activeTab === 'bookings' || activeTab === 'my-bookings') && (
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-8 border-b border-gray-50 flex items-center justify-between">
-                    <div>
-                        <h3 className="text-xl font-black text-gray-800">{isSuperAdmin ? 'Fleet Bookings' : 'My Trips'}</h3>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Total Records: {filteredBookings.length}</p>
+              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-gray-800">{isSuperAdmin ? 'Fleet Bookings' : 'My Trips'}</h3>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Total Records: {filteredBookings.length}</p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  {isSuperAdmin && (
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type="text"
+                        placeholder="Search records..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 pr-4 py-2 bg-gray-50 border-none rounded-full focus:ring-2 focus:ring-sky-500 outline-none w-64 transition-all text-sm font-medium shadow-inner"
+                      />
                     </div>
-                    {!isSuperAdmin && (
-                        <Link to="/bus" className="px-6 py-2 bg-sky-600 text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-sky-700 transition shadow-lg shadow-sky-100">
-                            Book New
-                        </Link>
-                    )}
+                  )}
+                  {!isSuperAdmin && (
+                    <Link to="/bus" className="px-6 py-2 bg-sky-600 text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-sky-700 transition shadow-lg shadow-sky-100">
+                      Book New
+                    </Link>
+                  )}
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-gray-50/50">
-                                <th className="px-8 py-5">Record ID</th>
-                                <th className="px-8 py-5">{isSuperAdmin ? 'Passenger' : 'Service'}</th>
-                                <th className="px-8 py-5">Destination / Route</th>
-                                <th className="px-8 py-5">Date</th>
-                                <th className="px-8 py-5">Fare</th>
-                                <th className="px-8 py-5 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {filteredBookings.map((booking) => (
-                                <tr key={booking.id} className="hover:bg-sky-50/50 transition-all group">
-                                    <td className="px-8 py-6">
-                                        <span className="font-black text-sky-600 text-sm tracking-tighter">#{booking.id}</span>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center space-x-4">
-                                            <div className="w-10 h-10 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-400 font-black text-lg shadow-inner">
-                                                {isSuperAdmin ? booking.userName.charAt(0) : <Bus size={20} />}
-                                            </div>
-                                            <div>
-                                                <p className="font-black text-gray-800 text-sm leading-none mb-1">{isSuperAdmin ? booking.userName : booking.bus}</p>
-                                                <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">
-                                                    {isSuperAdmin ? 'Registered Client' : 'Premium Service'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="flex flex-col">
-                                            <p className="text-sm font-black text-gray-700 leading-none mb-1">{booking.bus}</p>
-                                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Inter-City Link</p>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="px-3 py-1 bg-gray-100 rounded-lg w-fit">
-                                            <span className="text-[10px] font-black text-gray-600 uppercase tracking-tighter">{booking.date}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <span className="font-black text-gray-800 text-base tracking-tighter">{booking.amount}</span>
-                                    </td>
-                                    <td className="px-8 py-6 text-right">
-                                        <button 
-                                            onClick={() => setSelectedBooking(booking)}
-                                            className="p-3 text-sky-600 hover:bg-sky-100 rounded-2xl transition-all transform hover:rotate-12"
-                                        >
-                                            <Eye size={20} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-gray-50/50">
+                      <th className="px-8 py-5">Record ID</th>
+                      <th className="px-8 py-5">{isSuperAdmin ? 'Passenger' : 'Service'}</th>
+                      <th className="px-8 py-5">Destination / Route</th>
+                      <th className="px-8 py-5">Date</th>
+                      <th className="px-8 py-5">Fare</th>
+                      <th className="px-8 py-5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredBookings.map((booking) => (
+                      <tr key={booking.id} className="hover:bg-sky-50/50 transition-all group">
+                        <td className="px-8 py-6">
+                          <span className="font-black text-sky-600 text-sm tracking-tighter">#{booking.id}</span>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-400 font-black text-lg shadow-inner">
+                              {isSuperAdmin ? booking.userName.charAt(0) : <Bus size={20} />}
+                            </div>
+                            <div>
+                              <p className="font-black text-gray-800 text-sm leading-none mb-1">{isSuperAdmin ? booking.userName : booking.bus}</p>
+                              <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">
+                                {isSuperAdmin ? 'Registered Client' : 'Premium Service'}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex flex-col">
+                            <p className="text-sm font-black text-gray-700 leading-none mb-1">{booking.bus}</p>
+                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Inter-City Link</p>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="px-3 py-1 bg-gray-100 rounded-lg w-fit">
+                            <span className="text-[10px] font-black text-gray-600 uppercase tracking-tighter">{booking.date}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <span className="font-black text-gray-800 text-base tracking-tighter">{booking.amount}</span>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <button
+                            onClick={() => setSelectedBooking(booking)}
+                            className="p-3 text-sky-600 hover:bg-sky-100 rounded-2xl transition-all transform hover:rotate-12"
+                          >
+                            <Eye size={20} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
@@ -406,67 +457,67 @@ const AdminDashboard = () => {
       {/* Booking Detail Modal */}
       {selectedBooking && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSelectedBooking(null)}></div>
-            <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in duration-500 border border-white/20">
-                <div className="bg-sky-600 p-10 text-white relative">
-                    <button 
-                        onClick={() => setSelectedBooking(null)}
-                        className="absolute top-8 right-8 w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 backdrop-blur-md"
-                    >
-                        <X size={20} />
-                    </button>
-                    <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/60 mb-3">Electronic Manifest</p>
-                    <h2 className="text-4xl font-black tracking-tighter">{selectedBooking.id}</h2>
-                </div>
-                <div className="p-10 space-y-10 bg-white">
-                    <div className="grid grid-cols-2 gap-10">
-                        <div>
-                            <p className="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-2">Passenger</p>
-                            <p className="font-black text-gray-800 text-xl tracking-tight">{isSuperAdmin ? selectedBooking.userName : 'You'}</p>
-                        </div>
-                        <div>
-                            <p className="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-2">Identifier</p>
-                            <p className="font-black text-gray-800 text-xl tracking-tight">{selectedBooking.cnic}</p>
-                        </div>
-                        <div>
-                            <p className="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-2">Contact</p>
-                            <p className="font-black text-gray-800 text-xl tracking-tight">{selectedBooking.phone}</p>
-                        </div>
-                        <div>
-                            <p className="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-2">Total Paid</p>
-                            <p className="font-black text-sky-600 text-2xl tracking-tighter">{selectedBooking.amount}</p>
-                        </div>
-                    </div>
-                    
-                    <div className="pt-8 border-t-2 border-dashed border-gray-100">
-                        <p className="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-5">Journey Parameters</p>
-                        <div className="bg-gray-50 rounded-3xl p-6 flex justify-between items-center shadow-inner">
-                            <div>
-                                <p className="text-lg font-black text-gray-800 tracking-tight leading-none mb-1">{selectedBooking.bus}</p>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{selectedBooking.date}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] uppercase font-black text-sky-400 tracking-widest mb-1">Seats Allocated</p>
-                                <p className="font-black text-sky-600 text-2xl tracking-tighter">{selectedBooking.seats.join(", ")}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex space-x-3">
-                        <button 
-                            className="flex-1 py-5 bg-sky-600 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-sky-700 transition shadow-xl shadow-sky-100"
-                        >
-                            Download Ticket
-                        </button>
-                        <button 
-                            onClick={() => setSelectedBooking(null)}
-                            className="px-8 py-5 bg-gray-100 text-gray-400 rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-gray-200 hover:text-gray-600 transition"
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSelectedBooking(null)}></div>
+          <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in duration-500 border border-white/20">
+            <div className="bg-sky-600 p-10 text-white relative">
+              <button
+                onClick={() => setSelectedBooking(null)}
+                className="absolute top-8 right-8 w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 backdrop-blur-md"
+              >
+                <X size={20} />
+              </button>
+              <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/60 mb-3">Electronic Manifest</p>
+              <h2 className="text-4xl font-black tracking-tighter">{selectedBooking.id}</h2>
             </div>
+            <div className="p-10 space-y-10 bg-white">
+              <div className="grid grid-cols-2 gap-10">
+                <div>
+                  <p className="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-2">Passenger</p>
+                  <p className="font-black text-gray-800 text-xl tracking-tight">{isSuperAdmin ? selectedBooking.userName : 'You'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-2">Identifier</p>
+                  <p className="font-black text-gray-800 text-xl tracking-tight">{selectedBooking.cnic}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-2">Contact</p>
+                  <p className="font-black text-gray-800 text-xl tracking-tight">{selectedBooking.phone}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-2">Total Paid</p>
+                  <p className="font-black text-sky-600 text-2xl tracking-tighter">{selectedBooking.amount}</p>
+                </div>
+              </div>
+
+              <div className="pt-8 border-t-2 border-dashed border-gray-100">
+                <p className="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-5">Journey Parameters</p>
+                <div className="bg-gray-50 rounded-3xl p-6 flex justify-between items-center shadow-inner">
+                  <div>
+                    <p className="text-lg font-black text-gray-800 tracking-tight leading-none mb-1">{selectedBooking.bus}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{selectedBooking.date}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase font-black text-sky-400 tracking-widest mb-1">Seats Allocated</p>
+                    <p className="font-black text-sky-600 text-2xl tracking-tighter">{selectedBooking.seats.join(", ")}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  className="flex-1 py-5 bg-sky-600 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-sky-700 transition shadow-xl shadow-sky-100"
+                >
+                  Download Ticket
+                </button>
+                <button
+                  onClick={() => setSelectedBooking(null)}
+                  className="px-8 py-5 bg-gray-100 text-gray-400 rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-gray-200 hover:text-gray-600 transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

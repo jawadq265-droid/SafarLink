@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import main from "../../assets/images/mainbg.jpg";
+import { Link } from "react-router-dom";
 
 const ForgotPassword = () => {
 
@@ -16,15 +17,15 @@ const ForgotPassword = () => {
 
       toast.success(res.data.message);
 
-    } 
-catch (err) {
-    if (axios.isAxiosError(err)) {
-        console.log(err.response);
-       toast.error(err.response?.data?.message || "Login failed ");
-    } else {
-         toast.error("Something went wrong ");
     }
-}
+    catch (err) {
+      if (axios.isAxiosError(err)) {
+        console.log(err.response);
+        toast.error(err.response?.data?.message || "Login failed ");
+      } else {
+        toast.error("Something went wrong ");
+      }
+    }
   };
 
   return (
@@ -71,6 +72,11 @@ catch (err) {
               >
                 Send Reset Link
               </button>
+              <Link to="/login"
+                className="block w-full bg-white text-gray-900 py-3 rounded-lg font-bold hover:bg-gray-50 transition text-center hover:bg-sky-600 hover:text-white"
+              >
+                Back to Login
+              </Link>
 
             </form>
 
