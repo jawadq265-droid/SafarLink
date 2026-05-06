@@ -6,7 +6,7 @@ import nodemailer from "nodemailer";
 
 export const signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    let { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -14,6 +14,9 @@ export const signup = async (req, res) => {
         message: "All fields are required"
       });
     }
+
+    email = email.toLowerCase().trim();
+    name = name.trim();
 
     const userExists = await User.findOne({ email });
 
@@ -55,7 +58,7 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
     // 1. Check fields
     if (!email || !password) {
@@ -65,10 +68,13 @@ export const login = async (req, res) => {
       });
     }
 
+    email = email.toLowerCase().trim();
+
     // 2. Check user exists
     const user = await User.findOne({ email });
 
     if (!user) {
+      console.log(`Login attempt failed: User not found for email ${email}`);
       return res.status(400).json({
         success: false,
         message: "Invalid email or password"
@@ -79,6 +85,7 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
+      console.log(`Login attempt failed: Password mismatch for email ${email}`);
       return res.status(400).json({
         success: false,
         message: "Invalid email or password"

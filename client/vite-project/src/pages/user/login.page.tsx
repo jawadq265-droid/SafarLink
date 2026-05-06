@@ -17,35 +17,35 @@ const LoginPage = () => {
    
     const handleLogin = async () => {
         try {
-            const res = await axios.post(
-                "http://localhost:5000/api/v1/auth/login",
-                {
-                    email,
-                    password
-                }
-            );
+            const response = await fetch("http://127.0.0.1:5000/api/v1/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: email.trim().toLowerCase(),
+                    password: password.trim()
+                })
+            });
 
-            localStorage.setItem("token", res.data.token);
-            const role = res.data.user.role;
-            const email = res.data.user.email;
-            const name = res.data.user.name;
-            localStorage.setItem("role", role);
-            localStorage.setItem("userEmail", email);
-            localStorage.setItem("userName", name);
+            const data = await response.json();
 
-            toast.success("Login Successful ");
-            
-            // All users are treated as "admin" of their portal after login
+            if (!data.success) {
+                toast.error(data.message || "Login failed");
+                return;
+            }
+
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("role", data.user.role);
+            localStorage.setItem("userEmail", data.user.email);
+            localStorage.setItem("userName", data.user.name);
+
+            toast.success("Login Successful");
             navigate("/admin");
 
         } 
 catch (err) {
-    if (axios.isAxiosError(err)) {
-        console.log(err.response);
-       toast.error(err.response?.data?.message || "Login failed ");
-    } else {
-         toast.error("Something went wrong ");
-    }
+    toast.error("Something went wrong with the connection");
 }
     };
 

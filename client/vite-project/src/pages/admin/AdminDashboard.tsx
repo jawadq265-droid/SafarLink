@@ -16,7 +16,8 @@ import {
   Filter,
   Eye,
   X,
-  Ticket
+  Ticket,
+  ArrowLeft
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -156,9 +157,18 @@ const AdminDashboard = () => {
       <main className="flex-1 overflow-y-auto relative">
         {/* Header */}
         <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10 px-8 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-black text-gray-800 capitalize tracking-tight">
-            {activeTab === 'my-bookings' ? 'My Travel History' : activeTab}
-          </h1>
+          <div className="flex items-center space-x-4">
+            {activeTab === 'dashboard' ? (
+              <Link to="/" className="flex items-center space-x-2 text-gray-500 hover:text-sky-600 transition-colors group">
+                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                <span className="text-lg font-bold">Home</span>
+              </Link>
+            ) : (
+              <h1 className="text-2xl font-black text-gray-800 capitalize tracking-tight">
+                {activeTab === 'my-bookings' ? 'My Travel History' : activeTab}
+              </h1>
+            )}
+          </div>
           
           <div className="flex items-center space-x-4">
             {isSuperAdmin && (
