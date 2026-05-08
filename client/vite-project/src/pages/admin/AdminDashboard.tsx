@@ -17,7 +17,8 @@ import {
   Eye,
   X,
   Ticket,
-  ArrowLeft
+  ArrowLeft,
+  MapPin
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -34,6 +35,7 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showAddBusModal, setShowAddBusModal] = useState(false);
 
   const stats = [
     { title: 'Total Buses', value: '24', icon: Bus, color: 'bg-blue-500', trend: '+2 this month' },
@@ -315,27 +317,140 @@ const AdminDashboard = () => {
           )}
 
           {activeTab === 'buses' && isSuperAdmin && (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-black text-gray-800">Fleet Management</h3>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Manage your vehicles</p>
+            <div className="space-y-8">
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-8 border-b border-gray-50 flex items-center justify-between flex-wrap gap-4">
+                  <div>
+                    <h3 className="text-xl font-black text-gray-800">Fleet & Route Matrix</h3>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Configure your inter-city network</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type="text"
+                        placeholder="Search fleet..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 pr-4 py-2 bg-gray-50 border-none rounded-full focus:ring-2 focus:ring-sky-500 outline-none w-64 transition-all text-sm font-medium shadow-inner"
+                      />
+                    </div>
+                    <button 
+                      onClick={() => setShowAddBusModal(true)}
+                      className="flex items-center space-x-2 px-6 py-2 bg-sky-600 text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-sky-700 transition shadow-lg shadow-sky-100"
+                    >
+                      <Plus size={16} />
+                      <span>Add Route</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="text"
-                    placeholder="Search fleet..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 bg-gray-50 border-none rounded-full focus:ring-2 focus:ring-sky-500 outline-none w-64 transition-all text-sm font-medium shadow-inner"
-                  />
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-gray-50/50">
+                        <th className="px-8 py-5">Vehicle Image</th>
+                        <th className="px-8 py-5">Service Name</th>
+                        <th className="px-8 py-5">Route Link</th>
+                        <th className="px-8 py-5">Pricing</th>
+                        <th className="px-8 py-5">Status</th>
+                        <th className="px-8 py-5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {recentBuses.map((bus) => (
+                        <tr key={bus.id} className="hover:bg-sky-50/30 transition-all group">
+                          <td className="px-8 py-6">
+                            <div className="w-20 h-14 bg-gray-100 rounded-xl overflow-hidden border border-gray-100 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                              <img 
+                                src={bus.image || "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2000&auto=format&fit=crop"} 
+                                className="w-full h-full object-cover" 
+                                alt={bus.name} 
+                              />
+                            </div>
+                          </td>
+                          <td className="px-8 py-6">
+                            <p className="font-black text-gray-800 text-sm leading-none mb-1">{bus.name}</p>
+                            <p className="text-[10px] text-sky-600 font-black uppercase tracking-tighter">Luxury Executive</p>
+                          </td>
+                          <td className="px-8 py-6">
+                            <div className="flex items-center space-x-2">
+                              <MapPin size={12} className="text-[#aa8453]" />
+                              <span className="text-sm font-bold text-gray-700">{bus.route}</span>
+                            </div>
+                          </td>
+                          <td className="px-8 py-6">
+                            <span className="font-black text-gray-800 tracking-tighter">1,500 PKR</span>
+                          </td>
+                          <td className="px-8 py-6">
+                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${bus.status === 'Active' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+                              {bus.status}
+                            </span>
+                          </td>
+                          <td className="px-8 py-6 text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              <button className="p-2 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition">
+                                <Edit size={16} />
+                              </button>
+                              <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-              <div className="p-12 text-center">
-                <Bus size={48} className="mx-auto text-gray-200 mb-4" />
-                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Fleet directory coming soon</p>
-              </div>
+
+              {/* Add Bus Modal */}
+              {showAddBusModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowAddBusModal(false)}></div>
+                  <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in duration-500 border border-white/20">
+                    <div className="bg-sky-600 p-10 text-white relative">
+                      <button onClick={() => setShowAddBusModal(false)} className="absolute top-8 right-8 w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300">
+                        <X size={20} />
+                      </button>
+                      <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/60 mb-3">System Configuration</p>
+                      <h2 className="text-4xl font-black tracking-tighter">Register New Route</h2>
+                    </div>
+                    <form className="p-10 space-y-8 bg-white max-h-[60vh] overflow-y-auto scrollbar-hide">
+                      <div className="grid grid-cols-2 gap-8">
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest ml-1">Service Name</label>
+                          <input type="text" placeholder="e.g. Safar Gold" className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-sky-500 transition-all font-medium text-sm" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest ml-1">Route Path</label>
+                          <input type="text" placeholder="e.g. Lahore - Multan" className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-sky-500 transition-all font-medium text-sm" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest ml-1">Route Image URL</label>
+                        <input type="text" placeholder="Enter image URL from Unsplash or other sources..." className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-sky-500 transition-all font-medium text-sm" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-8">
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest ml-1">Fare (PKR)</label>
+                          <input type="number" placeholder="1500" className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-sky-500 transition-all font-medium text-sm" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest ml-1">Capacity</label>
+                          <input type="number" placeholder="40" className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-sky-500 transition-all font-medium text-sm" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest ml-1">Time</label>
+                          <input type="time" className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-sky-500 transition-all font-medium text-sm" />
+                        </div>
+                      </div>
+                      <button type="button" className="w-full py-5 bg-[#1b1b1b] text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-black transition shadow-xl" onClick={() => setShowAddBusModal(false)}>
+                        Initialize Route Manifest
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
