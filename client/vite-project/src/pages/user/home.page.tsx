@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, MapPin, Bus, Clock, ArrowRight, ShieldCheck, Globe, Star, Search } from 'lucide-react';
 import CitySearchInput from '../../components/user/common/city-search-input';
 import { useLenis } from '../../lib/lenis';
+import { Link } from 'react-router-dom';
 
 const HOME = () => {
   useLenis();
@@ -41,17 +42,18 @@ const HOME = () => {
     <div className="bg-white">
 
       {/* Hero Section */}
-      <section className="relative h-screen min-h-[850px] flex items-center overflow-hidden">
-        <AnimatePresence mode="wait">
+      <section className="relative h-screen min-h-[850px] flex items-center overflow-hidden bg-[#1b1b1b]">
+        {/* Background Animation */}
+        <AnimatePresence initial={false}>
           <motion.div
             key={currentSlide}
-            initial={{ opacity: 0, scale: 1.1 }}
+            initial={{ opacity: 0, scale: 1.05 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 2, ease: "easeOut" }}
             className="absolute inset-0 z-0"
           >
-            <div className="absolute inset-0 bg-black/75 z-10" />
+            <div className="absolute inset-0 bg-black/70 z-10" />
             <img
               src={heroSlides[currentSlide].image}
               className="w-full h-full object-cover"
@@ -60,25 +62,44 @@ const HOME = () => {
           </motion.div>
         </AnimatePresence>
 
-        <div className="container mx-auto px-6 relative z-20 pt-20">
+        <div className="container mx-auto px-6 relative z-20 -mt-20">
           <div className="max-w-4xl">
+            {/* Animated Title & Subtitle Area - Fixed height to prevent jumps */}
+            <div className="relative h-[300px] md:h-[400px] flex flex-col justify-end mb-8">
+              <AnimatePresence mode="popLayout">
+                <motion.div
+                  key={currentSlide}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -30 }}
+                  transition={{ duration: 1, ease: [0.19, 1, 0.22, 1] }}
+                  className="w-full"
+                >
+                  <p className="text-[#aa8453] text-xs tracking-[0.6em] uppercase font-condensed mb-6 bg-[#aa8453]/10 inline-block px-4 py-2 border border-[#aa8453]/20">
+                    {heroSlides[currentSlide].subtitle}
+                  </p>
+                  <h1 className="text-6xl md:text-8xl text-white font-serif leading-[1.1]">
+                    {heroSlides[currentSlide].title} <br />
+                    <span className="italic font-light text-[#aa8453]">{heroSlides[currentSlide].accentTitle}</span>
+                  </h1>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Static Content (Remains perfectly in place) */}
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, delay: 0.8 }}
             >
-              <p className="text-[#aa8453] text-xs tracking-[0.6em] uppercase font-condensed mb-6 bg-[#aa8453]/10 inline-block px-4 py-2 border border-[#aa8453]/20">
-                {heroSlides[currentSlide].subtitle}
-              </p>
-              <h1 className="text-6xl md:text-8xl text-white font-serif leading-[1.1] mb-8">
-                {heroSlides[currentSlide].title} <br />
-                <span className="italic font-light text-[#aa8453]">{heroSlides[currentSlide].accentTitle}</span>
-              </h1>
               <p className="text-white/60 text-lg md:text-xl font-light max-w-2xl leading-relaxed mb-12">
                 We bring together Pakistan's most trusted bus companies. Compare prices, check real-time seat availability, and book your tickets in seconds.
               </p>
               <div className="flex flex-wrap gap-6">
-                <button className="luxury-button !px-12 flex items-center space-x-3">
+                <button 
+                  onClick={() => document.getElementById('popular-routes')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="luxury-button !px-12 flex items-center space-x-3"
+                >
                   <span>BOOK YOUR TICKET</span>
                   <ArrowRight size={16} />
                 </button>
@@ -86,7 +107,6 @@ const HOME = () => {
             </motion.div>
           </div>
         </div>
-
       </section>
 
       {/* About Section */}
@@ -108,7 +128,7 @@ const HOME = () => {
           <div className="space-y-10">
             <div className="space-y-4">
               <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">PAKISTAN'S #1 BUS TICKET PORTAL</p>
-              <h2 className="text-5xl md:text-6xl font-serif leading-tight">Connecting You to <br /> Every Destination</h2>
+              <h2 className="text-5xl md:text-6xl font-serif leading-tight">Connecting You to Every Destination</h2>
             </div>
             <p className="text-gray-500 leading-relaxed max-w-xl text-lg">
               SafarLink is your unified digital window to Pakistan's vast bus network. We provide a seamless bridge between you and the country's most reliable transport operators, making travel planning effortless.
@@ -134,14 +154,33 @@ const HOME = () => {
               </div>
             </div>
             <div className="pt-6">
-              <button className="luxury-button !px-12">LEARN MORE</button>
+              <Link to="/AboutUs"><button className="luxury-button !px-12">LEARN MORE</button></Link>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Trust Quote Section */}
+      <section className="py-40 bg-[#1b1b1b] text-center px-6 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[15rem] font-serif text-white opacity-[0.01] whitespace-nowrap pointer-events-none">
+          SAFARLINK
+        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="relative z-10"
+        >
+          <span className="text-[10px] text-[#aa8453] tracking-[0.6em] uppercase mb-10 block">TRUSTED BY MILLIONS</span>
+          <h2 className="text-4xl md:text-7xl font-serif text-white italic max-w-4xl mx-auto leading-tight">
+            "Your journey matters to us. We ensure every ticket booked is a step towards a safe adventure."
+          </h2>
+          <div className="mt-12 w-20 h-[1px] bg-[#aa8453] mx-auto"></div>
+        </motion.div>
+      </section>
+
       {/* Routes Section - Clean Single Row Card Design */}
-      <section className="py-32 bg-[#fcfbf9]">
+      <section id="popular-routes" className="py-32 bg-[#fcfbf9]">
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-end mb-20">
             <div className="space-y-4">
@@ -195,24 +234,7 @@ const HOME = () => {
         </div>
       </section>
 
-      {/* Trust Quote Section */}
-      <section className="py-40 bg-[#1b1b1b] text-center px-6 relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[15rem] font-serif text-white opacity-[0.01] whitespace-nowrap pointer-events-none">
-          SAFARLINK
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative z-10"
-        >
-          <span className="text-[10px] text-[#aa8453] tracking-[0.6em] uppercase mb-10 block">TRUSTED BY MILLIONS</span>
-          <h2 className="text-4xl md:text-7xl font-serif text-white italic max-w-4xl mx-auto leading-tight">
-            "Your journey matters to us. We ensure every ticket booked is a step towards a safe adventure."
-          </h2>
-          <div className="mt-12 w-20 h-[1px] bg-[#aa8453] mx-auto"></div>
-        </motion.div>
-      </section>
+
     </div>
   );
 };

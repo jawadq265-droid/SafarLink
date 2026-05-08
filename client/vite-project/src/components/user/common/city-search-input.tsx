@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { MapPin, ChevronDown, Search } from 'lucide-react';
 
 const CITIES = [
     "Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta", "Sialkot",
@@ -58,27 +59,36 @@ const CitySearchInput = ({ label, placeholder, value, onChange }: CitySearchInpu
     };
 
     return (
-        <div className="relative" ref={wrapperRef}>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+        <div className="relative group" ref={wrapperRef}>
+            <label className="block text-[10px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed mb-3 ml-1">
+                {label}
+            </label>
             <div className="relative">
+                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-[#aa8453]/60 group-focus-within:text-[#aa8453] transition-colors">
+                    <MapPin size={18} strokeWidth={1.5} />
+                </div>
                 <input
                     type="text"
                     value={inputValue}
                     onChange={handleInputChange}
                     onFocus={() => inputValue && setIsOpen(true)}
                     placeholder={placeholder || "Enter city"}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none transition"
+                    className="w-full pl-14 pr-12 py-5 bg-white border-b border-gray-100 group-focus-within:border-[#aa8453] outline-none transition-all duration-500 font-serif text-lg text-gray-800 placeholder:text-gray-300 placeholder:font-light"
                 />
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#aa8453] transition-colors">
+                    <Search size={16} strokeWidth={1.5} />
+                </div>
 
                 {isOpen && suggestions.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
+                    <div className="absolute z-50 w-full mt-2 bg-white shadow-2xl border border-gray-50 max-h-72 overflow-y-auto rounded-none animate-in fade-in slide-in-from-top-2 duration-300">
                         {suggestions.map((city) => (
                             <button
                                 key={city}
                                 onClick={() => handleSelectCity(city)}
-                                className="w-full text-left px-4 py-2 hover:bg-sky-50 text-gray-800 transition-colors"
+                                className="w-full text-left px-6 py-4 hover:bg-[#fcfbf9] hover:text-[#aa8453] text-gray-700 font-serif transition-all duration-300 flex items-center justify-between group/item border-b border-gray-50 last:border-0"
                             >
-                                {city}
+                                <span>{city}</span>
+                                <ChevronDown size={14} className="-rotate-90 opacity-0 group-hover/item:opacity-100 transition-all transform translate-x-2 group-hover/item:translate-x-0" />
                             </button>
                         ))}
                     </div>

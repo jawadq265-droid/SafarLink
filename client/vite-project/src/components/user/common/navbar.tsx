@@ -25,7 +25,7 @@ const Navbar = () => {
               <img
                 src={SafarLink_Logo}
                 alt="SafarLink Logo"
-                className="w-12 h-12 rounded-sm object-cover brightness-110"
+                className="w-12 h-12 rounded-sm object-contain brightness-110"
               />
               <div className="absolute inset-0 border border-[#aa8453]/30 -m-1 group-hover:m-0 transition-all duration-500"></div>
             </div>
@@ -60,7 +60,7 @@ const Navbar = () => {
               LOGIN
             </Link>
             <Link to="/signup">
-              <button className="luxury-button text-sm !py-3 !px-5 !text-[10px] text-white border border-white rounded-full cursor-pointer hover:text-[#aa8453] transition-colors hover:border-[#aa8453] transition-colors">
+              <button className="luxury-button hover:bg-white text-sm !py-3 !px-5 !text-[10px] text-white border border-white rounded-full cursor-pointer hover:text-[#aa8453] transition-colors hover:border-[#aa8453] transition-colors">
                 JOIN NOW
               </button>
             </Link>
