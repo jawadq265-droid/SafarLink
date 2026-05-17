@@ -1,5 +1,11 @@
 {
   "dependencies": {
     "mongodb": "^7.1.1"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client/vite-project\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

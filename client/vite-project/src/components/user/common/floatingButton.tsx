@@ -55,7 +55,7 @@ const FloatingBotButton = () => {
     try {
       setTyping(true);
 
-      const res = await fetch("http://localhost:5000/api/v1/chatbot/chat", {
+      const res = await fetch("/api/v1/chatbot/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

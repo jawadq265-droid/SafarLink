@@ -27,7 +27,7 @@ const ResetPassword = () => {
 
     try {
       const res = await axios.post(
-        `http://localhost:5000/api/v1/auth/reset-password/${token}`,
+        `/api/v1/auth/reset-password/${token}`,
         { password }
       );
 
@@ -61,7 +61,7 @@ const ResetPassword = () => {
 
           <div className="bg-transparent backdrop-blur-sm p-10 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
 
-            <h2 className="text-3xl font-bold text-center text-white mb-8">
+            <h2 className="text-4xl font-serif text-center text-white mb-8">
               Reset Password
             </h2>
 
@@ -84,7 +84,7 @@ const ResetPassword = () => {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="text-white w-full px-4 py-3 pr-12 border border-white rounded-lg focus:ring-2 focus:ring-sky-600 outline-none"
+                    className="text-white w-full px-4 py-3 pr-12 border border-white/40 bg-black/20 rounded-lg focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition"
                     placeholder="••••••••"
                   />
 
@@ -108,7 +108,7 @@ const ResetPassword = () => {
                   type={showPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="text-white w-full px-4 py-3 border border-white rounded-lg focus:ring-2 focus:ring-sky-600 outline-none"
+                  className="text-white w-full px-4 py-3 border border-white/40 bg-black/20 rounded-lg focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition"
                   placeholder="••••••••"
                 />
               </div>
@@ -116,16 +116,16 @@ const ResetPassword = () => {
               {/* BUTTON */}
               <button
                 type="submit"
-                className="w-full bg-sky-600 text-white py-3 rounded-lg font-bold hover:bg-sky-700 transition"
+                className="w-full luxury-button !py-4 rounded-lg"
               >
-                Reset Password
+                RESET PASSWORD
               </button>
 
             </form>
 
             {/* BACK TO LOGIN */}
             <div className="mt-8 text-center">
-              <Link to="/login" className="text-sky-600 font-bold hover:text-sky-800">
+              <Link to="/login" className="text-[#aa8453] font-bold hover:text-[#8e6d45] transition">
                 Back to Login
               </Link>
             </div>

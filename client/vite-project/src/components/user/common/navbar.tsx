@@ -1,10 +1,25 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import SafarLink_Logo from '../../../assets/images/SafariLink_Logo.jpg';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const { t, i18n } = useTranslation();
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'en' ? 'ur' : 'en';
+    i18n.changeLanguage(newLang);
+    document.documentElement.dir = newLang === 'ur' ? 'rtl' : 'ltr';
+    document.documentElement.lang = newLang;
+  };
+
+  // Ensure dir is correct on mount
+  useEffect(() => {
+    document.documentElement.dir = i18n.language === 'ur' ? 'rtl' : 'ltr';
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -31,20 +46,20 @@ const Navbar = () => {
             </div>
             <div className="flex flex-col text-left">
               <span className="text-2xl font-serif text-white tracking-widest leading-none">SAFARLINK</span>
-              <span className="text-[10px] text-[#aa8453] tracking-[0.4em] uppercase mt-1">Ticket Portal</span>
+              <span className="text-[10px] text-[#aa8453] tracking-[0.4em] uppercase mt-1">{t('navbar.portal_subtitle')}</span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-12">
             {[
-              { name: 'HOME', path: '/' },
-              { name: 'BUS ROUTES', path: '/bus' },
-              { name: 'ABOUT US', path: '/AboutUs' },
-              { name: 'CONTACT', path: '/contact' },
-            ].map((link) => (
+              { name: t('navbar.home'), path: '/' },
+              { name: t('navbar.bus_routes'), path: '/bus' },
+              { name: t('navbar.about_us'), path: '/AboutUs' },
+              { name: t('navbar.contact'), path: '/contact' },
+            ].map((link, idx) => (
               <Link
-                key={link.name}
+                key={idx}
                 to={link.path}
                 className="text-white text-xs font-condensed tracking-[0.2em] hover:text-[#aa8453] transition-colors relative group"
               >
@@ -57,13 +72,19 @@ const Navbar = () => {
           {/* Auth/Book Now Button */}
           <div className="hidden md:flex items-center space-x-6">
             <Link to="/login" className="text-white text-xs font-condensed tracking-[0.2em] hover:text-[#aa8453] transition-colors">
-              LOGIN
+              {t('navbar.login')}
             </Link>
             <Link to="/signup">
-              <button className="luxury-button hover:bg-white text-sm !py-3 !px-5 !text-[10px] text-white border border-white rounded-full cursor-pointer hover:text-[#aa8453] transition-colors hover:border-[#aa8453] transition-colors">
-                JOIN NOW
+              <button className="luxury-button hover:bg-white text-sm !py-3 !px-5 !text-[10px] text-white border border-white rounded-full cursor-pointer hover:text-[#aa8453] transition-colors hover:border-[#aa8453]">
+                {t('navbar.join_now')}
               </button>
             </Link>
+            <button 
+              onClick={toggleLanguage}
+              className="text-[#aa8453] border border-[#aa8453] rounded-full px-3 py-1 text-xs hover:bg-[#aa8453] hover:text-white transition-all font-serif"
+            >
+              {i18n.language === 'en' ? 'UR' : 'EN'}
+            </button>
           </div>
 
           {/* Mobile Toggle Placeholder */}

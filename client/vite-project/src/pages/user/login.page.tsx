@@ -17,7 +17,7 @@ const LoginPage = () => {
    
     const handleLogin = async () => {
         try {
-            const response = await fetch("http://127.0.0.1:5000/api/v1/auth/login", {
+            const response = await fetch("/api/v1/auth/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -61,7 +61,7 @@ catch (err) {
 
                     <div className="bg-transparent backdrop-blur-sm p-10 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
 
-                        <h2 className="text-3xl font-bold text-center text-white mb-8">
+                        <h2 className="text-4xl font-serif text-center text-white mb-8">
                             Welcome Back
                         </h2>
 
@@ -76,7 +76,7 @@ catch (err) {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="text-white w-full px-4 py-3 border border-white rounded-lg focus:ring-2 focus:ring-sky-600 outline-none"
+                                    className="text-white w-full px-4 py-3 border border-white/40 bg-black/20 rounded-lg focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition"
                                     placeholder="john@example.com"
                                 />
                             </div>
@@ -87,7 +87,7 @@ catch (err) {
         <label className="block text-sm font-medium text-white">
             Password
         </label>
-        <a href="/forget" className="text-sm text-sky-600 hover:text-sky-800 font-medium">
+        <a href="/forget" className="text-sm text-[#aa8453] hover:text-[#8e6d45] font-medium transition">
             Forgot Password?
         </a>
     </div>
@@ -97,7 +97,7 @@ catch (err) {
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="text-white w-full px-4 py-3 pr-12 border border-white rounded-lg focus:ring-2 focus:ring-sky-600 outline-none"
+            className="text-white w-full px-4 py-3 pr-12 border border-white/40 bg-black/20 rounded-lg focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition"
             placeholder="••••••••"
         />
 
@@ -115,9 +115,9 @@ catch (err) {
                             <button
                                 type="button"
                                 onClick={handleLogin}
-                                className="w-full bg-sky-600 text-white py-3 rounded-lg font-bold hover:bg-sky-700 transition"
+                                className="w-full luxury-button !py-4 rounded-lg"
                             >
-                                Login
+                                LOGIN
                             </button>
 
                         </form>
@@ -125,7 +125,7 @@ catch (err) {
                         <div className="mt-8 text-center text-gray-600">
                             <p className='font-bold text-white'>
                                 Don't have an account?
-                                <Link to="/signup" className="text-sky-600 font-bold hover:text-sky-800 ml-1">
+                                <Link to="/signup" className="text-[#aa8453] font-bold hover:text-[#8e6d45] ml-1 transition">
                                     Sign Up
                                 </Link>
                             </p>

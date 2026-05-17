@@ -1,0 +1,37 @@
+{
+  "navbar": {
+    "home": "HOME",
+    "bus_routes": "BUS ROUTES",
+    "about_us": "ABOUT US",
+    "contact": "CONTACT",
+    "login": "LOGIN",
+    "join_now": "JOIN NOW",
+    "portal_subtitle": "Ticket Portal"
+  },
+  "home": {
+    "slide1_subtitle": "PAKISTAN'S PREMIER TICKET PORTAL",
+    "slide1_title": "Your Gateway To Every",
+    "slide1_accent": "Destination",
+    "slide2_subtitle": "ALL MAJOR BUS OPERATORS IN ONE PLACE",
+    "slide2_title": "Book Your Journey",
+    "slide2_accent": "Instantly Online",
+    "hero_desc": "We bring together Pakistan's most trusted bus companies. Compare prices, check real-time seat availability, and book your tickets in seconds.",
+    "book_ticket": "BOOK YOUR TICKET",
+    "about_subtitle": "PAKISTAN'S #1 BUS TICKET PORTAL",
+    "about_title": "Connecting You to Every Destination",
+    "about_desc": "SafarLink is your unified digital window to Pakistan's vast bus network. We provide a seamless bridge between you and the country's most reliable transport operators, making travel planning effortless.",
+    "feature1_title": "Unified Network",
+    "feature1_desc": "Access schedules for all major operators in one platform.",
+    "feature2_title": "Safe & Secure",
+    "feature2_desc": "Your data and payments are protected by high-end encryption.",
+    "learn_more": "LEARN MORE",
+    "trust_subtitle": "TRUSTED BY MILLIONS",
+    "trust_quote": "\"Your journey matters to us. We ensure every ticket booked is a step towards a safe adventure.\"",
+    "routes_subtitle": "POPULAR INTER-CITY ROUTES",
+    "routes_title": "Plan Your Next Trip",
+    "explore_routes": "EXPLORE ALL ROUTES",
+    "starting_from": "Starting from",
+    "buy_ticket": "BUY TICKET",
+    "to": "to"
+  }
+}

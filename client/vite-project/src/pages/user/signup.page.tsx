@@ -33,7 +33,7 @@ const SignupPage = () => {
 
     try {
 
-      const response = await fetch("http://127.0.0.1:5000/api/v1/auth/signup", {
+      const response = await fetch("/api/v1/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -81,7 +81,7 @@ const SignupPage = () => {
 
           <div className="bg-transparent backdrop-blur-sm px-10 py-5 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
 
-            <h2 className="text-3xl font-bold text-center text-white mb-8">
+            <h2 className="text-4xl font-serif text-center text-white mb-8">
               Create Account
             </h2>
 
@@ -93,11 +93,11 @@ const SignupPage = () => {
                   Full Name
                 </label>
 
-                <input
+                  <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 text-white border border-white rounded-lg focus:ring-2 focus:ring-sky-600 focus:border-white outline-none transition"
+                  className="w-full px-4 py-3 text-white border border-white/40 bg-black/20 rounded-lg focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition"
                   placeholder="John Doe"
                   required
                 />
@@ -114,7 +114,7 @@ const SignupPage = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3  text-white border border-white rounded-lg focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 text-white border border-white/40 bg-black/20 rounded-lg focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition"
                   placeholder="john@example.com"
                   required
                 />
@@ -133,7 +133,7 @@ const SignupPage = () => {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 text-white py-3 pr-12 border border-white rounded-lg focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none transition"
+                    className="w-full px-4 text-white py-3 pr-12 border border-white/40 bg-black/20 rounded-lg focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition"
                     placeholder="••••••••"
                     required
                   />
@@ -162,7 +162,7 @@ const SignupPage = () => {
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 text-white pr-12 border border-white rounded-lg focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-3 text-white pr-12 border border-white/40 bg-black/20 rounded-lg focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition"
                     placeholder="••••••••"
                     required
                   />
@@ -184,9 +184,9 @@ const SignupPage = () => {
               {/* Submit */}
               <button
                 type="submit"
-                className="w-full bg-sky-600 text-white py-3 rounded-lg font-bold hover:bg-sky-700 transition transform hover:scale-[1.02] shadow-md"
+                className="w-full luxury-button !py-4 rounded-lg"
               >
-                Sign Up
+                SIGN UP
               </button>
 
             </form>
@@ -196,7 +196,7 @@ const SignupPage = () => {
                 Already have an account?{" "}
                 <Link
                   to="/login" onClick={()=>window.scrollTo(0,0)}
-                  className="text-sky-600 font-bold hover:text-sky-800"
+                  className="text-[#aa8453] font-bold hover:text-[#8e6d45] transition"
                 >
                   Login
                 </Link>
