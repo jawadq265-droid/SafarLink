@@ -5,8 +5,12 @@ import router from "./routes/index.route.js";
 import db from "./config/db.js";
 const app = express();
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map(origin => origin.trim().replace(/\/$/, ""))
+  : ["http://localhost:5173", "http://127.0.0.1:5173"];
+
 app.use(cors({
-  origin: "https://safarlink-six.vercel.app/",
+  origin: allowedOrigins,
   credentials: true,
 }));
 
