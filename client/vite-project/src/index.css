@@ -127,3 +127,39 @@
     transform: translateY(-0.5rem);
   }
 }
+
+@media print {
+  nav,
+  footer,
+  .no-print,
+  button,
+  .floating-btn {
+    display: none !important;
+  }
+
+  body, 
+  #root,
+  .min-h-screen,
+  .container {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  #ticket {
+    display: block !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+}

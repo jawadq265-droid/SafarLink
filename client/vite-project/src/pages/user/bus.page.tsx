@@ -1,18 +1,41 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CitySearchInput from '../../components/user/common/city-search-input';
 // import FloatingButton from '../../components/user/common/floatingButton'
 
 const BusPage = () => {
     const navigate = useNavigate();
-    const buses = [
-        { id: 1, name: 'Safar Express', from: 'Lahore', to: 'Karachi', time: '10:00 AM', price: '1500 PKR', seats: 12, backgroundImage: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=2071&auto=format&fit=crop' },
-        { id: 2, name: 'Sky Ways', from: 'Karachi', to: 'Hyderabad', time: '02:00 PM', price: '800 PKR', seats: 25, backgroundImage: 'https://images.unsplash.com/photo-1607207807806-075f273b0d0d?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 3, name: 'Daewoo', from: 'Peshawar', to: 'Rawalpindi', time: '05:00 PM', price: '1200 PKR', seats: 5, backgroundImage: 'https://images.unsplash.com/photo-1557223562-6c77ef16210f?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-    ];
+    const [buses] = useState(() => {
+        const saved = localStorage.getItem("buses");
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return parsed
+                    .filter((b: any) => b.status === "Active")
+                    .map((b: any) => {
+                        const [from, to] = b.route.split(" - ");
+                        return {
+                            id: b.id,
+                            name: b.name,
+                            from: from || 'Lahore',
+                            to: to || 'Islamabad',
+                            time: b.time,
+                            price: `Rs. ${b.price}`,
+                            seats: b.seatsLeft,
+                            backgroundImage: b.busImage || b.image
+                        };
+                    });
+            } catch (e) {
+                // ignore
+            }
+        }
+        return [];
+    });
 
-    const handleBook = () => {
+    const handleBook = (bus: any) => {
         const token = localStorage.getItem("token");
         if (token) {
+            localStorage.setItem("booking_bus", JSON.stringify(bus));
             navigate("/book-now");
         } else {
             navigate("/login");
@@ -54,7 +77,7 @@ const BusPage = () => {
                 <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed mb-2">SELECT YOUR RIDE</p>
                 <h2 className="text-4xl font-serif text-gray-900 mb-10">Available Buses</h2>
                 <div className="grid gap-6">
-                    {buses.map((bus) => (
+                    {buses.map((bus: any) => (
                         <div
                             key={bus.id}
                             className={`relative overflow-hidden luxury-card p-0 flex flex-col md:flex-row justify-between items-stretch ${bus.backgroundImage ? 'text-white' : 'bg-white'}`}
@@ -75,7 +98,7 @@ const BusPage = () => {
                                 <p className="text-[10px] text-gray-300 tracking-[0.2em] uppercase font-condensed mb-1">Starting from</p>
                                 <div className={`text-3xl font-serif ${bus.backgroundImage ? 'text-white' : 'text-[#aa8453]'}`}>{bus.price}</div>
                                 <p className={`text-[10px] tracking-[0.1em] uppercase font-condensed mt-2 mb-6 ${bus.backgroundImage ? 'text-[#aa8453]' : 'text-green-600'}`}>{bus.seats} seats left</p>
-                                <button onClick={handleBook} className="luxury-button !px-8 w-full">BOOK NOW</button>
+                                <button onClick={() => handleBook(bus)} className="luxury-button !px-8 w-full">BOOK NOW</button>
                             </div>
                         </div>
                     ))}

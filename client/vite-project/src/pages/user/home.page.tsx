@@ -27,12 +27,29 @@ const HOME = () => {
     }
   ];
 
-  const routes_data = [
-    { from: 'Lahore', to: 'Karachi', price: '4500', image: 'https://images.unsplash.com/photo-1596468138838-067a3036495b?q=80&w=1000&auto=format&fit=crop', company: 'Daewoo Express' },
-    { from: 'Islamabad', to: 'Lahore', price: '1200', image: 'https://images.unsplash.com/photo-1563297677-4401a89c922a?q=80&w=1000&auto=format&fit=crop', company: 'Faisal Movers' },
-    { from: 'Karachi', to: 'Multan', price: '2800', image: 'https://images.unsplash.com/photo-1622320496181-7053e77f00f1?q=80&w=1000&auto=format&fit=crop', company: 'Bilal Travels' },
-    { from: 'Peshawar', to: 'Islamabad', price: '800', image: 'https://images.unsplash.com/photo-1627806551676-e9100411a76c?q=80&w=1000&auto=format&fit=crop', company: 'Sania Express' },
-  ];
+  const [routes_data] = useState(() => {
+    const saved = localStorage.getItem("buses");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed
+          .filter((b: any) => b.status === "Active")
+          .map((b: any) => {
+            const [from, to] = b.route.split(" - ");
+            return {
+              from: from || 'Lahore',
+              to: to || 'Islamabad',
+              price: b.price.toString(),
+              image: b.image,
+              company: b.name
+            };
+          });
+      } catch (e) {
+        // ignore
+      }
+    }
+    return [];
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -197,7 +214,7 @@ const HOME = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {routes_data.map((route, i) => (
+            {routes_data.map((route: any, i: number) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 30 }}
@@ -221,7 +238,7 @@ const HOME = () => {
                   <div className="flex items-end justify-between border-t border-white/20 pt-6">
                     <div>
                       <p className="text-[10px] text-gray-400 tracking-[0.1em] uppercase font-condensed mb-1">{t('home.starting_from')}</p>
-                      <p className="text-2xl font-serif">{route.price} <span className="text-xs font-light text-white/50 tracking-normal">PKR</span></p>
+                      <p className="text-2xl font-serif"><span className="text-xs font-light text-white/50 tracking-normal mr-1">Rs.</span>{route.price}</p>
                     </div>
                     <button className="w-12 h-12 border border-white/30 rounded-none flex items-center justify-center hover:bg-[#aa8453] hover:border-[#aa8453] transition-all">
                       <ArrowRight size={20} className="rtl:rotate-180" />

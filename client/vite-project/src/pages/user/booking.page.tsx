@@ -1,25 +1,38 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   CreditCard,
-  Smartphone,
-  MapPin,
   Bus,
-  Users,
   CheckCircle2,
-  ChevronRight,
-  ChevronLeft,
   Share2,
-  Download,
-  Info
+  Download
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BookingPage = () => {
-  const [step, setStep] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState('stripe');
-  const [selectedRoute, setSelectedRoute] = useState(null);
-  const [selectedSeats, setSelectedSeats] = useState([]);
+  const navigate = useNavigate();
+  const [step, setStep] = useState(2);
+  const [selectedRoute] = useState(() => {
+    const saved = localStorage.getItem("booking_bus");
+    if (saved) {
+      try {
+        const busObj = JSON.parse(saved);
+        return {
+          id: busObj.id,
+          from: busObj.from,
+          to: busObj.to,
+          price: parseInt(busObj.price.replace(/[^\d]/g, '')),
+          time: busObj.time,
+          bus: busObj.name
+        };
+      } catch (e) {
+        // ignore
+      }
+    }
+    return { id: 1, from: "Lahore", to: "Islamabad", price: 1500, time: "09:00 AM", bus: "Safar Express" };
+  });
+  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [passengerInfo, setPassengerInfo] = useState({
     name: '',
@@ -32,12 +45,6 @@ const BookingPage = () => {
     cvc: ''
   });
 
-  const routes = [
-    { id: 1, from: "Lahore", to: "Islamabad", price: 1500, time: "09:00 AM", bus: "Safar Express (Luxury)" },
-    { id: 2, from: "Karachi", to: "Lahore", price: 4500, time: "10:30 PM", bus: "Daewoo Gold (Executive)" },
-    { id: 3, from: "Multan", to: "Lahore", price: 1200, time: "02:15 PM", bus: "Sania Express (Standard)" },
-  ];
-
   // Fix: Move seats generation into useMemo so status doesn't change on every render
   const seats = React.useMemo(() => {
     return Array.from({ length: 40 }, (_, i) => ({
@@ -47,7 +54,7 @@ const BookingPage = () => {
   }, []);
 
   // Formatting functions
-  const formatCNIC = (val) => {
+  const formatCNIC = (val: string) => {
     const digits = val.replace(/\D/g, '');
     let res = '';
     if (digits.length > 0) res += digits.slice(0, 5);
@@ -56,33 +63,32 @@ const BookingPage = () => {
     return res;
   };
 
-  const formatCardNumber = (val) => {
+  const formatCardNumber = (val: string) => {
     const digits = val.replace(/\D/g, '');
     return digits.match(/.{1,4}/g)?.join(' ').slice(0, 19) || digits;
   };
 
-  const formatExpiry = (val) => {
+  const formatExpiry = (val: string) => {
     const digits = val.replace(/\D/g, '');
     if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2, 4);
     return digits;
   };
 
-  const formatPhone = (val) => {
-    const digits = val.replace(/\D/g, '');
-    return digits.slice(0, 11);
+  const formatPhone = (val: string) => {
+    let digits = val.replace(/\D/g, '');
+    if (digits.startsWith('0')) {
+      digits = digits.slice(1);
+    }
+    return digits.slice(0, 10);
   };
 
   const nextStep = () => {
-    if (step === 1 && !selectedRoute) {
-      toast.error("Please select a travel route");
-      return;
-    }
     if (step === 2 && selectedSeats.length === 0) {
       toast.error("Please select your seats");
       return;
     }
     if (step === 3) {
-      if (!passengerInfo.name || passengerInfo.phone.length < 11 || passengerInfo.cnic.length < 15) {
+      if (!passengerInfo.name || passengerInfo.phone.length < 10 || passengerInfo.cnic.length < 15) {
         toast.error("Please provide valid passenger details");
         return;
       }
@@ -107,75 +113,23 @@ const BookingPage = () => {
     window.print();
   };
 
-  const prevStep = () => setStep(step - 1);
+  const prevStep = () => {
+    if (step > 2) {
+      setStep(step - 1);
+    } else {
+      navigate("/bus");
+    }
+  };
 
   const stepVariants = {
     hidden: { opacity: 0, x: 50 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: "easeOut" } },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
     exit: { opacity: 0, x: -50, transition: { duration: 0.3 } }
   };
 
-  const renderRouteSelection = () => (
-    <motion.div variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-16 p-4">
-      <div className="text-center space-y-4">
-        <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">CHOOSE YOUR VOYAGE</p>
-        <h2 className="text-5xl md:text-6xl font-serif text-gray-900 leading-tight">Luxury Routes & Suites</h2>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-        {routes.map((route) => (
-          <div
-            key={route.id}
-            onClick={() => setSelectedRoute(route)}
-            className={`luxury-card p-10 border transition-all duration-700 cursor-pointer relative overflow-hidden bg-white ${selectedRoute?.id === route.id
-              ? 'border-[#aa8453] shadow-2xl scale-105'
-              : 'border-gray-100 hover:border-[#aa8453]/30 hover:shadow-xl'
-              }`}
-          >
-            {selectedRoute?.id === route.id && (
-              <div className="absolute top-8 right-8 text-[#aa8453]">
-                <CheckCircle2 size={32} />
-              </div>
-            )}
-            <div className="flex items-center space-x-6 mb-12">
-              <div className="p-5 bg-[#1b1b1b] text-white rounded-none shadow-xl border border-[#aa8453]/30">
-                <Bus size={32} />
-              </div>
-              <div>
-                <h3 className="font-serif text-[#1b1b1b] text-2xl tracking-tight leading-tight">{route.bus}</h3>
-                <p className="text-[10px] text-[#aa8453] font-condensed uppercase tracking-widest mt-1">Exclusive Line</p>
-              </div>
-            </div>
-            <div className="space-y-10">
-              <div className="flex items-center space-x-4 text-[#1b1b1b] bg-[#fcfbf9] p-6 rounded-none border border-gray-100">
-                <MapPin size={22} className="text-[#aa8453]" />
-                <span className="font-serif text-xl tracking-tight">{route.from} <span className="text-[#aa8453] px-2">→</span> {route.to}</span>
-              </div>
-              <div className="flex items-center justify-between pt-10 border-t border-gray-100">
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-400 font-condensed uppercase tracking-widest">Scheduled</span>
-                  <span className="text-[#1b1b1b] font-serif text-2xl">{route.time}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-gray-400 font-condensed uppercase tracking-widest">Investment</span>
-                  <p className="text-4xl font-serif text-[#aa8453] tracking-tighter">${route.price} <span className="text-xs">/ TRIP</span></p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-center pt-10">
-        <button onClick={nextStep} className="luxury-button !px-24 group">
-          <span className="relative z-10 flex items-center space-x-4">
-            <span>CONTINUE TO SEATS</span>
-            <ChevronRight size={20} className="group-hover:translate-x-2 transition-transform" />
-          </span>
-        </button>
-      </div>
-    </motion.div>
-  );
 
-  const handleSeatClick = (seatId, status) => {
+
+  const handleSeatClick = (seatId: number, status: string) => {
     if (status === 'booked') return;
     if (selectedSeats.includes(seatId)) {
       setSelectedSeats(selectedSeats.filter(id => id !== seatId));
@@ -185,7 +139,7 @@ const BookingPage = () => {
   };
 
   const renderSeatSelection = () => (
-    <motion.div variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-16 p-4">
+    <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-16 p-4">
       <div className="text-center space-y-4">
         <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">CONFIGURE YOUR SPACE</p>
         <h2 className="text-5xl md:text-6xl font-serif text-gray-900 leading-tight">Spatial Selection</h2>
@@ -229,7 +183,7 @@ const BookingPage = () => {
         <div className="flex items-center space-x-12">
           <div className="text-right">
             <p className="text-[10px] text-gray-400 font-condensed uppercase tracking-widest mb-1">Total Valuation</p>
-            <p className="text-4xl font-serif text-[#aa8453] tracking-tighter">${selectedSeats.length * (selectedRoute?.price || 0)} <span className="text-sm">/ PKR</span></p>
+            <p className="text-4xl font-serif text-[#aa8453] tracking-tighter">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
           </div>
           <button onClick={nextStep} className="luxury-button !px-16 uppercase text-[10px] tracking-widest">
             PERSONAL DETAILS
@@ -240,7 +194,7 @@ const BookingPage = () => {
   );
 
   const renderDetails = () => (
-    <motion.div variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-16 p-4">
+    <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-16 p-4">
       <div className="text-center space-y-4">
         <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">GUEST INFORMATION</p>
         <h2 className="text-5xl md:text-6xl font-serif text-gray-900 leading-tight">Passenger Profile</h2>
@@ -253,7 +207,7 @@ const BookingPage = () => {
               type="text"
               value={passengerInfo.name}
               onChange={(e) => setPassengerInfo({ ...passengerInfo, name: e.target.value })}
-              placeholder="e.g. Jawad Hussain"
+              placeholder="e.g. Muhammad Jawad"
               className="w-full px-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-xl font-serif transition-all"
             />
           </div>
@@ -264,9 +218,9 @@ const BookingPage = () => {
                 <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-400 font-serif text-xl">+92</span>
                 <input
                   type="text"
-                  value={passengerInfo.phone.startsWith('0') ? passengerInfo.phone.slice(1) : passengerInfo.phone}
+                  value={passengerInfo.phone}
                   onChange={(e) => setPassengerInfo({ ...passengerInfo, phone: formatPhone(e.target.value) })}
-                  placeholder="300 1234567"
+                  placeholder="3001234567"
                   className="w-full pl-24 pr-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-xl font-serif transition-all tracking-[0.2em]"
                 />
               </div>
@@ -294,7 +248,7 @@ const BookingPage = () => {
   );
 
   const renderPaymentSelection = () => (
-    <motion.div variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-16 p-4">
+    <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-16 p-4">
       <div className="text-center space-y-4">
         <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">SECURE SETTLEMENT</p>
         <h2 className="text-5xl md:text-6xl font-serif text-gray-900 leading-tight">Payment Gateway</h2>
@@ -323,7 +277,7 @@ const BookingPage = () => {
               </div>
               <div className="text-right">
                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-condensed">Authorized Amount</p>
-                <p className="text-3xl font-serif text-[#aa8453]">${selectedSeats.length * (selectedRoute?.price || 0)}</p>
+                <p className="text-3xl font-serif text-[#aa8453]">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
               </div>
             </div>
 
@@ -384,7 +338,7 @@ const BookingPage = () => {
 
     return (
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-16">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 no-print">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -397,76 +351,76 @@ const BookingPage = () => {
           <h2 className="text-5xl md:text-6xl font-serif text-gray-900 leading-tight">Manifest Authenticated</h2>
         </div>
 
-        <div id="ticket" className="max-w-4xl mx-auto bg-white rounded-none overflow-hidden shadow-2xl border border-gray-100 relative">
-          <div className="bg-[#1b1b1b] p-16 text-white border-b border-[#aa8453]/30">
-            <div className="flex justify-between items-start">
+        <div id="ticket" className="max-w-4xl mx-auto bg-white rounded-none shadow-2xl border border-gray-100 relative w-full overflow-hidden">
+          <div className="bg-[#1b1b1b] p-6 md:p-16 text-white border-b border-[#aa8453]/30">
+            <div className="flex justify-between items-start gap-4">
               <div>
-                <h3 className="text-5xl font-serif tracking-tight">SAFARLINK</h3>
+                <h3 className="text-3xl md:text-5xl font-serif tracking-tight">SAFARLINK</h3>
                 <p className="text-[10px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed mt-4">Verified Digital Manifest</p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] opacity-40 uppercase font-condensed tracking-[0.3em] mb-2">Issued On</p>
-                <p className="text-2xl font-serif tracking-tighter">{formattedDate}</p>
+                <p className="text-xl md:text-2xl font-serif tracking-tighter whitespace-nowrap">{formattedDate}</p>
               </div>
             </div>
           </div>
 
-          <div className="p-20">
-            <div className="flex items-center justify-between mb-20">
-              <div className="text-center flex-1">
-                <p className="text-6xl font-serif text-gray-900 leading-none">{selectedRoute?.from}</p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-[0.4em] font-condensed mt-6">Port of Origin</p>
+          <div className="p-4 sm:p-8 md:p-20">
+            <div className="flex flex-col md:flex-row items-center justify-between mb-8 md:mb-16 gap-6">
+              <div className="text-center flex-1 min-w-0">
+                <p className="text-2xl sm:text-3xl md:text-4xl font-serif text-gray-900 leading-tight break-words">{selectedRoute?.from}</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-[0.4em] font-condensed mt-2">Port of Origin</p>
               </div>
-              <div className="flex flex-col items-center px-16">
-                <Bus size={48} className="text-[#aa8453] mb-6" />
-                <div className="h-[1px] w-64 bg-gray-100 relative overflow-hidden">
+              <div className="flex flex-col items-center px-4 md:px-8 shrink-0">
+                <Bus size={24} className="text-[#aa8453] mb-2" />
+                <div className="h-[1px] w-24 md:w-40 bg-gray-200 relative overflow-hidden">
                   <div className="absolute inset-0 bg-[#aa8453] w-1/2 animate-slide-right"></div>
                 </div>
               </div>
-              <div className="text-center flex-1">
-                <p className="text-6xl font-serif text-gray-900 leading-none">{selectedRoute?.to}</p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-[0.4em] font-condensed mt-6">Final Destination</p>
+              <div className="text-center flex-1 min-w-0">
+                <p className="text-2xl sm:text-3xl md:text-4xl font-serif text-gray-900 leading-tight break-words">{selectedRoute?.to}</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-[0.4em] font-condensed mt-2">Final Destination</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-12 border-y border-gray-100 py-16 mb-16">
-              <div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12 border-y border-gray-100 py-8 md:py-16 mb-8 md:mb-16">
+              <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-3">Passenger</p>
-                <p className="text-2xl font-serif text-gray-900">{passengerInfo.name}</p>
+                <p className="text-base sm:text-lg md:text-2xl font-serif text-gray-900 break-words">{passengerInfo.name}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-3">Allocated</p>
-                <p className="text-2xl font-serif text-[#aa8453]">{selectedSeats.join(", ")}</p>
+                <p className="text-base sm:text-lg md:text-2xl font-serif text-[#aa8453] break-all">{selectedSeats.join(", ")}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-3">Voyage Date</p>
-                <p className="text-2xl font-serif text-gray-900">{formattedDate}</p>
+                <p className="text-base sm:text-lg md:text-2xl font-serif text-gray-900">{formattedDate}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-3">Transit Class</p>
-                <p className="text-2xl font-serif text-gray-900">Executive</p>
+                <p className="text-base sm:text-lg md:text-2xl font-serif text-gray-900">Executive</p>
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row justify-between items-center bg-[#fcfbf9] p-12 rounded-none border border-gray-100">
-              <div>
+            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center bg-[#fcfbf9] p-6 sm:p-8 md:p-12 rounded-none border border-gray-100 gap-6">
+              <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-2">Secure Link</p>
-                <p className="text-3xl font-serif text-gray-900 tracking-tighter">+92 {passengerInfo.phone}</p>
+                <p className="text-2xl sm:text-3xl font-serif text-gray-900 tracking-tighter whitespace-nowrap">+92 {passengerInfo.phone}</p>
               </div>
-              <div className="text-right">
+              <div className="text-left md:text-right min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-2">Paid in Full</p>
-                <p className="text-6xl font-serif text-[#aa8453] tracking-tighter">${selectedSeats.length * (selectedRoute?.price || 0)}</p>
+                <p className="text-4xl sm:text-5xl md:text-6xl font-serif text-[#aa8453] tracking-tighter leading-none">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-center space-x-10 pb-32">
-          <button onClick={handleDownloadPDF} className="luxury-button !py-5 !px-16 flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pb-32 no-print">
+          <button onClick={handleDownloadPDF} className="luxury-button !py-5 !px-16 flex items-center space-x-4 w-full sm:w-auto justify-center">
             <Download size={24} />
             <span>ARCHIVE MANIFEST</span>
           </button>
-          <button onClick={() => window.open(`https://wa.me/?text=Manifest Sealed for ${passengerInfo.name}`, '_blank')} className="luxury-button-outline !text-gray-900 !border-gray-200 !py-5 !px-16 flex items-center space-x-4">
+          <button onClick={() => window.open(`https://wa.me/?text=Manifest Sealed for ${passengerInfo.name}`, '_blank')} className="luxury-button-outline !text-gray-900 !border-gray-200 !py-5 !px-16 flex items-center space-x-4 w-full sm:w-auto justify-center">
             <Share2 size={24} />
             <span>SHARE ON WHATSAPP</span>
           </button>
@@ -479,7 +433,7 @@ const BookingPage = () => {
     <div className="min-h-screen bg-white pt-48 pb-32">
       <div className="container mx-auto px-6 max-w-7xl">
         {/* Luxury Progress Header */}
-        <div className="bg-[#1b1b1b] p-16 rounded-none mb-24 relative overflow-hidden border-b-4 border-[#aa8453] shadow-2xl">
+        <div className="bg-[#1b1b1b] p-16 rounded-none mb-24 relative overflow-hidden border-b-4 border-[#aa8453] shadow-2xl no-print">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10rem] font-serif text-white opacity-[0.02] whitespace-nowrap pointer-events-none">
             RESERVATION
           </div>
@@ -489,11 +443,11 @@ const BookingPage = () => {
               <h1 className="text-6xl font-serif text-white tracking-tight">Luxury Reservation</h1>
             </div>
             <div className="flex items-center space-x-6 mt-12 md:mt-0">
-              {[1, 2, 3, 4, 5].map((i) => (
+              {[2, 3, 4, 5].map((i) => (
                 <React.Fragment key={i}>
                   <div className={`flex items-center justify-center w-14 h-14 rounded-none border transition-all duration-700 ${step >= i ? 'bg-[#aa8453] text-white border-[#aa8453] shadow-2xl' : 'bg-transparent text-white/20 border-white/10'
                     }`}>
-                    {step > i ? <CheckCircle2 size={28} /> : <span className="font-serif text-xl">{i}</span>}
+                    {step > i ? <CheckCircle2 size={28} /> : <span className="font-serif text-xl">{i - 1}</span>}
                   </div>
                   {i < 5 && <div className={`w-16 h-[1px] ${step > i ? 'bg-[#aa8453]' : 'bg-white/10'}`}></div>}
                 </React.Fragment>
@@ -510,7 +464,6 @@ const BookingPage = () => {
             exit={{ opacity: 0, y: -30 }}
             transition={{ duration: 0.6, ease: "circOut" }}
           >
-            {step === 1 && renderRouteSelection()}
             {step === 2 && renderSeatSelection()}
             {step === 3 && renderDetails()}
             {step === 4 && renderPaymentSelection()}

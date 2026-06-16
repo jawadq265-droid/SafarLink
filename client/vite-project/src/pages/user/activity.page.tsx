@@ -11,7 +11,7 @@ const UserActivityPage = () => {
       to: "Islamabad",
       date: "2024-05-10",
       time: "09:00 AM",
-      price: "1500 PKR",
+      price: "Rs. 1500",
       status: "Upcoming",
       seats: ["A1", "A2"]
     },
@@ -22,7 +22,7 @@ const UserActivityPage = () => {
       to: "Lahore",
       date: "2024-04-15",
       time: "10:30 PM",
-      price: "4500 PKR",
+      price: "Rs. 4500",
       status: "Completed",
       seats: ["C4"]
     }
