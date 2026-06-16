@@ -4,6 +4,8 @@ import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import main from "../../assets/images/mainbg.jpg"
 
+const BASE_URL = (import.meta.env.VITE_BASE_URL || "/api/v1/").replace(/['"]/g, "").replace(/\/?$/, "/");
+
 const LoginPage = () => {
 
     const navigate = useNavigate();
@@ -16,7 +18,7 @@ const LoginPage = () => {
    
     const handleLogin = async () => {
         try {
-            const response = await fetch("/api/v1/auth/login", {
+            const response = await fetch(`${BASE_URL}auth/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"

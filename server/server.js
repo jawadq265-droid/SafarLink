@@ -14,6 +14,10 @@ app.use(express.json());
 
 app.use("/api/v1", router);
 
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "SafarLink Backend API is running successfully!" });
+});
+
 const PORT = process.env.PORT || 5000;
 
 db().then(() => {

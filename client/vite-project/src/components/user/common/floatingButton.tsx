@@ -10,6 +10,8 @@ const sendSound = new Audio(sendsound);
 const receiveSound = new Audio(botSound);
 
 
+const BASE_URL = (import.meta.env.VITE_BASE_URL || "/api/v1/").replace(/['"]/g, "").replace(/\/?$/, "/");
+
 const FloatingBotButton = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -30,14 +32,12 @@ const FloatingBotButton = () => {
     };
 
 
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [open]);
+  }, []);
 
   const [typing, setTyping] = useState(false);
 
@@ -55,7 +55,7 @@ const FloatingBotButton = () => {
     try {
       setTyping(true);
 
-      const res = await fetch("/api/v1/chatbot/chat", {
+      const res = await fetch(`${BASE_URL}chatbot/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

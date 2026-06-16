@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import main from "../../assets/images/mainbg.jpg"
 
+const BASE_URL = (import.meta.env.VITE_BASE_URL || "/api/v1/").replace(/['"]/g, "").replace(/\/?$/, "/");
+
 const SignupPage = () => {
 
   const [name, setName] = useState("");
@@ -33,7 +35,7 @@ const SignupPage = () => {
 
     try {
 
-      const response = await fetch("/api/v1/auth/signup", {
+      const response = await fetch(`${BASE_URL}auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

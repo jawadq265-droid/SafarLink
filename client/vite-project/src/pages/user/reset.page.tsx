@@ -5,6 +5,8 @@ import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import main from "../../assets/images/mainbg.jpg";
 
+const BASE_URL = (import.meta.env.VITE_BASE_URL || "/api/v1/").replace(/['"]/g, "").replace(/\/?$/, "/");
+
 const ResetPassword = () => {
 
   const { token } = useParams();
@@ -27,7 +29,7 @@ const ResetPassword = () => {
 
     try {
       const res = await axios.post(
-        `/api/v1/auth/reset-password/${token}`,
+        `${BASE_URL}auth/reset-password/${token}`,
         { password }
       );
 

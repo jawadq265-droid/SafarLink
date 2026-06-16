@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import main from "../../assets/images/mainbg.jpg";
 import { Link } from "react-router-dom";
 
+const BASE_URL = (import.meta.env.VITE_BASE_URL || "/api/v1/").replace(/['"]/g, "").replace(/\/?$/, "/");
+
 const ForgotPassword = () => {
 
   const [email, setEmail] = useState("");
@@ -11,7 +13,7 @@ const ForgotPassword = () => {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        "/api/v1/auth/forgot-password",
+        `${BASE_URL}auth/forgot-password`,
         { email }
       );
 
