@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Instagram, Facebook, Twitter, ArrowUp } from 'lucide-react';
+import { Mail, Phone, MapPin, Instagram, Facebook, Twitter, ArrowUp, Send } from 'lucide-react';
 import SafarLink_Logo from '../../../assets/images/SafariLink_Logo.jpg';
 
 const Footer = () => {
@@ -118,13 +118,21 @@ const Footer = () => {
             <p className="text-white/40 text-sm font-light leading-relaxed">
               Subscribe to receive exclusive travel offers and route updates.
             </p>
-            <div className="relative">
+            <form className="relative flex items-center" onSubmit={(e) => e.preventDefault()}>
               <input
                 type="email"
                 placeholder="Your email address"
-                className="w-full bg-white/5 border-b border-white/10 px-2 py-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#aa8453] transition-colors"
+                className="w-full bg-white/5 border-b border-white/10 px-2 py-4 pr-10 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#aa8453] transition-colors"
+                required
               />
-            </div>
+              <button
+                type="submit"
+                className="absolute right-2 text-[#aa8453] hover:text-white transition-colors"
+                aria-label="Subscribe"
+              >
+                <Send size={18} strokeWidth={1.5} />
+              </button>
+            </form>
           </div>
 
         </div>
