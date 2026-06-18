@@ -11,15 +11,7 @@ const Navbar = () => {
   const toggleLanguage = () => {
     const newLang = i18n.language === 'en' ? 'ur' : 'en';
     i18n.changeLanguage(newLang);
-    document.documentElement.dir = newLang === 'ur' ? 'rtl' : 'ltr';
-    document.documentElement.lang = newLang;
   };
-
-  // Ensure dir is correct on mount
-  useEffect(() => {
-    document.documentElement.dir = i18n.language === 'ur' ? 'rtl' : 'ltr';
-    document.documentElement.lang = i18n.language;
-  }, [i18n.language]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
