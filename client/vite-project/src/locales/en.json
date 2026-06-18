@@ -33,5 +33,62 @@
     "starting_from": "Starting from",
     "buy_ticket": "BUY TICKET",
     "to": "to"
+  },
+  "aboutUs": {
+    "our_story": "OUR STORY",
+    "title": "About Us",
+    "hero_desc": "Connecting destinations, creating memories. Discover the story behind SafarLink and the people who make it happen.",
+    "difference_title": "Experience the SafarLink Difference",
+    "difference_desc1": "At SafarLink, we believe a journey is more than just getting from point A to point B. It's about safety, comfort, and the human connection.",
+    "difference_desc2": "Our staff goes through rigorous training to ensure your safety. From our experienced drivers to our helpful support team, every member is dedicated to making your trip pleasant. We take pride in our punctuality and hospitality.",
+    "safe_travel": "Safe Travel",
+    "expert_staff": "Expert Staff",
+    "modern_fleet": "Modern Fleet",
+    "testimonials": "TESTIMONIALS",
+    "happy_customer_journeys": "Happy Customer Journeys",
+    "proudly_sponsored_by": "Proudly Sponsored By",
+    "reviews": {
+      "sarah_text": "My journey with SafarLink was nothing short of amazing. The bus was clean, on time, and the seats were incredibly comfortable. It made my 6-hour trip feel like a breeze!",
+      "sarah_name": "Sarah Johnson",
+      "sarah_role": "Regular Commuter",
+      "michael_text": "I was impressed by the staff's professionalism. The driver was very careful, and the conductor helped me with my heavy luggage with a smile. Highly recommended!",
+      "michael_name": "Michael Chen",
+      "michael_role": "Adventure Traveler",
+      "emily_text": "Booking was so easy, and the Wi-Fi on board actually worked! I managed to finish my assignment while traveling. Great experience with the SafarLink team.",
+      "emily_name": "Emily Davis",
+      "emily_role": "Student"
+    }
+  },
+  "bus": {
+    "journey_begins": "YOUR JOURNEY BEGINS",
+    "book_tickets": "Book Bus Tickets",
+    "from": "From",
+    "to": "To",
+    "departure": "Departure",
+    "arrival": "Arrival",
+    "date": "Date",
+    "search_buses": "SEARCH BUSES",
+    "select_ride": "SELECT YOUR RIDE",
+    "available_buses": "Available Buses",
+    "departure_label": "Departure",
+    "starting_from": "Starting from",
+    "seats_left": "seats left",
+    "book_now": "BOOK NOW"
+  },
+  "contact": {
+    "reach_out": "REACH OUT",
+    "title": "Get in Touch",
+    "desc": "We'd love to hear from you. Our team is here to help.",
+    "first_name": "First Name",
+    "first_name_placeholder": "John",
+    "last_name": "Last Name",
+    "last_name_placeholder": "Doe",
+    "email_address": "Email Address",
+    "email_placeholder": "john@example.com",
+    "subject": "Subject",
+    "subject_placeholder": "How can we help?",
+    "message": "Message",
+    "message_placeholder": "Your message here...",
+    "send_message": "SEND MESSAGE"
   }
 }

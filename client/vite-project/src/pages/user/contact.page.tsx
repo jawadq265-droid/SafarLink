@@ -1,4 +1,8 @@
+import { useTranslation } from 'react-i18next';
+
 const ContactPage = () => {
+    const { t } = useTranslation();
+
     return (
         <div className="bg-[#fcfbf9] min-h-screen">
             {/* Header Section */}
@@ -7,49 +11,45 @@ const ContactPage = () => {
                     SAFARLINK
                 </div>
                 <div className="relative z-10">
-                    <p className="text-[10px] text-[#aa8453] tracking-[0.6em] uppercase font-condensed mb-6">REACH OUT</p>
-                    <h1 className="text-5xl md:text-7xl font-serif text-white mb-6">Get in Touch</h1>
+                    <p className="text-[10px] text-[#aa8453] tracking-[0.6em] uppercase font-condensed mb-6">{t('contact.reach_out')}</p>
+                    <h1 className="text-5xl md:text-7xl font-serif text-white mb-6">{t('contact.title')}</h1>
                     <div className="w-20 h-[1px] bg-[#aa8453] mx-auto mb-8"></div>
-                    <p className="text-white/70 text-lg md:text-xl font-light max-w-2xl mx-auto leading-relaxed">We'd love to hear from you. Our team is here to help.</p>
+                    <p className="text-white/70 text-lg md:text-xl font-light max-w-2xl mx-auto leading-relaxed">{t('contact.desc')}</p>
                 </div>
             </section>
 
             <div className="container mx-auto px-6 -mt-16 pb-24 relative z-20">
                 <div className="luxury-card overflow-hidden max-w-4xl mx-auto">
-
-
-
                     {/* Contact Form Side */}
                     <div className="p-12">
                         <form className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                                    <input type="text" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder="John" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.first_name')}</label>
+                                    <input type="text" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.first_name_placeholder')} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                                    <input type="text" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder="Doe" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.last_name')}</label>
+                                    <input type="text" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.last_name_placeholder')} />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                                <input type="email" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder="john@example.com" />
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.email_address')}</label>
+                                <input type="email" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.email_placeholder')} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-                                <input type="text" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder="How can we help?" />
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.subject')}</label>
+                                <input type="text" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.subject_placeholder')} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                                <textarea rows={4} className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder="Your message here..."></textarea>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.message')}</label>
+                                <textarea rows={4} className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.message_placeholder')}></textarea>
                             </div>
                             <div className="pt-4">
-                                <button type="button" className="w-full luxury-button !py-4">SEND MESSAGE</button>
+                                <button type="button" className="w-full luxury-button !py-4">{t('contact.send_message')}</button>
                             </div>
                         </form>
                     </div>
-
                 </div>
             </div>
         </div>
