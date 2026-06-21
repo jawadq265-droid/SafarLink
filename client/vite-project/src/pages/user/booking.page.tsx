@@ -5,7 +5,9 @@ import {
   Bus,
   CheckCircle2,
   Share2,
-  Download
+  Download,
+  Smartphone,
+  Wallet
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,11 +41,21 @@ const BookingPage = () => {
     phone: '',
     cnic: ''
   });
-  const [cardDetails, setCardDetails] = useState({
-    number: '',
-    expiry: '',
-    cvc: ''
+  const [jazzCashDetails, setJazzCashDetails] = useState({
+    mobileNumber: '',
+    cnicLast6: ''
   });
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("status");
+    const message = params.get("message");
+    if (status === "error") {
+      toast.error(message || "Payment failed or was cancelled.");
+      setStep(4);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Fix: Move seats generation into useMemo so status doesn't change on every render
   const seats = React.useMemo(() => {
@@ -94,16 +106,59 @@ const BookingPage = () => {
       }
     }
     if (step === 4) {
-      if (cardDetails.number.length < 19 || cardDetails.expiry.length < 5 || cardDetails.cvc.length < 3) {
-        toast.error("Please provide valid card details");
-        return;
-      }
       setIsProcessing(true);
-      setTimeout(() => {
+
+      const totalAmount = selectedSeats.length * (selectedRoute?.price || 0);
+      const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+      const ticketId = `SL-${Date.now()}`;
+
+      // Save temporary booking details to localStorage before leaving the site
+      const tempBooking = {
+        selectedRoute,
+        selectedSeats,
+        passengerInfo,
+        ticketId
+      };
+      localStorage.setItem("temp_booking", JSON.stringify(tempBooking));
+
+      fetch(`${baseUrl}payment/jazzcash`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          amount: totalAmount,
+          description: `Booking for ${selectedRoute?.from} to ${selectedRoute?.to}`,
+          ticketId: ticketId
+        })
+      })
+      .then((res) => {
+        if (!res.ok) {
+          return res.json().then((err) => { throw new Error(err.message || "Payment initiation failed"); });
+        }
+        return res.json();
+      })
+      .then((data) => {
+        // Create a dynamic form to submit post parameters to JazzCash POST URL
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = data.postUrl;
+
+        Object.keys(data.fields).forEach((key) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = data.fields[key];
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+      })
+      .catch((err) => {
         setIsProcessing(false);
-        setStep(5);
-        toast.success("Payment successful!");
-      }, 2500);
+        toast.error(err.message || "JazzCash payment failed. Please try again.");
+      });
       return;
     }
     setStep(step + 1);
@@ -259,8 +314,8 @@ const BookingPage = () => {
           <div className="py-24 flex flex-col items-center justify-center space-y-12">
             <div className="w-24 h-24 border-[2px] border-gray-100 border-t-[#aa8453] rounded-full animate-spin"></div>
             <div className="text-center">
-              <h3 className="text-3xl font-serif text-gray-800">Authorizing Settlement...</h3>
-              <p className="text-[#aa8453] mt-4 animate-pulse text-[10px] tracking-[0.4em] uppercase font-condensed">Encrypted connection active</p>
+              <h3 className="text-3xl font-serif text-gray-800">Redirecting to Gateway...</h3>
+              <p className="text-[#aa8453] mt-4 animate-pulse text-[10px] tracking-[0.4em] uppercase font-condensed">Connecting to JazzCash Secure Portal</p>
             </div>
           </div>
         ) : (
@@ -268,11 +323,11 @@ const BookingPage = () => {
             <div className="bg-[#fcfbf9] p-10 rounded-none flex items-center justify-between border border-gray-100 mb-10">
               <div className="flex items-center space-x-6">
                 <div className="p-4 bg-white rounded-none shadow-sm border border-gray-100">
-                  <CreditCard className="text-[#aa8453]" size={32} />
+                  <Wallet className="text-[#aa8453]" size={32} />
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-widest font-condensed">Settlement via</p>
-                  <p className="text-xl font-serif text-gray-800">Credit / Debit Card</p>
+                  <p className="text-xl font-serif text-gray-800">JazzCash Hosted Checkout</p>
                 </div>
               </div>
               <div className="text-right">
@@ -281,46 +336,15 @@ const BookingPage = () => {
               </div>
             </div>
 
-            <div className="space-y-10">
-              <div>
-                <label className="block text-[10px] text-[#aa8453] tracking-widest uppercase font-condensed mb-4 ml-1">Card Credentials</label>
-                <input
-                  type="text"
-                  placeholder="0000 0000 0000 0000"
-                  value={cardDetails.number}
-                  onChange={(e) => setCardDetails({ ...cardDetails, number: formatCardNumber(e.target.value) })}
-                  className="w-full px-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-xl font-serif tracking-widest transition-all"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-10">
-                <div>
-                  <label className="block text-[10px] text-[#aa8453] tracking-widest uppercase font-condensed mb-4 ml-1">Validity</label>
-                  <input
-                    type="text"
-                    placeholder="MM/YY"
-                    value={cardDetails.expiry}
-                    onChange={(e) => setCardDetails({ ...cardDetails, expiry: formatExpiry(e.target.value) })}
-                    className="w-full px-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-xl font-serif tracking-widest transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[#aa8453] tracking-widest uppercase font-condensed mb-4 ml-1">Secret Code</label>
-                  <input
-                    type="text"
-                    placeholder="***"
-                    maxLength={3}
-                    value={cardDetails.cvc}
-                    onChange={(e) => setCardDetails({ ...cardDetails, cvc: e.target.value.replace(/\D/g, '').slice(0, 3) })}
-                    className="w-full px-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-xl font-serif tracking-widest transition-all"
-                  />
-                </div>
-              </div>
+            <div className="space-y-8 bg-[#fcfbf9] p-10 border border-gray-100 font-serif text-gray-700 text-lg leading-relaxed">
+              <p>You are about to be redirected to the secure **JazzCash Payment Gateway**.</p>
+              <p className="text-base text-gray-500">You can complete your settlement using your **JazzCash Mobile Wallet** or any **Debit/Credit Card**. Once payment is authorized, you will be automatically returned to SafarLink to view your digital ticket.</p>
             </div>
 
             <button onClick={nextStep} className="luxury-button w-full !py-6 !text-sm">
-              AUTHORIZE SETTLEMENT
+              PROCEED TO JAZZCASH GATEWAY
             </button>
-            <p className="text-center text-[10px] text-gray-400 uppercase tracking-widest font-condensed">SSL 256-BIT ENCRYPTED TRANSACTION</p>
+            <p className="text-center text-[10px] text-gray-400 uppercase tracking-widest font-condensed">SECURE 256-BIT ENCRYPTED TRANSIT PORTAL</p>
           </div>
         )}
       </div>

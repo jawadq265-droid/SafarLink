@@ -12,6 +12,7 @@ import ForgotPassword from '../pages/user/forget.page';
 import ResetPassword from '../pages/user/reset.page';
 import BookingPage from '../pages/user/booking.page';
 import UserActivityPage from '../pages/user/activity.page';
+import PaymentSuccessPage from '../pages/user/payment-success.page';
 
 // Admin Side pages
 import MyBookingsPage from '../pages/admin/my-bookings.page';
@@ -49,6 +50,10 @@ const Router = () => {
                 {
                     path: "book-now",
                     element: <BookingPage />
+                },
+                {
+                    path: "payment-success",
+                    element: <PaymentSuccessPage />
                 },
             ]
         },
