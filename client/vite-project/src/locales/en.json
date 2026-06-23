@@ -73,7 +73,8 @@
     "departure_label": "Departure",
     "starting_from": "Starting from",
     "seats_left": "seats left",
-    "book_now": "BOOK NOW"
+    "book_now": "BOOK NOW",
+    "recommended": "RECOMMENDED"
   },
   "contact": {
     "reach_out": "REACH OUT",
