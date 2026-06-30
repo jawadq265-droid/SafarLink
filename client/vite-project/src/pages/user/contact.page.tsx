@@ -1,7 +1,66 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 
 const ContactPage = () => {
     const { t } = useTranslation();
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        subject: '',
+        message: ''
+    });
+    const [isSending, setIsSending] = useState(false);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.firstName || !formData.email || !formData.subject || !formData.message) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
+
+        setIsSending(true);
+        const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+
+        fetch(`${baseUrl}auth/contact`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(formData)
+        })
+        .then((res) => {
+            if (!res.ok) {
+                return res.json().then((err) => { throw new Error(err.message || "Failed to send message"); });
+            }
+            return res.json();
+        })
+        .then(() => {
+            toast.success("Your message has been sent successfully!");
+            setFormData({
+                firstName: '',
+                lastName: '',
+                email: '',
+                subject: '',
+                message: ''
+            });
+        })
+        .catch((err) => {
+            console.error(err);
+            toast.error(err.message || "Something went wrong. Please try again.");
+        })
+        .finally(() => {
+            setIsSending(false);
+        });
+    };
 
     return (
         <div className="bg-[#fcfbf9] min-h-screen">
@@ -22,31 +81,33 @@ const ContactPage = () => {
                 <div className="luxury-card overflow-hidden max-w-4xl mx-auto">
                     {/* Contact Form Side */}
                     <div className="p-12">
-                        <form className="space-y-6">
+                        <form className="space-y-6" onSubmit={handleSubmit}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.first_name')}</label>
-                                    <input type="text" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.first_name_placeholder')} />
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.first_name')} *</label>
+                                    <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.first_name_placeholder')} required />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.last_name')}</label>
-                                    <input type="text" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.last_name_placeholder')} />
+                                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.last_name_placeholder')} />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.email_address')}</label>
-                                <input type="email" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.email_placeholder')} />
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.email_address')} *</label>
+                                <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.email_placeholder')} required />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.subject')}</label>
-                                <input type="text" className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.subject_placeholder')} />
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.subject')} *</label>
+                                <input type="text" name="subject" value={formData.subject} onChange={handleChange} className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.subject_placeholder')} required />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.message')}</label>
-                                <textarea rows={4} className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.message_placeholder')}></textarea>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('contact.message')} *</label>
+                                <textarea rows={4} name="message" value={formData.message} onChange={handleChange} className="w-full px-4 py-3 bg-[#fcfbf9] border border-gray-200 rounded-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition" placeholder={t('contact.message_placeholder')} required></textarea>
                             </div>
                             <div className="pt-4">
-                                <button type="button" className="w-full luxury-button !py-4">{t('contact.send_message')}</button>
+                                <button type="submit" disabled={isSending} className="w-full luxury-button !py-4 disabled:opacity-50">
+                                    {isSending ? "SENDING..." : t('contact.send_message')}
+                                </button>
                             </div>
                         </form>
                     </div>

@@ -73,9 +73,9 @@ const CitySearchInput = ({ label, placeholder, value, onChange }: CitySearchInpu
                     onChange={handleInputChange}
                     onFocus={() => inputValue && setIsOpen(true)}
                     placeholder={placeholder || "Enter city"}
-                    className="w-full pl-14 pr-12 py-5 bg-white border-b border-gray-100 group-focus-within:border-[#aa8453] outline-none transition-all duration-500 font-serif text-lg text-gray-800 placeholder:text-gray-300 placeholder:font-light"
+                    className="w-full pl-14 pr-12 py-5 bg-white border-b border-gray-300 group-focus-within:border-[#aa8453] outline-none transition-all duration-500 font-serif text-lg text-gray-800 placeholder:text-gray-300 placeholder:font-light"
                 />
-                <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#aa8453] transition-colors">
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#aa8453] transition-colors">
                     <Search size={16} strokeWidth={1.5} />
                 </div>
 

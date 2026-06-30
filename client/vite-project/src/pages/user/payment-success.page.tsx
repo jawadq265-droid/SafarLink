@@ -28,6 +28,19 @@ const PaymentSuccessPage = () => {
           };
           localStorage.setItem("latest_booking", JSON.stringify(finalizedBooking));
           setBookingData(finalizedBooking);
+
+          const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+          fetch(`${baseUrl}payment/clearance-email`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ bookingData: finalizedBooking })
+          })
+          .then(res => res.json())
+          .then(data => console.log("Clearance email sent:", data))
+          .catch(err => console.error("Error sending clearance email:", err));
+
           window.history.replaceState({}, document.title, window.location.pathname);
           return;
         } catch (e) {

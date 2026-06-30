@@ -63,12 +63,13 @@ const BusPage = () => {
                             <div>
                                 <CitySearchInput label={t('bus.to')} placeholder={t('bus.arrival')} />
                             </div>
-                            <div>
-                                <label className="block text-[10px] tracking-[0.2em] font-condensed uppercase text-gray-500 mb-2">{t('bus.date')}</label>
-                                <input type="date" className="w-full px-4 py-3 border border-gray-200 focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453] outline-none transition rounded-none bg-gray-50" />
+                            <div className="relative group">
+                                <label className="block text-[10px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed mb-3 ml-1">{t('bus.date')}</label>
+                                <input type="date" className="w-full px-5 py-5 bg-white border-b border-gray-300 group-focus-within:border-[#aa8453] outline-none transition-all duration-500 font-serif text-lg text-gray-800 placeholder:text-gray-300 placeholder:font-light" />
                             </div>
-                            <div className="flex items-end">
-                                <button className="w-full luxury-button !py-4">{t('bus.search_buses')}</button>
+                            <div className="flex flex-col justify-end">
+                                <label className="block text-[10px] tracking-[0.4em] uppercase font-condensed mb-3 ml-1 invisible">{t('bus.search_buses')}</label>
+                                <button className="w-full luxury-button !py-5">{t('bus.search_buses')}</button>
                             </div>
                         </div>
                     </div>

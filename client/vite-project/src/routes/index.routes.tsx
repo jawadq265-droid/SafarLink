@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, ScrollRestoration, Outlet } from 'react-router-dom'
 
 //User Side Pages
 import HOME from '../pages/user/home.page'
@@ -25,62 +25,73 @@ const Router = () => {
     const router = createBrowserRouter([
         {
             path: "/",
-            element: <MainLayout />,
+            element: (
+                <>
+                    <ScrollRestoration />
+                    <Outlet />
+                </>
+            ),
             children: [
                 {
-                    index: true,
-                    element: <HOME />
+                    path: "",
+                    element: <MainLayout />,
+                    children: [
+                        {
+                            index: true,
+                            element: <HOME />
+                        },
+                        {
+                            path: "bus",
+                            element: <BusPage />
+                        },
+                        {
+                            path: "contact",
+                            element: <ContactPage />
+                        },
+                        {
+                            path: "AboutUs",
+                            element: <AboutUs />
+                        },
+                        {
+                            path: "bookings",
+                            element: <UserActivityPage />
+                        },
+                        {
+                            path: "book-now",
+                            element: <BookingPage />
+                        },
+                        {
+                            path: "payment-success",
+                            element: <PaymentSuccessPage />
+                        },
+                    ]
                 },
                 {
-                    path: "bus",
-                    element: <BusPage />
+                    path: "admin",
+                    element: <AdminDashboard />
                 },
                 {
-                    path: "contact",
-                    element: <ContactPage />
+                    path: "admin/bookings",
+                    element: <MyBookingsPage />
                 },
                 {
-                    path: "AboutUs",
-                    element: <AboutUs />
+                    path: "login",
+                    element: <LoginPage />
                 },
                 {
-                    path: "bookings",
-                    element: <UserActivityPage />
+                    path: "signup",
+                    element: <SignupPage />
                 },
                 {
-                    path: "book-now",
-                    element: <BookingPage />
+                    path: "forget",
+                    element: <ForgotPassword />
                 },
                 {
-                    path: "payment-success",
-                    element: <PaymentSuccessPage />
+                    path: "reset-password/:token",
+                    element: <ResetPassword />
                 },
             ]
-        },
-        {
-            path: "/admin",
-            element: <AdminDashboard />
-        },
-        {
-            path: "/admin/bookings",
-            element: <MyBookingsPage />
-        },
-        {
-            path: "/login",
-            element: <LoginPage />
-        },
-        {
-            path: "/signup",
-            element: <SignupPage />
-        },
-        {
-            path: "/forget",
-            element: <ForgotPassword />
-        },
-        {
-            path: "/reset-password/:token",
-            element: <ResetPassword />
-        },
+        }
     ])
 
     return <RouterProvider router={router} />

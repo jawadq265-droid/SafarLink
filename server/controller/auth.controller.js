@@ -216,3 +216,114 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+export const subscribeNewsletter = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    // 1. Send confirmation email to subscriber
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    await transporter.sendMail({
+      to: email,
+      subject: "Thank you for subscribing to SafarLink Newsletter!",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #aa8453;">Welcome to SafarLink!</h2>
+          <p>Thank you for subscribing to our newsletter. You will now receive exclusive travel offers, route updates, and premium travel packages directly in your inbox.</p>
+          <p>Safe Travels,<br/><strong>The SafarLink Team</strong></p>
+        </div>
+      `
+    });
+
+    // 2. Send notification email to admin
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+    await transporter.sendMail({
+      to: adminEmail,
+      subject: "New Newsletter Subscriber Alert",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #aa8453;">New Subscriber Alert</h2>
+          <p>A new user has subscribed to the SafarLink newsletter:</p>
+          <p><strong>Subscriber Email:</strong> ${email}</p>
+        </div>
+      `
+    });
+
+    res.status(200).json({ success: true, message: "Subscribed successfully" });
+
+  } catch (error) {
+    console.error("Newsletter Subscription error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const contactQuery = async (req, res) => {
+  try {
+    const { firstName, lastName, email, subject, message } = req.body;
+
+    if (!firstName || !email || !subject || !message) {
+      return res.status(400).json({ success: false, message: "Required fields are missing" });
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    const fullName = `${firstName} ${lastName || ""}`.trim();
+
+    // 1. Send confirmation to user
+    await transporter.sendMail({
+      to: email,
+      subject: `We received your message: ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #aa8453;">Hello ${fullName},</h2>
+          <p>Thank you for reaching out to SafarLink. We have received your query regarding "<strong>${subject}</strong>".</p>
+          <p>Our support team will review your message and get back to you shortly.</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="font-style: italic; color: #666;">Your Message:<br/>"${message}"</p>
+          <p>Safe Travels,<br/><strong>The SafarLink Team</strong></p>
+        </div>
+      `
+    });
+
+    // 2. Send alert to admin
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+    await transporter.sendMail({
+      to: adminEmail,
+      subject: `New Contact Query: ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; border: 1px solid #eee;">
+          <h2 style="color: #aa8453; border-bottom: 2px solid #aa8453; padding-bottom: 10px;">New Contact Query Received</h2>
+          <p><strong>From:</strong> ${fullName} (${email})</p>
+          <p><strong>Subject:</strong> ${subject}</p>
+          <p><strong>Message:</strong></p>
+          <div style="background: #fcfbf9; padding: 15px; border-left: 4px solid #aa8453; font-style: italic;">
+            ${message}
+          </div>
+        </div>
+      `
+    });
+
+    res.status(200).json({ success: true, message: "Message sent successfully" });
+
+  } catch (error) {
+    console.error("Contact Query Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

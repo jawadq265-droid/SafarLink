@@ -14,8 +14,30 @@ const Footer = () => {
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    toast.success('Subscribed successfully! Thank you.');
-    setEmail('');
+
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+
+    fetch(`${baseUrl}auth/subscribe`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email })
+    })
+    .then((res) => {
+      if (!res.ok) {
+        return res.json().then((err) => { throw new Error(err.message || "Failed to subscribe"); });
+      }
+      return res.json();
+    })
+    .then(() => {
+      toast.success('Subscribed successfully! Thank you.');
+      setEmail('');
+    })
+    .catch((err) => {
+      console.error(err);
+      toast.error(err.message || "Failed to subscribe. Please try again.");
+    });
   };
 
   return (
