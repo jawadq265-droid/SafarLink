@@ -26,13 +26,14 @@ const BookingPage = () => {
           to: busObj.to,
           price: parseInt(busObj.price.replace(/[^\d]/g, '')),
           time: busObj.time,
-          bus: busObj.name
+          bus: busObj.name,
+          date: busObj.date
         };
       } catch (e) {
         // ignore
       }
     }
-    return { id: 1, from: "Lahore", to: "Islamabad", price: 1500, time: "09:00 AM", bus: "Safar Express" };
+    return { id: 1, from: "Lahore", to: "Islamabad", price: 1500, time: "09:00 AM", bus: "Safar Express", date: "" };
   });
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -358,7 +359,10 @@ const BookingPage = () => {
 
   const renderTicket = () => {
     const today = new Date();
-    const formattedDate = today.toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
+    const issuedDate = today.toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
+    const voyageDate = selectedRoute?.date 
+      ? new Date(selectedRoute.date).toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' })
+      : issuedDate;
 
     return (
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-16">
@@ -384,7 +388,7 @@ const BookingPage = () => {
               </div>
               <div className="text-right">
                 <p className="text-[10px] opacity-40 uppercase font-condensed tracking-[0.3em] mb-2">Issued On</p>
-                <p className="text-xl md:text-2xl font-serif tracking-tighter whitespace-nowrap">{formattedDate}</p>
+                <p className="text-xl md:text-2xl font-serif tracking-tighter whitespace-nowrap">{issuedDate}</p>
               </div>
             </div>
           </div>
@@ -418,7 +422,7 @@ const BookingPage = () => {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-3">Voyage Date</p>
-                <p className="text-base sm:text-lg md:text-2xl font-serif text-gray-900">{formattedDate}</p>
+                <p className="text-base sm:text-lg md:text-2xl font-serif text-gray-900">{voyageDate}</p>
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-3">Transit Class</p>

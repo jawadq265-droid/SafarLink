@@ -5,7 +5,8 @@ const CITIES = [
     "Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta", "Sialkot",
     "Gujranwala", "Hyderabad", "Bahawalpur", "Sargodha", "Abbottabad", "Sukkur", "Mardan", "Sheikhupura",
     "Rahim Yar Khan", "Gujrat", "Sahiwal", "Wah Cantonment", "Dera Ghazi Khan", "Kasur", "Okara", "Chiniot",
-    "Larkana", "Nawabshah", "Mirpur Khas"
+    "Larkana", "Nawabshah", "Mirpur Khas", "Gwadar", "Gilgit", "Skardu", "Hunza", "Muzaffarabad", "Murree",
+    "Swat", "Mingora", "Jhelum", "Jhang", "Kohat", "Bannu", "Dera Ismail Khan", "Khuzdar", "Turbat", "Chitral"
 ].sort();
 
 interface CitySearchInputProps {
