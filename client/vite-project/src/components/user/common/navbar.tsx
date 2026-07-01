@@ -1,12 +1,15 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import SafarLink_Logo from '../../../assets/images/SafariLink_Logo.jpg';
+import toast from 'react-hot-toast';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'en' ? 'ur' : 'en';
@@ -18,6 +21,20 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem("token"));
+  }, [location]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userName");
+    setIsLoggedIn(false);
+    toast.success("Successfully logged out");
+    navigate("/login");
+  };
 
   return (
     <nav
@@ -63,14 +80,25 @@ const Navbar = () => {
 
           {/* Auth/Book Now Button */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link to="/login" className="text-white text-xs font-condensed tracking-[0.2em] hover:text-[#aa8453] transition-colors">
-              {t('navbar.login')}
-            </Link>
-            <Link to="/signup">
-              <button className="luxury-button hover:bg-white text-sm !py-3 !px-5 !text-[10px] text-white border border-white rounded-full cursor-pointer hover:text-[#aa8453] transition-colors hover:border-[#aa8453]">
-                {t('navbar.join_now')}
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="text-white text-xs font-condensed tracking-[0.2em] hover:text-[#aa8453] transition-colors cursor-pointer bg-transparent border-none"
+              >
+                LOGOUT
               </button>
-            </Link>
+            ) : (
+              <>
+                <Link to="/login" className="text-white text-xs font-condensed tracking-[0.2em] hover:text-[#aa8453] transition-colors">
+                  {t('navbar.login')}
+                </Link>
+                <Link to="/signup">
+                  <button className="luxury-button hover:bg-white text-sm !py-3 !px-5 !text-[10px] text-white border border-white rounded-full cursor-pointer hover:text-[#aa8453] transition-colors hover:border-[#aa8453]">
+                    {t('navbar.join_now')}
+                  </button>
+                </Link>
+              </>
+            )}
             <button 
               onClick={toggleLanguage}
               className="text-[#aa8453] border border-[#aa8453] rounded-full px-3 py-1 text-xs hover:bg-[#aa8453] hover:text-white transition-all font-serif"

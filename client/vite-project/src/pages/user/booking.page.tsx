@@ -45,6 +45,13 @@ const BookingPage = () => {
 
 
   React.useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please login first to reserve tickets.");
+      navigate("/login");
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status");
     const message = params.get("message");
@@ -53,7 +60,7 @@ const BookingPage = () => {
       setStep(4);
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, []);
+  }, [navigate]);
 
   const [bookedSeats, setBookedSeats] = useState<string[]>([]);
 
