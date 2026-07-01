@@ -27,7 +27,7 @@ const BookingPage = () => {
           price: parseInt(busObj.price.replace(/[^\d]/g, '')),
           time: busObj.time,
           bus: busObj.name,
-          date: busObj.date
+          date: busObj.date,
         };
       } catch (e) {
         // ignore
@@ -67,7 +67,7 @@ const BookingPage = () => {
 
   React.useEffect(() => {
     const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
-    const busName = selectedRoute?.bus || "";
+    const busName = selectedRoute?.bus || selectedRoute?.name || "";
     const dateStr = selectedRoute?.date || "";
     if (busName && dateStr) {
       fetch(`${baseUrl}payment/booked-seats?bus=${encodeURIComponent(busName)}&date=${encodeURIComponent(dateStr)}`)
