@@ -84,12 +84,30 @@ const AdminDashboard = () => {
     localStorage.setItem("buses", JSON.stringify(buses));
   }, [buses]);
 
-  const [bookings, setBookings] = useState<BookingType[]>([
-    { id: 'BK-001', userName: 'Jawad Ahmad', bus: 'Safar Express', date: '2024-05-10', amount: 'Rs. 1500', phone: '0300-1234567', cnic: '35201-0000000-1', seats: ['A1', 'A2'], type: 'Upcoming' },
-    { id: 'BK-002', userName: 'Ali Khan', bus: 'Daewoo Gold', date: '2024-05-11', amount: 'Rs. 4500', phone: '0311-9876543', cnic: '35201-1111111-2', seats: ['C4'], type: 'Upcoming' },
-    { id: 'BK-003', userName: 'Sara Malik', bus: 'Sania Express', date: '2024-05-10', amount: 'Rs. 1200', phone: '0321-5555555', cnic: '35201-2222222-3', seats: ['B10'], type: 'Completed' },
-    { id: 'BK-004', userName: 'Hamza Sheikh', bus: 'Bilal Travels', date: '2024-05-12', amount: 'Rs. 3000', phone: '0345-6666666', cnic: '35201-3333333-4', seats: ['D1', 'D2'], type: 'Upcoming' },
-  ]);
+  const [bookings, setBookings] = useState<BookingType[]>([]);
+
+  React.useEffect(() => {
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    fetch(`${baseUrl}payment/bookings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.bookings)) {
+          const formatted = data.bookings.map((b: any) => ({
+            id: b.ticketId || b._id,
+            userName: b.userName,
+            bus: b.bus,
+            date: b.date,
+            amount: b.amount,
+            phone: b.passengerPhone || b.phone,
+            cnic: b.passengerCnic || b.cnic,
+            seats: b.seats || [],
+            type: b.type || 'Upcoming'
+          }));
+          setBookings(formatted);
+        }
+      })
+      .catch(err => console.error("Error loading real bookings:", err));
+  }, []);
 
   // State-driven Users Directory
   const [usersList, setUsersList] = useState<UserType[]>([

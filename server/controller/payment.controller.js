@@ -1,31 +1,9 @@
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import Stripe from 'stripe';
+import Booking from '../models/booking.model.js';
 
-
-function generateSecureHash(payload, integritySalt) {
-  // 1. Filter out empty values, null, undefined, and pp_SecureHash.
-  // Keys must be sorted alphabetically
-  const sortedKeys = Object.keys(payload)
-    .filter((k) => payload[k] !== undefined && payload[k] !== null && payload[k] !== '' && k !== 'pp_SecureHash')
-    .sort();
-
-  // 2. Concatenate values only (separated by &)
-  const dataString = sortedKeys.map((k) => payload[k]).join('&');
-
-  // Prepend salt before hashing
-  const stringToHash = integritySalt + '&' + dataString;
-
-  // 3. Create the hash using HMAC-SHA256
-  const hash = crypto
-    .createHmac('sha256', integritySalt)
-    .update(stringToHash)
-    .digest('hex')
-    .toUpperCase();
-
-  return hash;
-}
-
-export const initiateJazzCashHosted = async (req, res) => {
+export const createStripeCheckoutSession = async (req, res) => {
   try {
     const { amount, ticketId, description } = req.body;
 
@@ -33,102 +11,45 @@ export const initiateJazzCashHosted = async (req, res) => {
       return res.status(400).json({ success: false, message: "Amount is required." });
     }
 
-    const merchantId = process.env.JAZZCASH_MERCHANT_ID;
-    const password = process.env.JAZZCASH_PASSWORD;
-    const integritySalt = process.env.JAZZCASH_INTEGRITY_SALT;
-    const postUrl = process.env.JAZZCASH_API_URL || "https://sandbox.jazzcash.com.pk/CustomerPortal/transactionPage";
+    const stripeKey = process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.trim() : null;
+    if (!stripeKey) {
+      return res.status(500).json({ success: false, message: "Stripe integration key is missing on the server." });
+    }
 
-    // Setup transaction dates in PKT (UTC+5) robustly
-    const getPKTDateStrings = () => {
-      const now = new Date();
-      // Calculate PKT time by accounting for timezone offset (in minutes) and adding 300 minutes (5 hours)
-      const pktTime = new Date(now.getTime() + (now.getTimezoneOffset() + 300) * 60000);
-      
-      const format = (d) => {
-        const pad = (n) => String(n).padStart(2, '0');
-        return d.getFullYear() +
-          pad(d.getMonth() + 1) +
-          pad(d.getDate()) +
-          pad(d.getHours()) +
-          pad(d.getMinutes()) +
-          pad(d.getSeconds());
-      };
+    const stripe = new Stripe(stripeKey);
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 
-      const txnDateTime = format(pktTime);
-      const expiryTime = new Date(pktTime.getTime() + 60 * 60 * 1000); // 1 Hour Expiry
-      const txnExpiryDateTime = format(expiryTime);
-
-      return { txnDateTime, txnExpiryDateTime };
-    };
-
-    const { txnDateTime, txnExpiryDateTime } = getPKTDateStrings();
-
-    const txnRefNo = "T" + txnDateTime;
-    const amountInPaisa = Math.round(parseFloat(amount) * 100).toString();
-
-    // Clean up Bill Reference (Alphanumeric only)
-    const cleanBillRef = (ticketId || "TicketRef").replace(/[^a-zA-Z0-9]/g, '');
-
-    // Standard Hosted Checkout parameters
-    const payload = {
-      pp_Version: "1.1",
-      pp_Language: "EN",
-      pp_MerchantID: merchantId,
-      pp_Password: password,
-      pp_TxnRefNo: txnRefNo,
-      pp_Amount: amountInPaisa,
-      pp_TxnCurrency: "PKR",
-      pp_TxnDateTime: txnDateTime,
-      pp_BillReference: cleanBillRef,
-      pp_Description: (description || "Bus ticket reservation via SafarLink").replace(/[^a-zA-Z0-9 ]/g, ''),
-      pp_TxnExpiryDateTime: txnExpiryDateTime,
-      pp_ReturnURL: process.env.JAZZCASH_RETURN_URL || "http://localhost:5005/api/v1/payment/jazzcash/callback",
-      pp_TxnType: ""
-    };
-
-    // Calculate Secure Hash
-    const secureHash = generateSecureHash(payload, integritySalt);
-    payload.pp_SecureHash = secureHash;
-
-    console.log("Hosted Payment Payload:", payload);
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'pkr',
+            product_data: {
+              name: `Bus Ticket - SafarLink`,
+              description: description || `Bus ticket reservation via SafarLink`,
+            },
+            unit_amount: Math.round(parseFloat(amount) * 100), // in cents/paisa
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${clientUrl}/payment-success?status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${clientUrl}/book-now?status=error&message=Payment cancelled`,
+      metadata: {
+        ticketId: ticketId || "",
+      },
+    });
 
     return res.status(200).json({
       success: true,
-      postUrl,
-      fields: payload
+      url: session.url,
     });
 
   } catch (error) {
-    console.error("Hosted Checkout initiation error:", error);
+    console.error("Stripe session creation error:", error);
     return res.status(500).json({ success: false, message: "Internal server error: " + error.message });
-  }
-};
-
-export const handleJazzCashCallback = async (req, res) => {
-  try {
-    const callbackData = req.body;
-    console.log("JazzCash Callback Received POST body:", callbackData);
-
-    const integritySalt = process.env.JAZZCASH_INTEGRITY_SALT;
-    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
-
-    // check response code
-    const responseCode = callbackData.pp_ResponseCode;
-    const responseMessage = callbackData.pp_ResponseMessage || "Transaction Failed";
-    const txnRefNo = callbackData.pp_TxnRefNo || "";
-
-    if (responseCode === "000") {
-      // Success, redirect client to payment success page
-      return res.redirect(`${clientUrl}/payment-success?status=success&txnRefNo=${txnRefNo}`);
-    } else {
-      // Failure, redirect back to booking page with error details
-      return res.redirect(`${clientUrl}/book-now?status=error&message=${encodeURIComponent(responseMessage)}`);
-    }
-
-  } catch (error) {
-    console.error("JazzCash Callback processing error:", error);
-    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
-    return res.redirect(`${clientUrl}/book-now?status=error&message=${encodeURIComponent(error.message)}`);
   }
 };
 
@@ -141,6 +62,41 @@ export const sendPaymentClearanceEmail = async (req, res) => {
     }
 
     const { selectedRoute, selectedSeats, passengerInfo, ticketId, txnRefNo } = bookingData;
+
+    // Save actual booking to database
+    try {
+      const busName = selectedRoute?.bus || selectedRoute?.name || "N/A";
+      const travelDate = selectedRoute?.date || new Date().toISOString().split('T')[0];
+      const routeFrom = selectedRoute?.from || "N/A";
+      const routeTo = selectedRoute?.to || "N/A";
+      const depTime = selectedRoute?.time || "N/A";
+      const totalAmount = `Rs. ${selectedRoute?.price ? selectedRoute.price * (selectedSeats?.length || 1) : 0}`;
+
+      // Check if ticket already exists
+      const existing = await Booking.findOne({ ticketId });
+      if (!existing) {
+        const newBooking = new Booking({
+          ticketId: ticketId || `SL-${Date.now()}`,
+          userName: passengerInfo?.name || "N/A",
+          passengerPhone: passengerInfo?.phone || "N/A",
+          passengerCnic: passengerInfo?.cnic || "N/A",
+          passengerEmail: passengerInfo?.email || "N/A",
+          bus: busName,
+          date: travelDate,
+          amount: totalAmount,
+          seats: selectedSeats.map(s => String(s)),
+          routeFrom: routeFrom,
+          routeTo: routeTo,
+          departureTime: depTime,
+          txnRefNo: txnRefNo || "N/A",
+          type: "Upcoming"
+        });
+        await newBooking.save();
+        console.log("Booking successfully saved in database:", ticketId);
+      }
+    } catch (dbErr) {
+      console.error("Failed to save booking to database:", dbErr);
+    }
 
     // Send notification email to admin
     const transporter = nodemailer.createTransport({
@@ -218,11 +174,43 @@ export const sendPaymentClearanceEmail = async (req, res) => {
       `
     });
 
-    res.status(200).json({ success: true, message: "Payment clearance email sent to admin successfully" });
+    res.status(200).json({ success: true, message: "Payment clearance email sent and booking saved successfully" });
 
   } catch (error) {
     console.error("Payment clearance email error:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find().sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, bookings });
+  } catch (error) {
+    console.error("Error fetching bookings:", error);
+    return res.status(500).json({ success: false, message: "Server error: " + error.message });
+  }
+};
+
+export const getBookedSeats = async (req, res) => {
+  try {
+    const { bus, date } = req.query;
+    if (!bus || !date) {
+      return res.status(400).json({ success: false, message: "Bus and Date are required query parameters." });
+    }
+
+    const bookings = await Booking.find({ bus, date });
+    let bookedSeatsList = [];
+    bookings.forEach(b => {
+      if (b.seats && Array.isArray(b.seats)) {
+        bookedSeatsList = bookedSeatsList.concat(b.seats);
+      }
+    });
+
+    return res.status(200).json({ success: true, bookedSeats: bookedSeatsList });
+  } catch (error) {
+    console.error("Error fetching booked seats:", error);
+    return res.status(500).json({ success: false, message: "Server error: " + error.message });
   }
 };
 

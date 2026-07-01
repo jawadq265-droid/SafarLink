@@ -116,7 +116,7 @@ const BusPage = () => {
 
         setDisplayedBuses([...matches, ...generated]);
         setHasSearched(true);
-        toast.success(`Found available and recommended buses for ${from} to ${to}!`);
+        // toast.success(`Found available and recommended buses for ${from} to ${to}!`);
     };
 
     const handleSearch = () => {

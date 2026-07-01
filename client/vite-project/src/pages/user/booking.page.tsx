@@ -42,10 +42,7 @@ const BookingPage = () => {
     phone: '',
     cnic: ''
   });
-  const [jazzCashDetails, setJazzCashDetails] = useState({
-    mobileNumber: '',
-    cnicLast6: ''
-  });
+
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -58,13 +55,34 @@ const BookingPage = () => {
     }
   }, []);
 
-  // Fix: Move seats generation into useMemo so status doesn't change on every render
+  const [bookedSeats, setBookedSeats] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    const busName = selectedRoute?.bus || selectedRoute?.name || "";
+    const dateStr = selectedRoute?.date || "";
+    if (busName && dateStr) {
+      fetch(`${baseUrl}payment/booked-seats?bus=${encodeURIComponent(busName)}&date=${encodeURIComponent(dateStr)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && Array.isArray(data.bookedSeats)) {
+            setBookedSeats(data.bookedSeats);
+          }
+        })
+        .catch(err => console.error("Error fetching booked seats:", err));
+    }
+  }, [selectedRoute]);
+
   const seats = React.useMemo(() => {
-    return Array.from({ length: 40 }, (_, i) => ({
-      id: i + 1,
-      status: Math.random() > 0.8 ? 'booked' : 'available'
-    }));
-  }, []);
+    return Array.from({ length: 40 }, (_, i) => {
+      const seatIdStr = String(i + 1);
+      const isBooked = bookedSeats.includes(seatIdStr);
+      return {
+        id: i + 1,
+        status: isBooked ? 'booked' : 'available'
+      };
+    });
+  }, [bookedSeats]);
 
   // Formatting functions
   const formatCNIC = (val: string) => {
@@ -122,7 +140,7 @@ const BookingPage = () => {
       };
       localStorage.setItem("temp_booking", JSON.stringify(tempBooking));
 
-      fetch(`${baseUrl}payment/jazzcash`, {
+      fetch(`${baseUrl}payment/stripe/create-checkout-session`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -140,25 +158,15 @@ const BookingPage = () => {
         return res.json();
       })
       .then((data) => {
-        // Create a dynamic form to submit post parameters to JazzCash POST URL
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = data.postUrl;
-
-        Object.keys(data.fields).forEach((key) => {
-          const input = document.createElement("input");
-          input.type = "hidden";
-          input.name = key;
-          input.value = data.fields[key];
-          form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-        form.submit();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error("Stripe checkout URL missing");
+        }
       })
       .catch((err) => {
         setIsProcessing(false);
-        toast.error(err.message || "JazzCash payment failed. Please try again.");
+        toast.error(err.message || "Stripe payment failed. Please try again.");
       });
       return;
     }
@@ -195,22 +203,22 @@ const BookingPage = () => {
   };
 
   const renderSeatSelection = () => (
-    <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-16 p-4">
-      <div className="text-center space-y-4">
-        <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">CONFIGURE YOUR SPACE</p>
-        <h2 className="text-5xl md:text-6xl font-serif text-gray-900 leading-tight">Spatial Selection</h2>
+    <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-4 p-2 max-w-4xl mx-auto">
+      <div className="text-center space-y-1">
+        <p className="text-[9px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed">CONFIGURE YOUR SPACE</p>
+        <h2 className="text-3xl font-serif text-gray-900 leading-none">Spatial Selection</h2>
       </div>
 
-      <div className="max-w-3xl mx-auto luxury-card p-20 rounded-none relative overflow-hidden">
-        <div className="bg-[#fcfbf9] p-16 rounded-none border border-gray-100">
-          <div className="grid grid-cols-5 gap-y-10 gap-x-8">
+      <div className="max-w-xl mx-auto luxury-card p-6 rounded-none relative overflow-hidden">
+        <div className="bg-[#fcfbf9] p-6 rounded-none border border-gray-100">
+          <div className="grid grid-cols-5 gap-y-4 gap-x-4">
             {seats.map((seat, index) => {
               const seatEl = (
                 <button
                   key={seat.id}
                   onClick={() => handleSeatClick(seat.id, seat.status)}
-                  className={`aspect-square rounded-none flex items-center justify-center font-serif text-xl transition-all duration-500 transform hover:scale-110 ${seat.status === 'booked'
-                    ? 'bg-gray-200 text-gray-300 cursor-not-allowed'
+                  className={`aspect-square rounded-none flex items-center justify-center font-serif text-base transition-all duration-300 transform hover:scale-105 ${seat.status === 'booked'
+                    ? 'bg-gray-200 text-gray-300 cursor-not-allowed font-sans'
                     : selectedSeats.includes(seat.id)
                       ? 'bg-[#aa8453] text-white shadow-2xl ring-4 ring-[#aa8453]/20'
                       : 'bg-white border border-gray-200 text-[#1b1b1b] hover:border-[#aa8453] hover:shadow-xl'
@@ -221,7 +229,7 @@ const BookingPage = () => {
                 </button>
               );
 
-              const isEndOfSecondCol = index % 4 === 2;
+              const isEndOfSecondCol = index % 4 === 1;
 
               return (
                 <React.Fragment key={seat.id}>
@@ -234,14 +242,14 @@ const BookingPage = () => {
         </div>
       </div>
 
-      <div className="flex justify-between mt-16 max-w-3xl mx-auto items-center">
-        <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-200 !px-12 uppercase text-[10px] tracking-widest">Back</button>
-        <div className="flex items-center space-x-12">
+      <div className="flex justify-between mt-6 max-w-xl mx-auto items-center">
+        <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-200 !px-10 !py-3 uppercase text-[9px] tracking-widest">Back</button>
+        <div className="flex items-center space-x-8">
           <div className="text-right">
-            <p className="text-[10px] text-gray-400 font-condensed uppercase tracking-widest mb-1">Total Valuation</p>
-            <p className="text-4xl font-serif text-[#aa8453] tracking-tighter">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+            <p className="text-[9px] text-gray-400 font-condensed uppercase tracking-widest mb-0.5">Total Valuation</p>
+            <p className="text-2xl font-serif text-[#aa8453] tracking-tighter">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
           </div>
-          <button onClick={nextStep} className="luxury-button !px-16 uppercase text-[10px] tracking-widest">
+          <button onClick={nextStep} className="luxury-button !px-12 !py-4 uppercase text-[9px] tracking-widest">
             PERSONAL DETAILS
           </button>
         </div>
@@ -315,8 +323,8 @@ const BookingPage = () => {
           <div className="py-24 flex flex-col items-center justify-center space-y-12">
             <div className="w-24 h-24 border-[2px] border-gray-100 border-t-[#aa8453] rounded-full animate-spin"></div>
             <div className="text-center">
-              <h3 className="text-3xl font-serif text-gray-800">Redirecting to Gateway...</h3>
-              <p className="text-[#aa8453] mt-4 animate-pulse text-[10px] tracking-[0.4em] uppercase font-condensed">Connecting to JazzCash Secure Portal</p>
+              <h3 className="text-3xl font-serif text-gray-800">Redirecting to Stripe...</h3>
+              <p className="text-[#aa8453] mt-4 animate-pulse text-[10px] tracking-[0.4em] uppercase font-condensed">Connecting to Stripe Secure Gateway</p>
             </div>
           </div>
         ) : (
@@ -328,7 +336,7 @@ const BookingPage = () => {
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-widest font-condensed">Settlement via</p>
-                  <p className="text-xl font-serif text-gray-800">JazzCash Hosted Checkout</p>
+                  <p className="text-xl font-serif text-gray-800">Stripe Hosted Checkout</p>
                 </div>
               </div>
               <div className="text-right">
@@ -338,12 +346,12 @@ const BookingPage = () => {
             </div>
 
             <div className="space-y-8 bg-[#fcfbf9] p-10 border border-gray-100 font-serif text-gray-700 text-lg leading-relaxed">
-              <p>You are about to be redirected to the secure **JazzCash Payment Gateway**.</p>
-              <p className="text-base text-gray-500">You can complete your settlement using your **JazzCash Mobile Wallet** or any **Debit/Credit Card**. Once payment is authorized, you will be automatically returned to SafarLink to view your digital ticket.</p>
+              <p>You are about to be redirected to the secure **Stripe Payment Gateway**.</p>
+              <p className="text-base text-gray-500">You can complete your settlement using your **Credit/Debit Card**. Once payment is authorized, you will be automatically returned to SafarLink to view your digital ticket.</p>
             </div>
 
             <button onClick={nextStep} className="luxury-button w-full !py-6 !text-sm">
-              PROCEED TO JAZZCASH GATEWAY
+              PROCEED TO STRIPE CHECKOUT
             </button>
             <p className="text-center text-[10px] text-gray-400 uppercase tracking-widest font-condensed">SECURE 256-BIT ENCRYPTED TRANSIT PORTAL</p>
           </div>

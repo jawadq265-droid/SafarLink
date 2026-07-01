@@ -15,7 +15,7 @@ const PaymentSuccessPage = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status");
-    const txnRefNo = params.get("txnRefNo");
+    const txnRefNo = params.get("txnRefNo") || params.get("session_id");
 
     if (status === "success" && txnRefNo) {
       const tempSaved = localStorage.getItem("temp_booking");
