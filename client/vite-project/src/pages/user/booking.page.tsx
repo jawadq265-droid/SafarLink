@@ -266,118 +266,128 @@ const BookingPage = () => {
   );
 
   const renderDetails = () => (
-    <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-16 p-4">
-      <div className="text-center space-y-4">
-        <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">GUEST INFORMATION</p>
-        <h2 className="text-5xl md:text-6xl font-serif text-gray-900 leading-tight">Passenger Profile</h2>
+    <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-4 p-2 max-w-4xl mx-auto">
+      <div className="text-center space-y-1">
+        <p className="text-[9px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed">GUEST INFORMATION</p>
+        <h2 className="text-3xl font-serif text-gray-900 leading-none">Passenger Profile</h2>
       </div>
-      <div className="luxury-card p-16 rounded-none border border-gray-100 max-w-4xl mx-auto relative overflow-hidden group">
-        <div className="space-y-12 relative z-10">
+      <div className="max-w-xl mx-auto luxury-card p-6 rounded-none border border-gray-100 relative overflow-hidden group">
+        <div className="space-y-4 relative z-10">
           <div className="relative">
-            <label className="block text-[10px] text-[#aa8453] tracking-widest uppercase font-condensed mb-4 ml-1">Full Designation</label>
+            <label className="block text-[9px] text-[#aa8453] tracking-widest uppercase font-condensed mb-1.5 ml-1">Full Designation</label>
             <input
               type="text"
               value={passengerInfo.name}
               onChange={(e) => setPassengerInfo({ ...passengerInfo, name: e.target.value })}
               placeholder="e.g. Muhammad Jawad"
-              className="w-full px-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-xl font-serif transition-all"
+              className="w-full px-4 py-3 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all"
             />
           </div>
           <div className="relative">
-            <label className="block text-[10px] text-[#aa8453] tracking-widest uppercase font-condensed mb-4 ml-1">Email Address</label>
+            <label className="block text-[9px] text-[#aa8453] tracking-widest uppercase font-condensed mb-1.5 ml-1">Email Address</label>
             <input
               type="email"
               value={passengerInfo.email}
               onChange={(e) => setPassengerInfo({ ...passengerInfo, email: e.target.value })}
               placeholder="e.g. jawad@example.com"
-              className="w-full px-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-xl font-serif transition-all"
+              className="w-full px-4 py-3 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all"
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative">
-              <label className="block text-[10px] text-[#aa8453] tracking-widest uppercase font-condensed mb-4 ml-1">Contact Link</label>
+              <label className="block text-[9px] text-[#aa8453] tracking-widest uppercase font-condensed mb-1.5 ml-1">Contact Link</label>
               <div className="relative">
-                <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-400 font-serif text-xl">+92</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-serif text-base">+92</span>
                 <input
                   type="text"
                   value={passengerInfo.phone}
                   onChange={(e) => setPassengerInfo({ ...passengerInfo, phone: formatPhone(e.target.value) })}
                   placeholder="3001234567"
-                  className="w-full pl-24 pr-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-xl font-serif transition-all tracking-[0.2em]"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all tracking-[0.15em]"
                 />
               </div>
             </div>
             <div className="relative">
-              <label className="block text-[10px] text-[#aa8453] tracking-widest uppercase font-condensed mb-4 ml-1">National ID</label>
+              <label className="block text-[9px] text-[#aa8453] tracking-widest uppercase font-condensed mb-1.5 ml-1">National ID</label>
               <input
                 type="text"
                 value={passengerInfo.cnic}
                 onChange={(e) => setPassengerInfo({ ...passengerInfo, cnic: formatCNIC(e.target.value) })}
                 placeholder="35201-XXXXXXX-X"
-                className="w-full px-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-xl font-serif transition-all tracking-[0.3em]"
+                className="w-full px-4 py-3 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all tracking-[0.2em]"
               />
             </div>
           </div>
         </div>
       </div>
-      <div className="flex justify-between mt-12 max-w-4xl mx-auto">
-        <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-200 !px-12 uppercase text-[10px] tracking-widest">Back</button>
-        <button onClick={nextStep} className="luxury-button !px-16 uppercase text-[10px] tracking-widest">
-          PROCEED TO CHECKOUT
-        </button>
+      <div className="flex justify-between mt-6 max-w-xl mx-auto items-center">
+        <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-200 !px-10 !py-3 uppercase text-[9px] tracking-widest">Back</button>
+        <div className="flex items-center space-x-8">
+          <div className="text-right">
+            <p className="text-[9px] text-gray-400 font-condensed uppercase tracking-widest mb-0.5">Total Valuation</p>
+            <p className="text-2xl font-serif text-[#aa8453] tracking-tighter">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+          </div>
+          <button onClick={nextStep} className="luxury-button !px-12 !py-4 uppercase text-[9px] tracking-widest">
+            PROCEED TO CHECKOUT
+          </button>
+        </div>
       </div>
     </motion.div>
   );
 
   const renderPaymentSelection = () => (
-    <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-16 p-4">
-      <div className="text-center space-y-4">
-        <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">SECURE SETTLEMENT</p>
-        <h2 className="text-5xl md:text-6xl font-serif text-gray-900 leading-tight">Payment Gateway</h2>
+    <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-4 p-2 max-w-4xl mx-auto">
+      <div className="text-center space-y-1">
+        <p className="text-[9px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed">SECURE SETTLEMENT</p>
+        <h2 className="text-3xl font-serif text-gray-900 leading-none">Payment Gateway</h2>
       </div>
 
-      <div className="max-w-2xl mx-auto luxury-card p-16 rounded-none border border-gray-100 relative overflow-hidden group">
+      <div className="max-w-xl mx-auto luxury-card p-6 rounded-none border border-gray-100 relative overflow-hidden group">
         {isProcessing ? (
-          <div className="py-24 flex flex-col items-center justify-center space-y-12">
-            <div className="w-24 h-24 border-[2px] border-gray-100 border-t-[#aa8453] rounded-full animate-spin"></div>
+          <div className="py-12 flex flex-col items-center justify-center space-y-6">
+            <div className="w-16 h-16 border-[2px] border-gray-100 border-t-[#aa8453] rounded-full animate-spin"></div>
             <div className="text-center">
-              <h3 className="text-3xl font-serif text-gray-800">Redirecting to Stripe...</h3>
-              <p className="text-[#aa8453] mt-4 animate-pulse text-[10px] tracking-[0.4em] uppercase font-condensed">Connecting to Stripe Secure Gateway</p>
+              <h3 className="text-xl font-serif text-gray-800">Redirecting to Stripe...</h3>
+              <p className="text-[#aa8453] mt-2 animate-pulse text-[9px] tracking-[0.4em] uppercase font-condensed">Connecting to Stripe Secure Gateway</p>
             </div>
           </div>
         ) : (
-          <div className="space-y-12 relative z-10">
-            <div className="bg-[#fcfbf9] p-10 rounded-none flex items-center justify-between border border-gray-100 mb-10">
-              <div className="flex items-center space-x-6">
-                <div className="p-4 bg-white rounded-none shadow-sm border border-gray-100">
-                  <Wallet className="text-[#aa8453]" size={32} />
+          <div className="space-y-4 relative z-10">
+            <div className="bg-[#fcfbf9] p-4 rounded-none flex items-center justify-between border border-gray-100">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-white rounded-none shadow-sm border border-gray-100">
+                  <Wallet className="text-[#aa8453]" size={24} />
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-condensed">Settlement via</p>
-                  <p className="text-xl font-serif text-gray-800">Stripe Hosted Checkout</p>
+                  <p className="text-[9px] text-gray-400 uppercase tracking-widest font-condensed">Settlement via</p>
+                  <p className="text-lg font-serif text-gray-800">Stripe Hosted Checkout</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-condensed">Authorized Amount</p>
-                <p className="text-3xl font-serif text-[#aa8453]">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+                <p className="text-[9px] text-gray-400 uppercase tracking-widest font-condensed">Authorized Amount</p>
+                <p className="text-2xl font-serif text-[#aa8453]">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
               </div>
             </div>
 
-            <div className="space-y-8 bg-[#fcfbf9] p-10 border border-gray-100 font-serif text-gray-700 text-lg leading-relaxed">
+            <div className="space-y-4 bg-[#fcfbf9] p-4 border border-gray-100 font-serif text-gray-700 text-sm leading-relaxed">
               <p>You are about to be redirected to the secure **Stripe Payment Gateway**.</p>
-              <p className="text-base text-gray-500">You can complete your settlement using your **Credit/Debit Card**. Once payment is authorized, you will be automatically returned to SafarLink to view your digital ticket.</p>
+              <p className="text-xs text-gray-500">You can complete your settlement using your **Credit/Debit Card**. Once payment is authorized, you will be automatically returned to SafarLink to view your digital ticket.</p>
             </div>
-
-            <button onClick={nextStep} className="luxury-button w-full !py-6 !text-sm">
-              PROCEED TO STRIPE CHECKOUT
-            </button>
-            <p className="text-center text-[10px] text-gray-400 uppercase tracking-widest font-condensed">SECURE 256-BIT ENCRYPTED TRANSIT PORTAL</p>
           </div>
         )}
       </div>
       {!isProcessing && (
-        <div className="flex justify-center mt-10">
-          <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-200 !px-12 uppercase text-[10px] tracking-widest">Return to Profile</button>
+        <div className="flex justify-between mt-6 max-w-xl mx-auto items-center">
+          <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-200 !px-10 !py-3 uppercase text-[9px] tracking-widest">Return to Profile</button>
+          <div className="flex items-center space-x-8">
+            <div className="text-right">
+              <p className="text-[9px] text-gray-400 font-condensed uppercase tracking-widest mb-0.5">Total Valuation</p>
+              <p className="text-2xl font-serif text-[#aa8453] tracking-tighter">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+            </div>
+            <button onClick={nextStep} className="luxury-button !px-12 !py-4 uppercase text-[9px] tracking-widest">
+              PROCEED TO STRIPE
+            </button>
+          </div>
         </div>
       )}
     </motion.div>
@@ -484,26 +494,26 @@ const BookingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white pt-48 pb-32">
-      <div className="container mx-auto px-6 max-w-7xl">
+    <div className="min-h-screen bg-white pt-24 pb-12">
+      <div className="container mx-auto px-6 max-w-5xl">
         {/* Luxury Progress Header */}
-        <div className="bg-[#1b1b1b] p-16 rounded-none mb-24 relative overflow-hidden border-b-4 border-[#aa8453] shadow-2xl no-print">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10rem] font-serif text-white opacity-[0.02] whitespace-nowrap pointer-events-none">
+        <div className="bg-[#1b1b1b] p-6 rounded-none mb-8 relative overflow-hidden border-b-4 border-[#aa8453] shadow-2xl no-print">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[5rem] font-serif text-white opacity-[0.02] whitespace-nowrap pointer-events-none">
             RESERVATION
           </div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-center">
-            <div className="space-y-4">
-              <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">SECURE CONCIERGE</p>
-              <h1 className="text-6xl font-serif text-white tracking-tight">Luxury Reservation</h1>
+            <div className="space-y-1 text-center md:text-left">
+              <p className="text-[9px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed">SECURE CONCIERGE</p>
+              <h1 className="text-3xl font-serif text-white tracking-tight">Luxury Reservation</h1>
             </div>
-            <div className="flex items-center space-x-6 mt-12 md:mt-0">
+            <div className="flex items-center space-x-4 mt-4 md:mt-0">
               {[2, 3, 4, 5].map((i) => (
                 <React.Fragment key={i}>
-                  <div className={`flex items-center justify-center w-14 h-14 rounded-none border transition-all duration-700 ${step >= i ? 'bg-[#aa8453] text-white border-[#aa8453] shadow-2xl' : 'bg-transparent text-white/20 border-white/10'
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-none border transition-all duration-700 ${step >= i ? 'bg-[#aa8453] text-white border-[#aa8453] shadow-2xl' : 'bg-transparent text-white/20 border-white/10'
                     }`}>
-                    {step > i ? <CheckCircle2 size={28} /> : <span className="font-serif text-xl">{i - 1}</span>}
+                    {step > i ? <CheckCircle2 size={20} /> : <span className="font-serif text-base">{i - 1}</span>}
                   </div>
-                  {i < 5 && <div className={`w-16 h-[1px] ${step > i ? 'bg-[#aa8453]' : 'bg-white/10'}`}></div>}
+                  {i < 5 && <div className={`w-10 h-[1px] ${step > i ? 'bg-[#aa8453]' : 'bg-white/10'}`}></div>}
                 </React.Fragment>
               ))}
             </div>
