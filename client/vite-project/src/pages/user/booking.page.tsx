@@ -40,7 +40,8 @@ const BookingPage = () => {
   const [passengerInfo, setPassengerInfo] = useState({
     name: '',
     phone: '',
-    cnic: ''
+    cnic: '',
+    email: ''
   });
 
 
@@ -126,8 +127,8 @@ const BookingPage = () => {
       return;
     }
     if (step === 3) {
-      if (!passengerInfo.name || passengerInfo.phone.length < 10 || passengerInfo.cnic.length < 15) {
-        toast.error("Please provide valid passenger details");
+      if (!passengerInfo.name || passengerInfo.phone.length < 10 || passengerInfo.cnic.length < 15 || !passengerInfo.email) {
+        toast.error("Please provide valid passenger details including email");
         return;
       }
     }
@@ -279,6 +280,16 @@ const BookingPage = () => {
               value={passengerInfo.name}
               onChange={(e) => setPassengerInfo({ ...passengerInfo, name: e.target.value })}
               placeholder="e.g. Muhammad Jawad"
+              className="w-full px-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-xl font-serif transition-all"
+            />
+          </div>
+          <div className="relative">
+            <label className="block text-[10px] text-[#aa8453] tracking-widest uppercase font-condensed mb-4 ml-1">Email Address</label>
+            <input
+              type="email"
+              value={passengerInfo.email}
+              onChange={(e) => setPassengerInfo({ ...passengerInfo, email: e.target.value })}
+              placeholder="e.g. jawad@example.com"
               className="w-full px-10 py-6 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-xl font-serif transition-all"
             />
           </div>

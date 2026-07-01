@@ -63,6 +63,12 @@ export const sendPaymentClearanceEmail = async (req, res) => {
 
     const { selectedRoute, selectedSeats, passengerInfo, ticketId, txnRefNo } = bookingData;
 
+    // Format and sort seats list
+    const sortedSeats = Array.isArray(selectedSeats)
+      ? [...selectedSeats].sort((a, b) => Number(a) - Number(b))
+      : [];
+    const seatsList = sortedSeats.join(', ');
+
     // Save actual booking to database
     try {
       const busName = selectedRoute?.bus || selectedRoute?.name || "N/A";
@@ -84,7 +90,7 @@ export const sendPaymentClearanceEmail = async (req, res) => {
           bus: busName,
           date: travelDate,
           amount: totalAmount,
-          seats: selectedSeats.map(s => String(s)),
+          seats: sortedSeats.map(s => String(s)),
           routeFrom: routeFrom,
           routeTo: routeTo,
           departureTime: depTime,
@@ -108,9 +114,6 @@ export const sendPaymentClearanceEmail = async (req, res) => {
     });
 
     const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
-
-    // Format seats list
-    const seatsList = Array.isArray(selectedSeats) ? selectedSeats.join(', ') : selectedSeats;
 
     await transporter.sendMail({
       to: adminEmail,
@@ -151,7 +154,7 @@ export const sendPaymentClearanceEmail = async (req, res) => {
             </tr>
             <tr>
               <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Bus:</td>
-              <td style="padding: 8px; border-bottom: 1px solid #eee;">${selectedRoute?.name || "N/A"}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #eee;">${selectedRoute?.bus || selectedRoute?.name || "N/A"}</td>
             </tr>
             <tr>
               <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Route:</td>
