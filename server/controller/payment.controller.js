@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import Stripe from 'stripe';
 import Booking from '../models/booking.model.js';
+import Bus from '../models/bus.model.js';
 
 export const createStripeCheckoutSession = async (req, res) => {
   try {
@@ -99,6 +100,24 @@ export const sendPaymentClearanceEmail = async (req, res) => {
         });
         await newBooking.save();
         console.log("Booking successfully saved in database:", ticketId);
+
+        // Deduct booked seats from matching bus
+        try {
+          const busDoc = await Bus.findOne({
+            $or: [
+              { name: new RegExp(`^${busName.trim()}$`, 'i') },
+              { name: new RegExp(busName.trim(), 'i') }
+            ]
+          });
+          if (busDoc) {
+            const seatsDeducted = Array.isArray(sortedSeats) ? sortedSeats.length : 1;
+            busDoc.seatsLeft = Math.max(0, (busDoc.seatsLeft ?? busDoc.totalSeats ?? 40) - seatsDeducted);
+            await busDoc.save();
+            console.log(`Updated ${busDoc.name} seatsLeft to ${busDoc.seatsLeft}`);
+          }
+        } catch (busUpdateErr) {
+          console.error("Failed to decrement bus seatsLeft:", busUpdateErr);
+        }
       }
     } catch (dbErr) {
       console.error("Failed to save booking to database:", dbErr);

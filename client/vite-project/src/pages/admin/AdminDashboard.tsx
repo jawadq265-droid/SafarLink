@@ -370,11 +370,44 @@ const AdminDashboard = () => {
   const [editBusStatus, setEditBusStatus] = useState('');
   const [editBusIsPopular, setEditBusIsPopular] = useState(true);
 
+  // Helper to compute dynamic booked seat metrics and load percentage for each bus
+  const getBusSeatMetrics = (bus: BusType) => {
+    const matchingBookings = bookings.filter(b => 
+      b.bus && (
+        b.bus.trim().toLowerCase().includes(bus.name.trim().toLowerCase()) || 
+        bus.name.trim().toLowerCase().includes(b.bus.trim().toLowerCase())
+      )
+    );
+
+    const bookedSeatSet = new Set<string>();
+    matchingBookings.forEach(b => {
+      if (Array.isArray(b.seats)) {
+        b.seats.forEach((s: any) => bookedSeatSet.add(String(s)));
+      }
+    });
+
+    const bookedCount = bookedSeatSet.size;
+    const effectiveSeatsLeft = bookedCount > 0 
+      ? Math.max(0, (bus.totalSeats || 40) - bookedCount)
+      : (bus.seatsLeft ?? bus.totalSeats ?? 40);
+
+    const loadPercent = Math.min(100, Math.round(((bus.totalSeats - effectiveSeatsLeft) / (bus.totalSeats || 40)) * 100));
+
+    return {
+      bookedCount,
+      effectiveSeatsLeft,
+      loadPercent
+    };
+  };
+
   const stats = [
     { title: 'Total Buses', value: buses.length.toString(), icon: Bus, color: 'bg-[#aa8453]', trend: '+2 this month' },
     { title: 'Total Bookings', value: bookings.length.toString(), icon: Calendar, color: 'bg-[#1b1b1b]', trend: '+12% from last week' },
     { title: 'Total Users', value: usersList.length.toString(), icon: Users, color: 'bg-[#aa8453]', trend: '+4 today' },
-    { title: 'Revenue', value: `Rs. ${buses.reduce((acc, curr) => acc + (curr.totalSeats - curr.seatsLeft) * curr.price, 0).toLocaleString()}`, icon: TrendingUp, color: 'bg-[#1b1b1b]', trend: '+8% vs last month' },
+    { title: 'Revenue', value: `Rs. ${buses.reduce((acc, curr) => {
+        const { effectiveSeatsLeft } = getBusSeatMetrics(curr);
+        return acc + (curr.totalSeats - effectiveSeatsLeft) * curr.price;
+      }, 0).toLocaleString()}`, icon: TrendingUp, color: 'bg-[#1b1b1b]', trend: '+8% vs last month' },
   ];
 
   // Filtering Logic
@@ -876,11 +909,12 @@ const AdminDashboard = () => {
                       <tbody className="divide-y divide-gray-100">
                         {buses.slice(0, 4).map((bus) => {
                           const depRuntime = getBusDepartureRuntime(bus);
+                          const { effectiveSeatsLeft, loadPercent } = getBusSeatMetrics(bus);
                           return (
                             <tr key={bus.id || bus._id} className="hover:bg-[#fcfaf7]/40 transition-all group">
                               <td className="px-6 py-4">
                                 <div className="flex items-center space-x-3">
-                                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${bus.seatsLeft === 0 ? 'bg-red-50 text-red-600' : 'bg-[#aa8453]/10 text-[#aa8453]'}`}>
+                                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${effectiveSeatsLeft === 0 ? 'bg-red-50 text-red-600' : 'bg-[#aa8453]/10 text-[#aa8453]'}`}>
                                     <Bus size={18} />
                                   </div>
                                   <div>
@@ -891,8 +925,8 @@ const AdminDashboard = () => {
                               </td>
                               <td className="px-6 py-4">
                                 <div className="flex items-center space-x-2">
-                                  <span className={`text-sm font-black ${bus.seatsLeft < 10 ? 'text-red-500' : 'text-emerald-600'}`}>
-                                    {bus.seatsLeft}
+                                  <span className={`text-sm font-black ${effectiveSeatsLeft < 10 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                    {effectiveSeatsLeft}
                                   </span>
                                   <span className="text-[10px] font-bold text-gray-400 tracking-tighter uppercase">Seats Left</span>
                                 </div>
@@ -911,11 +945,14 @@ const AdminDashboard = () => {
                                 </div>
                               </td>
                               <td className="px-6 py-4">
-                                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner">
-                                  <div
-                                    className={`h-full transition-all duration-1000 ${bus.seatsLeft === 0 ? 'bg-red-500' : 'bg-[#aa8453]'}`}
-                                    style={{ width: `${((bus.totalSeats - bus.seatsLeft) / bus.totalSeats) * 100}%` }}
-                                  ></div>
+                                <div className="flex items-center justify-end space-x-3">
+                                  <div className="w-24 bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner">
+                                    <div
+                                      className={`h-full transition-all duration-1000 ${effectiveSeatsLeft === 0 ? 'bg-red-500' : 'bg-[#aa8453]'}`}
+                                      style={{ width: `${loadPercent}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-[10px] font-black text-gray-600 w-8 text-right">{loadPercent}%</span>
                                 </div>
                               </td>
                             </tr>

@@ -1,4 +1,5 @@
 import Bus from "../models/bus.model.js";
+import Booking from "../models/booking.model.js";
 
 const DEFAULT_ROUTES = [
   {
@@ -119,6 +120,37 @@ export const getBuses = async (req, res) => {
 
     const buses = await Bus.find(filter).sort({ createdAt: -1 });
     await sanitizeBusList(buses);
+
+    // Synchronize seatsLeft with real passenger bookings
+    try {
+      const bookings = await Booking.find({});
+      for (const bus of buses) {
+        const matchingBookings = bookings.filter(b => 
+          b.bus && (
+            b.bus.trim().toLowerCase().includes(bus.name.trim().toLowerCase()) || 
+            bus.name.trim().toLowerCase().includes(b.bus.trim().toLowerCase())
+          )
+        );
+
+        const bookedSet = new Set();
+        matchingBookings.forEach(b => {
+          if (Array.isArray(b.seats)) {
+            b.seats.forEach(s => bookedSet.add(String(s)));
+          }
+        });
+
+        if (bookedSet.size > 0) {
+          const calculatedSeatsLeft = Math.max(0, (bus.totalSeats || 40) - bookedSet.size);
+          if (bus.seatsLeft !== calculatedSeatsLeft) {
+            bus.seatsLeft = calculatedSeatsLeft;
+            await Bus.findByIdAndUpdate(bus._id, { seatsLeft: calculatedSeatsLeft });
+          }
+        }
+      }
+    } catch (syncErr) {
+      console.error("Error synchronizing bus seatsLeft with bookings:", syncErr);
+    }
+
     return res.status(200).json({ success: true, buses });
   } catch (error) {
     console.error("Error fetching buses:", error);
