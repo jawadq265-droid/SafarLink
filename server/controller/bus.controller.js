@@ -332,3 +332,49 @@ export const updateBusStatus = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * Resets available seats for all fleet buses back to full capacity.
+ * Triggered after every 1-hour cycle as the previous bus departs on route and the new bus becomes available.
+ */
+export const resetAllBusSeats = async (req, res) => {
+  try {
+    const buses = await Bus.find({});
+    for (const bus of buses) {
+      bus.seatsLeft = bus.totalSeats || 40;
+      if (bus.status === "On Route" || bus.status === "Departure in 60 mins") {
+        bus.status = "Active";
+      }
+      await bus.save();
+    }
+    console.log(`[Hourly Fleet Cycle] All bus seats reset to full capacity at ${new Date().toLocaleTimeString()}.`);
+    return res.status(200).json({
+      success: true,
+      message: "Hourly cycle refreshed: All bus seats reset to full capacity as new fleet departs.",
+      buses
+    });
+  } catch (error) {
+    console.error("Error resetting all bus seats:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Automated backend hourly reset interval: checks every 30 seconds if hour changed
+let lastServerHour = new Date().getHours();
+setInterval(async () => {
+  try {
+    const currentHour = new Date().getHours();
+    if (currentHour !== lastServerHour) {
+      lastServerHour = currentHour;
+      const allBuses = await Bus.find({});
+      for (const bus of allBuses) {
+        bus.seatsLeft = bus.totalSeats || 40;
+        await bus.save();
+      }
+      console.log(`[Hourly Auto-Reset] 1-hour cycle completed at ${new Date().toLocaleTimeString()}. Fleet seats reset to full capacity.`);
+    }
+  } catch (err) {
+    console.error("[Hourly Auto-Reset Error]:", err);
+  }
+}, 30000);
+

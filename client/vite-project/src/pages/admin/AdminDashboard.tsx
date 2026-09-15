@@ -23,7 +23,8 @@ import {
   DollarSign,
   Star,
   Download,
-  Share2
+  Share2,
+  RotateCw
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -130,6 +131,96 @@ const AdminDashboard = () => {
   React.useEffect(() => {
     localStorage.setItem("buses", JSON.stringify(buses));
   }, [buses]);
+
+  // Live Runtime Clock for Fleet Departure Countdowns
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const lastProcessedHourRef = React.useRef<number>(new Date().getHours());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000); // 1-second precision runtime update
+    return () => clearInterval(timer);
+  }, []);
+
+  // Fleet Seat Reset Handler (Automatic hourly rollover or manual admin trigger)
+  const handleResetFleetSeats = async (isManual = false) => {
+    try {
+      // 1. Immediately reset seats in local state so UI updates instantaneously
+      setBuses((prevBuses) =>
+        prevBuses.map((bus) => ({
+          ...bus,
+          seatsLeft: bus.totalSeats || 40,
+          status: bus.status === "On Trip" || bus.status === "On Route" ? "Active" : bus.status
+        }))
+      );
+
+      // 2. Sync reset with backend MongoDB
+      const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+      const res = await fetch(`${baseUrl}buses/reset-seats`, { method: "POST" });
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(
+          isManual
+            ? "Fleet seats successfully reset to full capacity!"
+            : "Hourly Fleet Cycle: Previous buses departed on route. Available seats reset for new departures!",
+          { icon: "🚌", duration: 5000 }
+        );
+      }
+    } catch (err) {
+      console.error("Failed to reset fleet seats:", err);
+    }
+  };
+
+  // Monitor 1-hour rollover at runtime
+  React.useEffect(() => {
+    const currentHour = currentTime.getHours();
+    if (lastProcessedHourRef.current !== currentHour) {
+      lastProcessedHourRef.current = currentHour;
+      handleResetFleetSeats(false);
+    }
+  }, [currentTime]);
+
+  // Helper to compute runtime departure countdown for each bus
+  const getBusDepartureRuntime = (bus: BusType, index: number) => {
+    let scheduledMinute = 0;
+    const match = bus.time?.match(/:(\d{2})/);
+    if (match) {
+      scheduledMinute = parseInt(match[1], 10);
+    } else {
+      scheduledMinute = (index * 15) % 60;
+    }
+
+    const nextDep = new Date(currentTime);
+    nextDep.setSeconds(0);
+    nextDep.setMilliseconds(0);
+    nextDep.setMinutes(scheduledMinute);
+
+    if (nextDep.getTime() <= currentTime.getTime()) {
+      nextDep.setHours(nextDep.getHours() + 1);
+    }
+
+    const diffMs = nextDep.getTime() - currentTime.getTime();
+    const totalSecs = Math.max(0, Math.floor(diffMs / 1000));
+    const minsLeft = Math.floor(totalSecs / 60);
+    const secsLeft = totalSecs % 60;
+
+    const formattedTime = nextDep.toLocaleTimeString('en-PK', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    const displayCountdown = minsLeft > 0 ? `${minsLeft}m left` : `${secsLeft}s left`;
+
+    return {
+      formattedTime,
+      minsLeft,
+      secsLeft,
+      displayCountdown
+    };
+  };
 
   const [bookings, setBookings] = useState<BookingType[]>([]);
 
@@ -700,66 +791,99 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Recent Buses Table */}
                 <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-[#aa8453]/10 overflow-hidden">
-                  <div className="p-6 border-b border-[#aa8453]/10 flex items-center justify-between">
-                    <h3 className="text-lg font-serif font-bold text-gray-800">Live Fleet Performance</h3>
-                    <button 
-                      onClick={() => setActiveTab('buses')}
-                      className="flex items-center space-x-1 text-[#aa8453] hover:text-[#8e6d45] font-bold text-xs uppercase tracking-widest"
-                    >
-                      <span>Full Fleet</span>
-                      <ChevronRight size={14} />
-                    </button>
+                  <div className="p-6 border-b border-[#aa8453]/10 flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center space-x-3">
+                      <h3 className="text-lg font-serif font-bold text-gray-800">Live Fleet Performance</h3>
+                      <span className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold tracking-wider uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                        <span>1h Dispatch Cycle</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => handleResetFleetSeats(true)}
+                        className="flex items-center space-x-1 px-3 py-1.5 bg-[#aa8453]/10 hover:bg-[#aa8453]/20 text-[#aa8453] rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+                        title="Manually trigger 1-hour departure rollover & reset all available bus seats"
+                      >
+                        <RotateCw size={12} />
+                        <span>Reset Seats (1h)</span>
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('buses')}
+                        className="flex items-center space-x-1 text-[#aa8453] hover:text-[#8e6d45] font-bold text-xs uppercase tracking-widest"
+                      >
+                        <span>Full Fleet</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="text-left text-[10px] font-black text-gray-400 G-100 uppercase tracking-widest bg-[#fcfaf7]/50">
+                        <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-[#fcfaf7]/50">
                           <th className="px-6 py-4">Vehicle</th>
                           <th className="px-6 py-4">Availability</th>
+                          <th className="px-6 py-4">Departure Time</th>
                           <th className="px-6 py-4">Condition</th>
                           <th className="px-6 py-4 text-right">Load</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {buses.slice(0, 4).map((bus) => (
-                          <tr key={bus.id} className="hover:bg-[#fcfaf7]/40 transition-all group">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center space-x-3">
-                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${bus.seatsLeft === 0 ? 'bg-red-50 text-red-600' : 'bg-[#aa8453]/10 text-[#aa8453]'}`}>
-                                  <Bus size={18} />
+                        {buses.slice(0, 4).map((bus, idx) => {
+                          const depRuntime = getBusDepartureRuntime(bus, idx);
+                          return (
+                            <tr key={bus.id} className="hover:bg-[#fcfaf7]/40 transition-all group">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center space-x-3">
+                                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${bus.seatsLeft === 0 ? 'bg-red-50 text-red-600' : 'bg-[#aa8453]/10 text-[#aa8453]'}`}>
+                                    <Bus size={18} />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-gray-800 text-sm leading-none mb-1">{bus.name}</p>
+                                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">{bus.route}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="font-bold text-gray-800 text-sm leading-none mb-1">{bus.name}</p>
-                                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">{bus.route}</p>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center space-x-2">
+                                  <span className={`text-sm font-black ${bus.seatsLeft < 10 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                    {bus.seatsLeft}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-gray-400 tracking-tighter uppercase">Seats Left</span>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center space-x-2">
-                                <span className={`text-sm font-black ${bus.seatsLeft < 10 ? 'text-red-500' : 'text-emerald-600'}`}>
-                                  {bus.seatsLeft}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center space-x-2.5">
+                                  <div className="p-1.5 bg-[#aa8453]/10 text-[#aa8453] rounded-lg">
+                                    <Clock size={14} />
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-bold text-gray-800 leading-none mb-1">{depRuntime.formattedTime}</p>
+                                    <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase bg-amber-50 text-[#aa8453] border border-[#aa8453]/20 animate-pulse">
+                                      {depRuntime.displayCountdown}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${bus.status === 'Active' ? 'bg-emerald-50 text-emerald-600' :
+                                  bus.status === 'On Trip' ? 'bg-amber-50 text-[#aa8453]' :
+                                    'bg-red-50 text-red-600'
+                                  }`}>
+                                  {bus.status}
                                 </span>
-                                <span className="text-[10px] font-bold text-gray-400 tracking-tighter uppercase">Seats Left</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${bus.status === 'Active' ? 'bg-emerald-50 text-emerald-600' :
-                                bus.status === 'On Trip' ? 'bg-amber-50 text-[#aa8453]' :
-                                  'bg-red-50 text-red-600'
-                                }`}>
-                                {bus.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner">
-                                <div
-                                  className={`h-full transition-all duration-1000 ${bus.seatsLeft === 0 ? 'bg-red-500' : 'bg-[#aa8453]'}`}
-                                  style={{ width: `${((bus.totalSeats - bus.seatsLeft) / bus.totalSeats) * 100}%` }}
-                                ></div>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner">
+                                  <div
+                                    className={`h-full transition-all duration-1000 ${bus.seatsLeft === 0 ? 'bg-red-500' : 'bg-[#aa8453]'}`}
+                                    style={{ width: `${((bus.totalSeats - bus.seatsLeft) / bus.totalSeats) * 100}%` }}
+                                  ></div>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
