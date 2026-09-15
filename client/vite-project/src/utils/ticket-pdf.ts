@@ -297,7 +297,7 @@ export const buildTicketPDFDocument = (data: TicketPDFData): jsPDF => {
   doc.text('1. Please arrive at your departure lounge 15 minutes prior to scheduled departure.', 24, 248);
   doc.text('2. Present this official PDF digital ticket or printed manifest at the boarding gate.', 24, 254);
   doc.text('3. Valid Government Issued Photo ID (CNIC / Passport) is mandatory for seat verification.', 24, 260);
-  doc.text('4. For concierge service and 24/7 inquiries, reach out to concierge@safarlink.com', 24, 266);
+  doc.text('4. For concierge service and 24/7 inquiries, reach out to safarlink0@gmail.com', 24, 266);
 
   // 8. Bottom Footer
   doc.setTextColor(170, 160, 150);
