@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { downloadTicketPDF, shareTicketPDF } from '../../utils/ticket-pdf';
 
 const BookingPage = () => {
   const navigate = useNavigate();
@@ -187,7 +188,37 @@ const BookingPage = () => {
   };
 
   const handleDownloadPDF = () => {
-    window.print();
+    const totalAmount = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
+    downloadTicketPDF({
+      passengerName: passengerInfo?.name,
+      phone: passengerInfo?.phone,
+      cnic: passengerInfo?.cnic,
+      email: passengerInfo?.email,
+      busName: selectedRoute?.bus,
+      routeFrom: selectedRoute?.from,
+      routeTo: selectedRoute?.to,
+      date: selectedRoute?.date,
+      time: selectedRoute?.time,
+      seats: selectedSeats?.join(", "),
+      amount: totalAmount ? `Rs. ${totalAmount}` : undefined
+    });
+  };
+
+  const handleShareTicket = async () => {
+    const totalAmount = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
+    await shareTicketPDF({
+      passengerName: passengerInfo?.name,
+      phone: passengerInfo?.phone,
+      cnic: passengerInfo?.cnic,
+      email: passengerInfo?.email,
+      busName: selectedRoute?.bus,
+      routeFrom: selectedRoute?.from,
+      routeTo: selectedRoute?.to,
+      date: selectedRoute?.date,
+      time: selectedRoute?.time,
+      seats: selectedSeats?.join(", "),
+      amount: totalAmount ? `Rs. ${totalAmount}` : undefined
+    });
   };
 
   const prevStep = () => {
@@ -486,11 +517,11 @@ const BookingPage = () => {
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pb-32 no-print">
           <button onClick={handleDownloadPDF} className="luxury-button !py-5 !px-16 flex items-center space-x-4 w-full sm:w-auto justify-center">
             <Download size={24} />
-            <span>ARCHIVE MANIFEST</span>
+            <span>DOWNLOAD TICKET (PDF)</span>
           </button>
-          <button onClick={() => window.open(`https://wa.me/?text=Manifest Sealed for ${passengerInfo.name}`, '_blank')} className="luxury-button-outline !text-gray-900 !border-gray-200 !py-5 !px-16 flex items-center space-x-4 w-full sm:w-auto justify-center">
+          <button onClick={handleShareTicket} className="luxury-button-outline !text-gray-900 !border-gray-200 !py-5 !px-16 flex items-center space-x-4 w-full sm:w-auto justify-center">
             <Share2 size={24} />
-            <span>SHARE ON WHATSAPP</span>
+            <span>SHARE TICKET (PDF)</span>
           </button>
         </div>
       </motion.div>

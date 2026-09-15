@@ -7,6 +7,7 @@ import {
   Download
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { downloadTicketPDF, shareTicketPDF } from '../../utils/ticket-pdf';
 
 const PaymentSuccessPage = () => {
   const navigate = useNavigate();
@@ -60,7 +61,43 @@ const PaymentSuccessPage = () => {
   }, []);
 
   const handleDownloadPDF = () => {
-    window.print();
+    if (!bookingData) return;
+    const { selectedRoute, selectedSeats, passengerInfo, ticketId } = bookingData;
+    const totalAmount = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
+    downloadTicketPDF({
+      passengerName: passengerInfo?.name,
+      phone: passengerInfo?.phone,
+      cnic: passengerInfo?.cnic,
+      email: passengerInfo?.email,
+      ticketId: ticketId,
+      busName: selectedRoute?.bus || selectedRoute?.name,
+      routeFrom: selectedRoute?.from,
+      routeTo: selectedRoute?.to,
+      date: selectedRoute?.date,
+      time: selectedRoute?.time,
+      seats: selectedSeats?.join(", "),
+      amount: totalAmount ? `Rs. ${totalAmount}` : undefined
+    });
+  };
+
+  const handleShareTicket = async () => {
+    if (!bookingData) return;
+    const { selectedRoute, selectedSeats, passengerInfo, ticketId } = bookingData;
+    const totalAmount = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
+    await shareTicketPDF({
+      passengerName: passengerInfo?.name,
+      phone: passengerInfo?.phone,
+      cnic: passengerInfo?.cnic,
+      email: passengerInfo?.email,
+      ticketId: ticketId,
+      busName: selectedRoute?.bus || selectedRoute?.name,
+      routeFrom: selectedRoute?.from,
+      routeTo: selectedRoute?.to,
+      date: selectedRoute?.date,
+      time: selectedRoute?.time,
+      seats: selectedSeats?.join(", "),
+      amount: totalAmount ? `Rs. ${totalAmount}` : undefined
+    });
   };
 
   if (!bookingData) {
@@ -194,11 +231,11 @@ const PaymentSuccessPage = () => {
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pb-32 no-print">
               <button onClick={handleDownloadPDF} className="luxury-button !py-5 !px-16 flex items-center space-x-4 w-full sm:w-auto justify-center">
                 <Download size={24} />
-                <span>ARCHIVE MANIFEST</span>
+                <span>DOWNLOAD TICKET (PDF)</span>
               </button>
-              <button onClick={() => window.open(`https://wa.me/?text=Manifest Sealed for ${passengerInfo.name}`, '_blank')} className="luxury-button-outline !text-gray-900 !border-gray-200 !py-5 !px-16 flex items-center space-x-4 w-full sm:w-auto justify-center">
+              <button onClick={handleShareTicket} className="luxury-button-outline !text-gray-900 !border-gray-200 !py-5 !px-16 flex items-center space-x-4 w-full sm:w-auto justify-center">
                 <Share2 size={24} />
-                <span>SHARE ON WHATSAPP</span>
+                <span>SHARE TICKET (PDF)</span>
               </button>
             </div>
           </div>
