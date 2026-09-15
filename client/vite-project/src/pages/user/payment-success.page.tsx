@@ -7,7 +7,7 @@ import {
   Download
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { downloadTicketPDF, shareTicketPDF } from '../../utils/ticket-pdf';
+import { downloadTicketPDF, shareTicketPDF, formatVoyageDate } from '../../utils/ticket-pdf';
 
 const PaymentSuccessPage = () => {
   const navigate = useNavigate();
@@ -64,6 +64,7 @@ const PaymentSuccessPage = () => {
     if (!bookingData) return;
     const { selectedRoute, selectedSeats, passengerInfo, ticketId } = bookingData;
     const totalAmount = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
+    const rawDate = selectedRoute?.date || bookingData?.date || bookingData?.travelDate;
     downloadTicketPDF({
       passengerName: passengerInfo?.name,
       phone: passengerInfo?.phone,
@@ -73,7 +74,7 @@ const PaymentSuccessPage = () => {
       busName: selectedRoute?.bus || selectedRoute?.name,
       routeFrom: selectedRoute?.from,
       routeTo: selectedRoute?.to,
-      date: selectedRoute?.date,
+      date: rawDate,
       time: selectedRoute?.time,
       seats: selectedSeats?.join(", "),
       amount: totalAmount ? `Rs. ${totalAmount}` : undefined
@@ -84,6 +85,7 @@ const PaymentSuccessPage = () => {
     if (!bookingData) return;
     const { selectedRoute, selectedSeats, passengerInfo, ticketId } = bookingData;
     const totalAmount = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
+    const rawDate = selectedRoute?.date || bookingData?.date || bookingData?.travelDate;
     await shareTicketPDF({
       passengerName: passengerInfo?.name,
       phone: passengerInfo?.phone,
@@ -93,7 +95,7 @@ const PaymentSuccessPage = () => {
       busName: selectedRoute?.bus || selectedRoute?.name,
       routeFrom: selectedRoute?.from,
       routeTo: selectedRoute?.to,
-      date: selectedRoute?.date,
+      date: rawDate,
       time: selectedRoute?.time,
       seats: selectedSeats?.join(", "),
       amount: totalAmount ? `Rs. ${totalAmount}` : undefined
@@ -117,6 +119,8 @@ const PaymentSuccessPage = () => {
   const { selectedRoute, selectedSeats, passengerInfo } = bookingData;
   const today = new Date();
   const formattedDate = today.toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
+  const rawTravelDate = selectedRoute?.date || bookingData?.date || bookingData?.travelDate;
+  const voyageDate = formatVoyageDate(rawTravelDate);
 
   return (
     <div className="min-h-screen bg-white pt-48 pb-32">
@@ -206,8 +210,8 @@ const PaymentSuccessPage = () => {
                     <p className="text-base sm:text-lg md:text-2xl font-serif text-gray-900 break-all">{selectedSeats.join(", ")}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-3"> Date</p>
-                    <p className="text-base sm:text-lg md:text-xl font-serif text-gray-900">{formattedDate}</p>
+                    <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-3">Voyage Date</p>
+                    <p className="text-base sm:text-lg md:text-xl font-serif text-gray-900">{voyageDate}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-3">Transit Class</p>

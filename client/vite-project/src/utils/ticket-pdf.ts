@@ -17,6 +17,54 @@ export interface TicketPDFData {
 }
 
 /**
+ * Robust date formatter that avoids JavaScript UTC midnight timezone shift bugs.
+ * Ensures that selecting "2026-09-16" displays as "16 September 2026" anywhere in the world.
+ */
+export const formatVoyageDate = (dateStr?: string): string => {
+  if (!dateStr) {
+    return new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  // If already formatted like "16 September 2026" or "16 Sep"
+  if (/[a-zA-Z]/.test(dateStr) && !dateStr.includes('T')) {
+    return dateStr;
+  }
+
+  // Handle YYYY-MM-DD or DD-MM-YYYY
+  const cleanDateStr = dateStr.split('T')[0];
+  const parts = cleanDateStr.split(/[-/]/);
+  if (parts.length === 3) {
+    let year = parseInt(parts[0], 10);
+    let month = parseInt(parts[1], 10);
+    let day = parseInt(parts[2], 10);
+
+    // If format is DD-MM-YYYY
+    if (parts[0].length <= 2 && parts[2].length === 4) {
+      day = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10);
+      year = parseInt(parts[2], 10);
+    }
+
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      // Use midday local time to prevent UTC midnight rollover or DST edge cases
+      const d = new Date(year, month - 1, day, 12, 0, 0);
+      return d.toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+  }
+
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+  } catch (e) {
+    // fallback
+  }
+
+  return dateStr;
+};
+
+/**
  * Creates a high-definition vector PDF document using jsPDF directly.
  * Completely immune to Tailwind OKLCH color issues, CORS bugs, or canvas scaling artifacts.
  */
@@ -37,9 +85,7 @@ export const buildTicketPDFDocument = (data: TicketPDFData): jsPDF => {
   const departureTime = data.time || "08:00 AM";
   const seats = data.seats || "Single Seat";
   const amountStr = typeof data.amount === 'number' ? `Rs. ${data.amount}` : (data.amount || "Rs. 1,600");
-  const voyageDate = data.date 
-    ? (data.date.includes('-') ? new Date(data.date).toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' }) : data.date)
-    : new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
+  const voyageDate = formatVoyageDate(data.date);
   const issuedDate = new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
 
   // 1. Background Fill
@@ -294,18 +340,25 @@ export const shareTicketPDF = async (data: TicketPDFData): Promise<void> => {
     const passenger = data.passengerName || "Valued Passenger";
     const route = data.routeFrom && data.routeTo ? `${data.routeFrom} ➔ ${data.routeTo}` : "Pakistan Transit";
     const bus = data.busName || "SafarLink Executive";
-    const date = data.date || new Date().toLocaleDateString('en-PK');
+    const date = formatVoyageDate(data.date);
     const seats = data.seats || "Reserved";
 
     // 1. If Web Share API with file support is available (Mobile devices, Android, iOS Safari, etc.)
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      toast.dismiss(toastId);
-      await navigator.share({
-        title: `SafarLink E-Ticket - ${passenger}`,
-        text: `Official SafarLink Travel Ticket for ${passenger} (${route} on ${date})`,
-        files: [file]
-      });
-      return;
+    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        toast.dismiss(toastId);
+        await navigator.share({
+          title: `SafarLink E-Ticket - ${passenger}`,
+          text: `Official SafarLink Travel Ticket for ${passenger} (${route} on ${date})`,
+          files: [file]
+        });
+        return;
+      } catch (shareErr: any) {
+        if (shareErr?.name === 'AbortError') {
+          return; // User dismissed or cancelled the native share sheet
+        }
+        console.warn("navigator.share failed, seamlessly falling back to download + WhatsApp:", shareErr);
+      }
     }
 
     // 2. Desktop browser fallback:

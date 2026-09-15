@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { downloadTicketPDF, shareTicketPDF } from '../../utils/ticket-pdf';
+import { downloadTicketPDF, shareTicketPDF, formatVoyageDate } from '../../utils/ticket-pdf';
 
 const BookingPage = () => {
   const navigate = useNavigate();
@@ -37,9 +37,7 @@ const BookingPage = () => {
     return { id: 1, from: "Lahore", to: "Islamabad", price: 1500, time: "09:00 AM", bus: "Safar Express", date: "" };
   });
 
-  const voyageDate = selectedRoute?.date 
-    ? new Date(selectedRoute.date).toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' })
-    : new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
+  const voyageDate = formatVoyageDate(selectedRoute?.date);
 
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -431,9 +429,7 @@ const BookingPage = () => {
   const renderTicket = () => {
     const today = new Date();
     const issuedDate = today.toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
-    const voyageDate = selectedRoute?.date 
-      ? new Date(selectedRoute.date).toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' })
-      : issuedDate;
+    const voyageDate = formatVoyageDate(selectedRoute?.date);
 
     return (
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-16">
