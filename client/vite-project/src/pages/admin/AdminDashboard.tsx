@@ -23,12 +23,53 @@ import {
   DollarSign,
   Star,
   Download,
-  Share2,
-  RotateCw
+  Share2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { downloadTicketPDF, shareTicketPDF, formatVoyageDate } from '../../utils/ticket-pdf';
+
+// Robust bus time helpers for runtime departure countdowns
+export const parseBusTime = (timeStr?: string) => {
+  if (!timeStr) return { hours: 10, minutes: 0 };
+  const str = timeStr.trim();
+  const match = str.match(/^(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
+  if (!match) return { hours: 10, minutes: 0 };
+
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const mer = match[3]?.toUpperCase();
+
+  if (mer === 'PM' && hours < 12) hours += 12;
+  if (mer === 'AM' && hours === 12) hours = 0;
+
+  return { hours, minutes };
+};
+
+export const formatTime12h = (hours: number, minutes: number) => {
+  const mer = hours >= 12 ? 'PM' : 'AM';
+  let h = hours % 12;
+  if (h === 0) h = 12;
+  return `${String(h).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${mer}`;
+};
+
+export const advanceTime1h = (timeStr?: string) => {
+  const { hours, minutes } = parseBusTime(timeStr);
+  const nextHours = (hours + 1) % 24;
+  return formatTime12h(nextHours, minutes);
+};
+
+export const toTimeInputValue = (timeStr?: string) => {
+  if (!timeStr) return "10:00";
+  const { hours, minutes } = parseBusTime(timeStr);
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+export const formatDisplayDepartureTime = (timeStr?: string) => {
+  if (!timeStr) return "10:00 AM";
+  const { hours, minutes } = parseBusTime(timeStr);
+  return formatTime12h(hours, minutes);
+};
 
 interface BusType {
   id: any;
@@ -143,76 +184,117 @@ const AdminDashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fleet Seat Reset Handler (Automatic hourly rollover or manual admin trigger)
-  const handleResetFleetSeats = async (isManual = false) => {
+  // Track which departures have already completed rollover to prevent duplicate triggers
+  const lastProcessedDepartureRef = React.useRef<{ [busId: string]: string }>({});
+
+  // Single bus departure rollover: when remaining time reaches 0, that specific bus departs,
+  // its seats reset to full capacity, and next departure time is scheduled 1 hour later
+  const handleSingleBusDepartureRollover = async (bus: BusType) => {
+    const nextTime = advanceTime1h(bus.time);
+    const busId = bus._id || bus.id;
+
+    // 1. Immediately update local state so UI updates in real-time
+    setBuses((prevBuses) =>
+      prevBuses.map((b) =>
+        (b._id === busId || b.id === busId)
+          ? {
+              ...b,
+              seatsLeft: b.totalSeats || 40,
+              time: nextTime
+            }
+          : b
+      )
+    );
+
+    // 2. Persist to MongoDB backend
     try {
-      // 1. Immediately reset seats in local state so UI updates instantaneously
-      setBuses((prevBuses) =>
-        prevBuses.map((bus) => ({
-          ...bus,
-          seatsLeft: bus.totalSeats || 40,
-          status: bus.status === "On Trip" || bus.status === "On Route" ? "Active" : bus.status
-        }))
-      );
-
-      // 2. Sync reset with backend MongoDB
       const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
-      const res = await fetch(`${baseUrl}buses/reset-seats`, { method: "POST" });
-      const data = await res.json();
-
-      if (data.success) {
-        toast.success(
-          isManual
-            ? "Fleet seats successfully reset to full capacity!"
-            : "Hourly Fleet Cycle: Previous buses departed on route. Available seats reset for new departures!",
-          { icon: "🚌", duration: 5000 }
-        );
-      }
+      await fetch(`${baseUrl}buses/${busId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seatsLeft: bus.totalSeats || 40,
+          time: nextTime
+        })
+      });
     } catch (err) {
-      console.error("Failed to reset fleet seats:", err);
+      console.error(`Failed to sync departure rollover for ${bus.name}:`, err);
     }
+
+    toast.success(
+      `${bus.name} (${bus.route}) has departed! New bus arrived at station. Seats reset for ${nextTime} departure.`,
+      { icon: "🚌", duration: 6000 }
+    );
   };
 
-  // Monitor 1-hour rollover at runtime
+  // Monitor each bus's departure countdown at runtime
   React.useEffect(() => {
-    const currentHour = currentTime.getHours();
-    if (lastProcessedHourRef.current !== currentHour) {
-      lastProcessedHourRef.current = currentHour;
-      handleResetFleetSeats(false);
+    buses.forEach((bus) => {
+      const busId = bus._id || bus.id;
+      if (!busId) return;
+
+      const { hours, minutes } = parseBusTime(bus.time);
+      const targetDate = new Date(
+        currentTime.getFullYear(),
+        currentTime.getMonth(),
+        currentTime.getDate(),
+        hours,
+        minutes,
+        0,
+        0
+      );
+
+      const diffMs = targetDate.getTime() - currentTime.getTime();
+
+      // If departure countdown reached 0 (diff <= 0) within the last 5 minutes, trigger single bus rollover
+      if (diffMs <= 0 && diffMs > -300000) {
+        const departureKey = `${busId}_${bus.time}`;
+        if (lastProcessedDepartureRef.current[busId] !== departureKey) {
+          lastProcessedDepartureRef.current[busId] = departureKey;
+          handleSingleBusDepartureRollover(bus);
+        }
+      }
+    });
+  }, [currentTime, buses]);
+
+  // Helper to compute runtime departure countdown for each bus using its selected departure time
+  const getBusDepartureRuntime = (bus: BusType) => {
+    const { hours, minutes } = parseBusTime(bus.time);
+    let target = new Date(
+      currentTime.getFullYear(),
+      currentTime.getMonth(),
+      currentTime.getDate(),
+      hours,
+      minutes,
+      0,
+      0
+    );
+
+    // If scheduled departure passed more than 5 minutes ago (e.g. from earlier today),
+    // catch it up to the current active hourly dispatch slot:
+    if (currentTime.getTime() - target.getTime() > 300000) {
+      const elapsedHours = Math.floor((currentTime.getTime() - target.getTime()) / (3600 * 1000));
+      target.setHours(target.getHours() + elapsedHours + 1);
     }
-  }, [currentTime]);
 
-  // Helper to compute runtime departure countdown for each bus
-  const getBusDepartureRuntime = (bus: BusType, index: number) => {
-    let scheduledMinute = 0;
-    const match = bus.time?.match(/:(\d{2})/);
-    if (match) {
-      scheduledMinute = parseInt(match[1], 10);
-    } else {
-      scheduledMinute = (index * 15) % 60;
-    }
-
-    const nextDep = new Date(currentTime);
-    nextDep.setSeconds(0);
-    nextDep.setMilliseconds(0);
-    nextDep.setMinutes(scheduledMinute);
-
-    if (nextDep.getTime() <= currentTime.getTime()) {
-      nextDep.setHours(nextDep.getHours() + 1);
-    }
-
-    const diffMs = nextDep.getTime() - currentTime.getTime();
+    const diffMs = target.getTime() - currentTime.getTime();
     const totalSecs = Math.max(0, Math.floor(diffMs / 1000));
-    const minsLeft = Math.floor(totalSecs / 60);
+    const hoursLeft = Math.floor(totalSecs / 3600);
+    const minsLeft = Math.floor((totalSecs % 3600) / 60);
     const secsLeft = totalSecs % 60;
 
-    const formattedTime = nextDep.toLocaleTimeString('en-PK', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
+    const formattedTime = formatTime12h(target.getHours(), target.getMinutes());
 
-    const displayCountdown = minsLeft > 0 ? `${minsLeft}m left` : `${secsLeft}s left`;
+    let displayCountdown = "";
+    if (totalSecs === 0) {
+      displayCountdown = "Departing now";
+    } else if (hoursLeft > 0) {
+      displayCountdown = minsLeft > 0 ? `${hoursLeft}h ${minsLeft}m left` : `${hoursLeft}h left`;
+    } else if (minsLeft > 0) {
+      displayCountdown = `${minsLeft}m left`;
+    } else {
+      displayCountdown = `${secsLeft}s left`;
+    }
 
     return {
       formattedTime,
@@ -394,7 +476,7 @@ const AdminDashboard = () => {
       route: newBusRoute.trim(),
       from: resolvedFrom,
       to: resolvedTo,
-      time: newBusTime.trim(),
+      time: formatDisplayDepartureTime(newBusTime),
       status: 'Active',
       totalSeats: parseInt(newBusCapacity),
       price: parseInt(newBusFare),
@@ -410,19 +492,17 @@ const AdminDashboard = () => {
     })
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.bus) {
-          toast.success("New route manifest initialized successfully in database");
+        if (data.success) {
+          toast.success("New route deployed to fleet");
           fetchBuses();
           setShowAddBusModal(false);
-          // Clear inputs
           setNewBusName('');
           setNewBusRoute('');
-          setNewBusImage('');
-          setNewBusBusImage('');
           setNewBusFare('');
           setNewBusCapacity('');
+          setNewBusImage('');
+          setNewBusBusImage('');
           setNewBusTime('');
-          setNewBusIsPopular(true);
         } else {
           toast.error(data.message || "Failed to add route");
         }
@@ -442,7 +522,7 @@ const AdminDashboard = () => {
     setEditBusBusImage(bus.busImage || '');
     setEditBusFare(bus.price.toString());
     setEditBusCapacity(bus.totalSeats.toString());
-    setEditBusTime(bus.time);
+    setEditBusTime(toTimeInputValue(bus.time));
     setEditBusStatus(bus.status);
     setEditBusIsPopular(bus.isPopular !== undefined ? bus.isPopular : true);
   };
@@ -471,7 +551,7 @@ const AdminDashboard = () => {
       route: editBusRoute.trim(),
       from: resolvedFrom,
       to: resolvedTo,
-      time: editBusTime.trim(),
+      time: formatDisplayDepartureTime(editBusTime),
       status: "Active",
       totalSeats: parseInt(editBusCapacity),
       price: parseInt(editBusFare),
@@ -768,20 +848,12 @@ const AdminDashboard = () => {
                   <div className="p-6 border-b border-[#aa8453]/10 flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center space-x-3">
                       <h3 className="text-lg font-serif font-bold text-gray-800">Live Fleet Performance</h3>
+                    </div>
+                    <div className="flex items-center space-x-3">
                       <span className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold tracking-wider uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
                         <span>1h Dispatch Cycle</span>
                       </span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => handleResetFleetSeats(true)}
-                        className="flex items-center space-x-1 px-3 py-1.5 bg-[#aa8453]/10 hover:bg-[#aa8453]/20 text-[#aa8453] rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
-                        title="Manually trigger 1-hour departure rollover & reset all available bus seats"
-                      >
-                        <RotateCw size={12} />
-                        <span>Reset Seats (1h)</span>
-                      </button>
                       <button 
                         onClick={() => setActiveTab('buses')}
                         className="flex items-center space-x-1 text-[#aa8453] hover:text-[#8e6d45] font-bold text-xs uppercase tracking-widest"
@@ -802,10 +874,10 @@ const AdminDashboard = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {buses.slice(0, 4).map((bus, idx) => {
-                          const depRuntime = getBusDepartureRuntime(bus, idx);
+                        {buses.slice(0, 4).map((bus) => {
+                          const depRuntime = getBusDepartureRuntime(bus);
                           return (
-                            <tr key={bus.id} className="hover:bg-[#fcfaf7]/40 transition-all group">
+                            <tr key={bus.id || bus._id} className="hover:bg-[#fcfaf7]/40 transition-all group">
                               <td className="px-6 py-4">
                                 <div className="flex items-center space-x-3">
                                   <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${bus.seatsLeft === 0 ? 'bg-red-50 text-red-600' : 'bg-[#aa8453]/10 text-[#aa8453]'}`}>

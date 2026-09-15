@@ -327,22 +327,46 @@ export const resetAllBusSeats = async (req, res) => {
   }
 };
 
-// Automated backend hourly reset interval: checks every 30 seconds if hour changed
-let lastServerHour = new Date().getHours();
+// Helper to parse bus departure time into 24-hour hour & minute
+const parseServerBusTime = (timeStr) => {
+  if (!timeStr) return { hours: 10, minutes: 0 };
+  const str = String(timeStr).trim();
+  const match = str.match(/^(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
+  if (!match) return { hours: 10, minutes: 0 };
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const mer = match[3]?.toUpperCase();
+  if (mer === 'PM' && hours < 12) hours += 12;
+  if (mer === 'AM' && hours === 12) hours = 0;
+  return { hours, minutes };
+};
+
+const serverProcessedDepartures = new Set();
+
+// Automated backend departure check: checks every 10 seconds if any bus's departure time has arrived
 setInterval(async () => {
   try {
-    const currentHour = new Date().getHours();
-    if (currentHour !== lastServerHour) {
-      lastServerHour = currentHour;
-      const allBuses = await Bus.find({});
-      for (const bus of allBuses) {
-        bus.seatsLeft = bus.totalSeats || 40;
-        await bus.save();
+    const now = new Date();
+    const buses = await Bus.find({});
+    for (const bus of buses) {
+      const { hours, minutes } = parseServerBusTime(bus.time);
+      const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
+      const diffMs = target.getTime() - now.getTime();
+
+      // If departure time has arrived (diff <= 0) within the last 2 minutes
+      if (diffMs <= 0 && diffMs > -120000) {
+        const depKey = `${bus._id}_${bus.time}_${target.toDateString()}`;
+        if (!serverProcessedDepartures.has(depKey)) {
+          serverProcessedDepartures.add(depKey);
+          bus.seatsLeft = bus.totalSeats || 40;
+          bus.time = advanceTimeByOneHour(bus.time);
+          await bus.save();
+          console.log(`[Bus Departed]: ${bus.name} departed! Reset seats to ${bus.totalSeats} and advanced next departure to ${bus.time}.`);
+        }
       }
-      console.log(`[Hourly Auto-Reset] 1-hour cycle completed at ${new Date().toLocaleTimeString()}. Fleet seats reset to full capacity.`);
     }
   } catch (err) {
-    console.error("[Hourly Auto-Reset Error]:", err);
+    console.error("[Bus Departure Check Error]:", err);
   }
-}, 30000);
+}, 10000);
 
