@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { LayoutDashboard } from 'lucide-react';
 import SafarLink_Logo from '../../../assets/images/SafariLink_Logo.jpg';
 import toast from 'react-hot-toast';
 
@@ -10,6 +11,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  const [userRole, setUserRole] = useState(localStorage.getItem("role") || "");
+  const [userEmail, setUserEmail] = useState(localStorage.getItem("userEmail") || "");
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'en' ? 'ur' : 'en';
@@ -24,7 +27,11 @@ const Navbar = () => {
 
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem("token"));
+    setUserRole(localStorage.getItem("role") || "");
+    setUserEmail(localStorage.getItem("userEmail") || "");
   }, [location]);
+
+  const isSuperAdmin = userRole === "superadmin" || userEmail === "superadmin@safarlink.com";
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -32,6 +39,8 @@ const Navbar = () => {
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userName");
     setIsLoggedIn(false);
+    setUserRole("");
+    setUserEmail("");
     toast.success("Successfully logged out");
     navigate("/login");
   };
@@ -78,15 +87,24 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Auth/Book Now Button */}
-          <div className="hidden md:flex items-center space-x-6">
+          {/* Auth/Admin/Book Now Button */}
+          <div className="flex items-center space-x-3 md:space-x-6">
             {isLoggedIn ? (
-              <button
-                onClick={handleLogout}
-                className="text-white text-xs font-condensed tracking-[0.2em] hover:text-[#aa8453] transition-colors cursor-pointer bg-transparent border-none"
-              >
-                LOGOUT
-              </button>
+              <div className="flex items-center space-x-3 md:space-x-4">
+                <Link
+                  to="/admin"
+                  className="flex items-center space-x-1.5 px-3.5 py-2 bg-[#aa8453] hover:bg-[#8e6d45] text-white rounded-full text-[10px] md:text-xs font-condensed tracking-[0.15em] font-bold uppercase transition-all duration-300 shadow-md shadow-amber-950/20 border border-[#aa8453]"
+                >
+                  <LayoutDashboard size={14} />
+                  <span>{isSuperAdmin ? "ADMIN PANEL" : "DASHBOARD"}</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="text-white text-xs font-condensed tracking-[0.2em] hover:text-[#aa8453] transition-colors cursor-pointer bg-transparent border-none py-2"
+                >
+                  LOGOUT
+                </button>
+              </div>
             ) : (
               <>
                 <Link to="/login" className="text-white text-xs font-condensed tracking-[0.2em] hover:text-[#aa8453] transition-colors">
