@@ -23,12 +23,15 @@ const BusPage = () => {
                 return parsed
                     .filter((b: any) => b.status === "Active")
                     .map((b: any) => {
-                        const [from, to] = (b.route || "").split(/ - | to | ➔ |->/i);
+                        const parts = (b.route || "").split(/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i).filter(Boolean);
+                        const from = b.from && !/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i.test(b.from) ? b.from : (parts[0] || 'Lahore');
+                        const to = b.to && !/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i.test(b.to) ? b.to : (parts[1] || 'Islamabad');
                         return {
                             id: b._id || b.id,
                             name: b.name,
-                            from: b.from || from || 'Lahore',
-                            to: b.to || to || 'Islamabad',
+                            route: b.route || `${from} ⇄ ${to}`,
+                            from,
+                            to,
                             time: b.time,
                             price: `Rs. ${b.price}`,
                             seats: b.seatsLeft ?? b.totalSeats ?? 30,
@@ -64,12 +67,15 @@ const BusPage = () => {
                     const formatted = data.buses
                         .filter((b: any) => b.status === "Active")
                         .map((b: any) => {
-                            const [from, to] = (b.route || "").split(/ - | to | ➔ |->/i);
+                            const parts = (b.route || "").split(/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i).filter(Boolean);
+                            const from = b.from && !/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i.test(b.from) ? b.from : (parts[0] || 'Lahore');
+                            const to = b.to && !/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i.test(b.to) ? b.to : (parts[1] || 'Islamabad');
                             return {
                                 id: b._id || b.id,
                                 name: b.name,
-                                from: b.from || from || 'Lahore',
-                                to: b.to || to || 'Islamabad',
+                                route: b.route || `${from} ⇄ ${to}`,
+                                from,
+                                to,
                                 time: b.time,
                                 price: `Rs. ${b.price}`,
                                 seats: b.seatsLeft ?? b.totalSeats ?? 30,
@@ -179,6 +185,18 @@ const BusPage = () => {
         }
     };
 
+    const getCleanCities = (route: any) => {
+        let from = route.from || '';
+        let to = route.to || '';
+        const delimiterRegex = /\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i;
+        if (delimiterRegex.test(from) || !to || from.toLowerCase().trim() === to.toLowerCase().trim()) {
+            const parts = (route.route || from).split(delimiterRegex).filter(Boolean);
+            from = parts[0]?.trim() || from;
+            to = parts[1]?.trim() || to || 'Islamabad';
+        }
+        return { from, to };
+    };
+
     return (
         <div className="bg-[#fcfbf9] min-h-screen">
             {/* Search Section */}
@@ -231,33 +249,36 @@ const BusPage = () => {
                     <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed mb-2">Our Most Booked</p>
                     <h2 className="text-4xl font-serif text-gray-900 mb-10">Popular Routes</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {popularRoutes.map((route, i) => (
-                            <div 
-                                key={route._id || i}
-                                onClick={() => handleRouteClick(route.from, route.to)}
-                                className="luxury-card cursor-pointer h-[320px] relative overflow-hidden group/route border border-gray-100/50 hover:border-[#aa8453]/40 transition-all duration-500 p-0"
-                            >
-                                <div className="absolute inset-0 bg-black/60 group-hover/route:bg-black/50 transition-colors duration-500 z-10"></div>
-                                <img
-                                    src={route.image}
-                                    className="w-full h-full object-cover transition-transform duration-[8s] group-hover/route:scale-105"
-                                    alt={`${route.from} to ${route.to}`}
-                                />
-                                <div className="absolute inset-0 p-8 flex flex-col justify-between z-20 text-white">
-                                    <span className="text-[9px] text-[#aa8453] tracking-[0.2em] uppercase font-condensed font-semibold">
-                                        {route.operator || route.name}
-                                    </span>
-                                    <div>
-                                        <h3 className="text-2xl font-serif mb-1 group-hover/route:text-[#aa8453] transition-colors">
-                                            {route.from} ➔ {route.to}
-                                        </h3>
-                                        <p className="text-xs text-gray-300 font-light font-condensed uppercase tracking-wider">
-                                            Starting Fare: <span className="text-white font-serif font-bold text-sm ml-1">Rs. {route.price}</span>
-                                        </p>
+                        {popularRoutes.map((route, i) => {
+                            const { from, to } = getCleanCities(route);
+                            return (
+                                <div 
+                                    key={route._id || i}
+                                    onClick={() => handleRouteClick(from, to)}
+                                    className="luxury-card cursor-pointer h-[320px] relative overflow-hidden group/route border border-gray-100/50 hover:border-[#aa8453]/40 transition-all duration-500 p-0"
+                                >
+                                    <div className="absolute inset-0 bg-black/60 group-hover/route:bg-black/50 transition-colors duration-500 z-10"></div>
+                                    <img
+                                        src={route.image}
+                                        className="w-full h-full object-cover transition-transform duration-[8s] group-hover/route:scale-105"
+                                        alt={`${from} to ${to}`}
+                                    />
+                                    <div className="absolute inset-0 p-8 flex flex-col justify-between z-20 text-white">
+                                        <span className="text-[9px] text-[#aa8453] tracking-[0.2em] uppercase font-condensed font-semibold">
+                                            {route.operator || route.name}
+                                        </span>
+                                        <div>
+                                            <h3 className="text-2xl font-serif mb-1 group-hover/route:text-[#aa8453] transition-colors">
+                                                {route.route || `${from} ⇄ ${to}`}
+                                            </h3>
+                                            <p className="text-xs text-gray-300 font-light font-condensed uppercase tracking-wider">
+                                                Starting Fare: <span className="text-white font-serif font-bold text-sm ml-1">Rs. {route.price}</span>
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}

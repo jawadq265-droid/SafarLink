@@ -277,10 +277,21 @@ const AdminDashboard = () => {
       return;
     }
 
+    const parseRouteCities = (routeStr: string) => {
+      const parts = routeStr.trim().split(/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i).filter(Boolean);
+      return {
+        from: parts[0]?.trim() || "Lahore",
+        to: parts[1]?.trim() || "Islamabad"
+      };
+    };
+
+    const { from: resolvedFrom, to: resolvedTo } = parseRouteCities(newBusRoute);
     const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
     const payload = {
       name: newBusName.trim(),
       route: newBusRoute.trim(),
+      from: resolvedFrom,
+      to: resolvedTo,
       time: newBusTime.trim(),
       status: 'Active',
       totalSeats: parseInt(newBusCapacity),
@@ -343,10 +354,21 @@ const AdminDashboard = () => {
       return;
     }
 
+    const parseRouteCities = (routeStr: string) => {
+      const parts = routeStr.trim().split(/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i).filter(Boolean);
+      return {
+        from: parts[0]?.trim() || "Lahore",
+        to: parts[1]?.trim() || "Islamabad"
+      };
+    };
+
+    const { from: resolvedFrom, to: resolvedTo } = parseRouteCities(editBusRoute);
     const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
     const payload = {
       name: editBusName.trim(),
       route: editBusRoute.trim(),
+      from: resolvedFrom,
+      to: resolvedTo,
       time: editBusTime.trim(),
       status: editBusStatus,
       totalSeats: parseInt(editBusCapacity),

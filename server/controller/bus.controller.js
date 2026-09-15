@@ -63,12 +63,47 @@ const DEFAULT_ROUTES = [
   }
 ];
 
+// Comprehensive delimiter regex for routes (supports ⇄, ↔, ⇌, ➔, ->, -->, –, —, -, to, /)
+const ROUTE_DELIMITERS = /\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i;
+
+export const parseRouteCities = (routeStr) => {
+  if (!routeStr) return { from: "Lahore", to: "Islamabad" };
+  const parts = routeStr.trim().split(ROUTE_DELIMITERS).filter(Boolean);
+  const from = parts[0]?.trim() || "Lahore";
+  const to = parts[1]?.trim() || "Islamabad";
+  return { from, to };
+};
+
 // Helper to auto-seed default routes if collection is empty
 const ensureSeedData = async () => {
   const count = await Bus.countDocuments();
   if (count === 0) {
     await Bus.insertMany(DEFAULT_ROUTES);
     console.log("Database seeded with initial authentic fleet routes.");
+  }
+};
+
+// Sanitize and auto-heal any existing records where 'from' or 'to' was erroneously stored with delimiters
+const sanitizeBusList = async (buses) => {
+  for (const b of buses) {
+    let needsUpdate = false;
+    let newFrom = b.from;
+    let newTo = b.to;
+
+    if (!newFrom || ROUTE_DELIMITERS.test(newFrom)) {
+      const parsed = parseRouteCities(newFrom || b.route);
+      newFrom = parsed.from;
+      if (!newTo || newTo === "Lahore" || newTo === newFrom || ROUTE_DELIMITERS.test(newTo)) {
+        newTo = parsed.to;
+      }
+      needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+      b.from = newFrom;
+      b.to = newTo;
+      await Bus.findByIdAndUpdate(b._id, { from: newFrom, to: newTo });
+    }
   }
 };
 
@@ -83,6 +118,7 @@ export const getBuses = async (req, res) => {
     if (to) filter.to = new RegExp(to, "i");
 
     const buses = await Bus.find(filter).sort({ createdAt: -1 });
+    await sanitizeBusList(buses);
     return res.status(200).json({ success: true, buses });
   } catch (error) {
     console.error("Error fetching buses:", error);
@@ -94,6 +130,7 @@ export const getPopularRoutes = async (req, res) => {
   try {
     await ensureSeedData();
     const routes = await Bus.find({ isPopular: true, status: "Active" }).sort({ createdAt: -1 });
+    await sanitizeBusList(routes);
     return res.status(200).json({ success: true, routes });
   } catch (error) {
     console.error("Error fetching popular routes:", error);
@@ -111,17 +148,17 @@ export const createBus = async (req, res) => {
 
     let resolvedFrom = from;
     let resolvedTo = to;
-    if (!resolvedFrom || !resolvedTo) {
-      const parts = route.split(/ - | to | ➔ |->/i);
-      resolvedFrom = parts[0]?.trim() || "Lahore";
-      resolvedTo = parts[1]?.trim() || "Islamabad";
+    if (!resolvedFrom || !resolvedTo || ROUTE_DELIMITERS.test(resolvedFrom)) {
+      const parsed = parseRouteCities(resolvedFrom && ROUTE_DELIMITERS.test(resolvedFrom) ? resolvedFrom : route);
+      resolvedFrom = parsed.from;
+      resolvedTo = parsed.to;
     }
 
     const capacity = parseInt(totalSeats) || 40;
 
     const newBus = new Bus({
       name: name.trim(),
-      route: route.trim(),
+      route: route ? route.trim() : `${resolvedFrom} ⇄ ${resolvedTo}`,
       from: resolvedFrom,
       to: resolvedTo,
       time: time ? time.trim() : "08:00 AM",
@@ -148,10 +185,16 @@ export const updateBus = async (req, res) => {
     const { id } = req.params;
     const updateData = { ...req.body };
 
-    if (updateData.route && (!updateData.from || !updateData.to)) {
-      const parts = updateData.route.split(/ - | to | ➔ |->/i);
-      if (parts[0]) updateData.from = parts[0].trim();
-      if (parts[1]) updateData.to = parts[1].trim();
+    if (updateData.route) {
+      const parsed = parseRouteCities(updateData.route);
+      updateData.from = parsed.from;
+      updateData.to = parsed.to;
+      updateData.route = updateData.route.trim();
+    } else if (updateData.from && ROUTE_DELIMITERS.test(updateData.from)) {
+      const parsed = parseRouteCities(updateData.from);
+      updateData.from = parsed.from;
+      updateData.to = parsed.to;
+      updateData.route = updateData.from.trim();
     }
 
     if (updateData.price) updateData.price = Number(updateData.price);

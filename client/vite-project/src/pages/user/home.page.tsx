@@ -28,6 +28,18 @@ const HOME = () => {
     }
   ];
 
+  const getCleanCities = (route: any) => {
+    let from = route.from || '';
+    let to = route.to || '';
+    const delimiterRegex = /\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i;
+    if (delimiterRegex.test(from) || !to || from.toLowerCase().trim() === to.toLowerCase().trim()) {
+      const parts = (route.route || from).split(delimiterRegex).filter(Boolean);
+      from = parts[0]?.trim() || from;
+      to = parts[1]?.trim() || to || 'Islamabad';
+    }
+    return { from, to };
+  };
+
   const [routes_data, setRoutesData] = useState<any[]>(() => {
     const saved = localStorage.getItem("buses");
     if (saved) {
@@ -36,11 +48,14 @@ const HOME = () => {
         return parsed
           .filter((b: any) => b.status === "Active" && b.isPopular !== false)
           .map((b: any) => {
-            const [from, to] = (b.route || "").split(/ - | to | ➔ |->/i);
+            const parts = (b.route || "").split(/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i).filter(Boolean);
+            const from = b.from && !/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i.test(b.from) ? b.from : (parts[0] || 'Lahore');
+            const to = b.to && !/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i.test(b.to) ? b.to : (parts[1] || 'Islamabad');
             return {
               id: b._id || b.id,
-              from: b.from || from || 'Lahore',
-              to: b.to || to || 'Islamabad',
+              route: b.route || `${from} ⇄ ${to}`,
+              from,
+              to,
               price: b.price.toString(),
               image: b.image,
               company: b.operator || b.name
@@ -60,11 +75,12 @@ const HOME = () => {
       .then(data => {
         if (data.success && Array.isArray(data.routes)) {
           const formatted = data.routes.map((b: any) => {
-            const [from, to] = (b.route || "").split(/ - | to | ➔ |->/i);
+            const { from, to } = getCleanCities(b);
             return {
               id: b._id || b.id,
-              from: b.from || from || 'Lahore',
-              to: b.to || to || 'Islamabad',
+              route: b.route || `${from} ⇄ ${to}`,
+              from,
+              to,
               price: b.price.toString(),
               image: b.image,
               company: b.operator || b.name
@@ -242,57 +258,60 @@ const HOME = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {routes_data.map((route: any, i: number) => (
-              <motion.div
-                key={route.id || i}
-                onClick={() => navigate(`/bus?from=${encodeURIComponent(route.from)}&to=${encodeURIComponent(route.to)}`)}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="luxury-card h-[500px] cursor-pointer"
-              >
-                <img
-                  src={route.image}
-                  className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110"
-                  alt={route.from}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Bus size={12} className="text-[#aa8453]" />
-                    <span className="text-[10px] text-[#aa8453] tracking-[0.2em] uppercase font-condensed">{route.company}</span>
-                  </div>
-                  <h3 className="text-3xl font-serif mb-6">{route.from} <br /> {t('home.to')} {route.to}</h3>
-                  <div className="flex items-end justify-between border-t border-white/20 pt-6">
-                    <div>
-                      <p className="text-[10px] text-gray-400 tracking-[0.1em] uppercase font-condensed mb-1">{t('home.starting_from')}</p>
-                      <p className="text-2xl font-serif"><span className="text-xs font-light text-white/50 tracking-normal mr-1">Rs.</span>{route.price}</p>
+            {routes_data.map((route: any, i: number) => {
+              const { from, to } = getCleanCities(route);
+              return (
+                <motion.div
+                  key={route.id || i}
+                  onClick={() => navigate(`/bus?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="luxury-card h-[500px] cursor-pointer"
+                >
+                  <img
+                    src={route.image}
+                    className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110"
+                    alt={from}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Bus size={12} className="text-[#aa8453]" />
+                      <span className="text-[10px] text-[#aa8453] tracking-[0.2em] uppercase font-condensed">{route.company}</span>
                     </div>
+                    <h3 className="text-3xl font-serif mb-6">{route.route || `${from} ⇄ ${to}`}</h3>
+                    <div className="flex items-end justify-between border-t border-white/20 pt-6">
+                      <div>
+                        <p className="text-[10px] text-gray-400 tracking-[0.1em] uppercase font-condensed mb-1">{t('home.starting_from')}</p>
+                        <p className="text-2xl font-serif"><span className="text-xs font-light text-white/50 tracking-normal mr-1">Rs.</span>{route.price}</p>
+                      </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/bus?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+                        }}
+                        className="w-12 h-12 border border-white/30 rounded-none flex items-center justify-center hover:bg-[#aa8453] hover:border-[#aa8453] transition-all"
+                      >
+                        <ArrowRight size={20} className="rtl:rotate-180" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/bus?from=${encodeURIComponent(route.from)}&to=${encodeURIComponent(route.to)}`);
+                        navigate(`/bus?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
                       }}
-                      className="w-12 h-12 border border-white/30 rounded-none flex items-center justify-center hover:bg-[#aa8453] hover:border-[#aa8453] transition-all"
+                      className="luxury-button !py-3 !px-8 !text-[10px]"
                     >
-                      <ArrowRight size={20} className="rtl:rotate-180" />
+                      {t('home.buy_ticket')}
                     </button>
                   </div>
-                </div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/bus?from=${encodeURIComponent(route.from)}&to=${encodeURIComponent(route.to)}`);
-                    }}
-                    className="luxury-button !py-3 !px-8 !text-[10px]"
-                  >
-                    {t('home.buy_ticket')}
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
