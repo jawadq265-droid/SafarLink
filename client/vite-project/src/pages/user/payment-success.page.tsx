@@ -182,9 +182,6 @@ const PaymentSuccessPage = () => {
                   <div className="min-w-0">
                     <p className="text-[10px] text-gray-700 uppercase font-condensed tracking-widest mb-2">Passenger Contact</p>
                     <p className="text-2xl sm:text-3xl font-serif text-gray-900 tracking-tighter whitespace-nowrap">+92 {passengerInfo.phone}</p>
-                    {bookingData.txnRefNo && (
-                      <p className="text-xs text-gray-400 mt-2">Txn ID: <span className="font-mono text-[#aa8453]">{bookingData.txnRefNo}</span></p>
-                    )}
                   </div>
                   <div className="text-left md:text-right min-w-0">
                     <p className="text-[10px] text-gray-700 uppercase font-condensed tracking-widest mb-2">Paid</p>

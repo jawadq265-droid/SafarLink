@@ -218,8 +218,7 @@ const BookingPage = () => {
   const renderSeatSelection = () => (
     <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-4 p-2 max-w-4xl mx-auto">
       <div className="text-center space-y-1">
-        <p className="text-[9px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed">CONFIGURE YOUR SPACE</p>
-        <h2 className="text-3xl font-serif text-gray-900 leading-none">Spatial Selection</h2>
+        <h2 className="text-3xl font-serif text-gray-900 leading-none">Select your Seats</h2>
       </div>
 
       <div className="max-w-xl mx-auto luxury-card p-6 rounded-none relative overflow-hidden">
@@ -256,14 +255,14 @@ const BookingPage = () => {
       </div>
 
       <div className="flex justify-between mt-6 max-w-xl mx-auto items-center">
-        <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-200 !px-10 !py-3 uppercase text-[9px] tracking-widest">Back</button>
-        <div className="flex items-center space-x-8">
+        <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-300 !px-10 !py-3 uppercase text-xs font-bold tracking-wider hover:bg-gray-100">Back</button>
+        <div className="flex items-center space-x-6">
           <div className="text-right">
-            <p className="text-[9px] text-gray-400 font-condensed uppercase tracking-widest mb-0.5">Total Valuation</p>
-            <p className="text-2xl font-serif text-[#aa8453] tracking-tighter">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+            <p className="text-xs text-gray-500 font-condensed uppercase tracking-wider mb-0.5">Total Valuation</p>
+            <p className="text-2xl font-serif text-[#aa8453] tracking-tight">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
           </div>
-          <button onClick={nextStep} className="luxury-button !px-12 !py-4 uppercase text-[9px] tracking-widest">
-            PERSONAL DETAILS
+          <button onClick={nextStep} className="luxury-button !px-12 !py-3.5 uppercase text-xs font-bold tracking-wider">
+            Next
           </button>
         </div>
       </div>
@@ -273,34 +272,34 @@ const BookingPage = () => {
   const renderDetails = () => (
     <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-4 p-2 max-w-4xl mx-auto">
       <div className="text-center space-y-1">
-        <p className="text-[9px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed">GUEST INFORMATION</p>
         <h2 className="text-3xl font-serif text-gray-900 leading-none">Passenger Profile</h2>
+        <p className="text-xs text-[#aa8453] tracking-[0.25em] uppercase font-condensed font-semibold">GUEST INFORMATION</p>
       </div>
       <div className="max-w-xl mx-auto luxury-card p-6 rounded-none border border-gray-100 relative overflow-hidden group">
         <div className="space-y-4 relative z-10">
           <div className="relative">
-            <label className="block text-[9px] text-[#aa8453] tracking-widest uppercase font-condensed mb-1.5 ml-1">Full Designation</label>
+            <label className="block text-xs font-semibold text-[#aa8453] tracking-wider uppercase font-condensed mb-1 ml-0.5">Full Name</label>
             <input
               type="text"
               value={passengerInfo.name}
               onChange={(e) => setPassengerInfo({ ...passengerInfo, name: e.target.value })}
               placeholder="e.g. Muhammad Jawad"
-              className="w-full px-4 py-3 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all"
+              className="w-full px-4 py-2.5 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all"
             />
           </div>
           <div className="relative">
-            <label className="block text-[9px] text-[#aa8453] tracking-widest uppercase font-condensed mb-1.5 ml-1">Email Address</label>
+            <label className="block text-xs font-semibold text-[#aa8453] tracking-wider uppercase font-condensed mb-1 ml-0.5">Email Address</label>
             <input
               type="email"
               value={passengerInfo.email}
               onChange={(e) => setPassengerInfo({ ...passengerInfo, email: e.target.value })}
               placeholder="e.g. jawad@example.com"
-              className="w-full px-4 py-3 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all"
+              className="w-full px-4 py-2.5 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative">
-              <label className="block text-[9px] text-[#aa8453] tracking-widest uppercase font-condensed mb-1.5 ml-1">Contact Link</label>
+              <label className="block text-xs font-semibold text-[#aa8453] tracking-wider uppercase font-condensed mb-1 ml-0.5">Contact Number</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-serif text-base">+92</span>
                 <input
@@ -308,32 +307,32 @@ const BookingPage = () => {
                   value={passengerInfo.phone}
                   onChange={(e) => setPassengerInfo({ ...passengerInfo, phone: formatPhone(e.target.value) })}
                   placeholder="3001234567"
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all tracking-[0.15em]"
+                  className="w-full pl-14 pr-4 py-2.5 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all tracking-wider"
                 />
               </div>
             </div>
             <div className="relative">
-              <label className="block text-[9px] text-[#aa8453] tracking-widest uppercase font-condensed mb-1.5 ml-1">National ID</label>
+              <label className="block text-xs font-semibold text-[#aa8453] tracking-wider uppercase font-condensed mb-1 ml-0.5">National ID (CNIC)</label>
               <input
                 type="text"
                 value={passengerInfo.cnic}
                 onChange={(e) => setPassengerInfo({ ...passengerInfo, cnic: formatCNIC(e.target.value) })}
                 placeholder="35201-XXXXXXX-X"
-                className="w-full px-4 py-3 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all tracking-[0.2em]"
+                className="w-full px-4 py-2.5 bg-gray-50 border-transparent focus:border-[#aa8453] border border-b-2 rounded-none outline-none text-gray-800 text-base font-serif transition-all tracking-widest"
               />
             </div>
           </div>
         </div>
       </div>
       <div className="flex justify-between mt-6 max-w-xl mx-auto items-center">
-        <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-200 !px-10 !py-3 uppercase text-[9px] tracking-widest">Back</button>
-        <div className="flex items-center space-x-8">
+        <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-300 !px-10 !py-3 uppercase text-xs font-bold tracking-wider hover:bg-gray-100">Back</button>
+        <div className="flex items-center space-x-6">
           <div className="text-right">
-            <p className="text-[9px] text-gray-400 font-condensed uppercase tracking-widest mb-0.5">Total Valuation</p>
-            <p className="text-2xl font-serif text-[#aa8453] tracking-tighter">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+            <p className="text-xs text-gray-500 font-condensed uppercase tracking-wider mb-0.5">Total Valuation</p>
+            <p className="text-2xl font-serif text-[#aa8453] tracking-tight">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
           </div>
-          <button onClick={nextStep} className="luxury-button !px-12 !py-4 uppercase text-[9px] tracking-widest">
-            PROCEED TO CHECKOUT
+          <button onClick={nextStep} className="luxury-button !px-12 !py-3.5 uppercase text-xs font-bold tracking-wider">
+            Proceed to Checkout
           </button>
         </div>
       </div>
@@ -343,8 +342,8 @@ const BookingPage = () => {
   const renderPaymentSelection = () => (
     <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-4 p-2 max-w-4xl mx-auto">
       <div className="text-center space-y-1">
-        <p className="text-[9px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed">SECURE SETTLEMENT</p>
         <h2 className="text-3xl font-serif text-gray-900 leading-none">Payment Gateway</h2>
+        <p className="text-xs text-[#aa8453] tracking-[0.25em] uppercase font-condensed font-semibold">SECURE SETTLEMENT</p>
       </div>
 
       <div className="max-w-xl mx-auto luxury-card p-6 rounded-none border border-gray-100 relative overflow-hidden group">
@@ -353,44 +352,44 @@ const BookingPage = () => {
             <div className="w-16 h-16 border-[2px] border-gray-100 border-t-[#aa8453] rounded-full animate-spin"></div>
             <div className="text-center">
               <h3 className="text-xl font-serif text-gray-800">Redirecting to Stripe...</h3>
-              <p className="text-[#aa8453] mt-2 animate-pulse text-[9px] tracking-[0.4em] uppercase font-condensed">Connecting to Stripe Secure Gateway</p>
+              <p className="text-[#aa8453] mt-2 animate-pulse text-xs tracking-[0.2em] uppercase font-condensed font-semibold">Connecting to Stripe Secure Gateway</p>
             </div>
           </div>
         ) : (
           <div className="space-y-4 relative z-10">
             <div className="bg-[#fcfbf9] p-4 rounded-none flex items-center justify-between border border-gray-100">
               <div className="flex items-center space-x-4">
-                <div className="p-2 bg-white rounded-none shadow-sm border border-gray-100">
-                  <Wallet className="text-[#aa8453]" size={24} />
+                <div className="p-2.5 bg-white rounded-none shadow-sm border border-gray-100">
+                  <Wallet className="text-[#aa8453]" size={26} />
                 </div>
                 <div>
-                  <p className="text-[9px] text-gray-400 uppercase tracking-widest font-condensed">Settlement via</p>
-                  <p className="text-lg font-serif text-gray-800">Stripe Hosted Checkout</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider font-condensed font-semibold">Settlement via</p>
+                  <p className="text-base font-serif font-bold text-gray-800">Stripe Hosted Checkout</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[9px] text-gray-400 uppercase tracking-widest font-condensed">Authorized Amount</p>
-                <p className="text-2xl font-serif text-[#aa8453]">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wider font-condensed font-semibold">Authorized Amount</p>
+                <p className="text-2xl font-serif text-[#aa8453] font-bold">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
               </div>
             </div>
 
-            <div className="space-y-4 bg-[#fcfbf9] p-4 border border-gray-100 font-serif text-gray-700 text-sm leading-relaxed">
-              <p>You are about to be redirected to the secure **Stripe Payment Gateway**.</p>
-              <p className="text-xs text-gray-500">You can complete your settlement using your **Credit/Debit Card**. Once payment is authorized, you will be automatically returned to SafarLink to view your digital ticket.</p>
+            <div className="space-y-2 bg-[#fcfbf9] p-4 border border-gray-100 font-sans text-gray-700 text-sm leading-relaxed">
+              <p className="font-medium text-gray-800">You are about to be redirected to the secure <span className="text-[#aa8453] font-semibold">Stripe Payment Gateway</span>.</p>
+              <p className="text-xs text-gray-500">You can complete your settlement using your Credit/Debit Card. Once payment is authorized, you will be automatically returned to SafarLink to view your digital ticket.</p>
             </div>
           </div>
         )}
       </div>
       {!isProcessing && (
         <div className="flex justify-between mt-6 max-w-xl mx-auto items-center">
-          <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-200 !px-10 !py-3 uppercase text-[9px] tracking-widest">Return to Profile</button>
-          <div className="flex items-center space-x-8">
+          <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-300 !px-10 !py-3 uppercase text-xs font-bold tracking-wider hover:bg-gray-100">Return to Profile</button>
+          <div className="flex items-center space-x-6">
             <div className="text-right">
-              <p className="text-[9px] text-gray-400 font-condensed uppercase tracking-widest mb-0.5">Total Valuation</p>
-              <p className="text-2xl font-serif text-[#aa8453] tracking-tighter">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+              <p className="text-xs text-gray-500 font-condensed uppercase tracking-wider mb-0.5">Total Valuation</p>
+              <p className="text-2xl font-serif text-[#aa8453] tracking-tight font-bold">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
             </div>
-            <button onClick={nextStep} className="luxury-button !px-12 !py-4 uppercase text-[9px] tracking-widest">
-              PROCEED TO STRIPE
+            <button onClick={nextStep} className="luxury-button !px-12 !py-3.5 uppercase text-xs font-bold tracking-wider">
+              Proceed to Stripe
             </button>
           </div>
         </div>
@@ -508,7 +507,7 @@ const BookingPage = () => {
           </div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-center">
             <div className="space-y-1 text-center md:text-left">
-              <p className="text-[9px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed">SECURE CONCIERGE</p>
+              <p className="text-xs text-[#aa8453] tracking-[0.3em] uppercase font-condensed font-semibold">SECURE CONCIERGE</p>
               <h1 className="text-3xl font-serif text-white tracking-tight">Luxury Reservation</h1>
             </div>
             <div className="flex items-center space-x-4 mt-4 md:mt-0">
@@ -529,26 +528,26 @@ const BookingPage = () => {
         {step < 5 && selectedRoute && (
           <div className="bg-[#fcfbf9] border border-[#aa8453]/30 p-4 mb-8 flex flex-wrap items-center justify-between gap-4 no-print shadow-sm">
             <div className="flex items-center space-x-3">
-              <Bus size={18} className="text-[#aa8453]" />
+              <Bus size={20} className="text-[#aa8453]" />
               <div>
-                <p className="text-[9px] text-gray-400 uppercase font-condensed tracking-widest">Fleet Service</p>
-                <p className="text-sm font-serif font-bold text-gray-900">{selectedRoute?.bus}</p>
+                <p className="text-xs text-gray-500 uppercase font-condensed tracking-wider font-semibold">Fleet Service</p>
+                <p className="text-base font-serif font-bold text-gray-900">{selectedRoute?.bus}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-center sm:text-right">
-                <p className="text-[9px] text-[#aa8453] uppercase font-condensed tracking-widest font-semibold">Departure</p>
-                <p className="text-base font-serif font-bold text-gray-900">{selectedRoute?.from}</p>
+                <p className="text-xs text-[#aa8453] uppercase font-condensed tracking-wider font-semibold">Departure</p>
+                <p className="text-lg font-serif font-bold text-gray-900">{selectedRoute?.from}</p>
               </div>
-              <span className="text-[#aa8453] font-bold text-lg px-1">➔</span>
+              <span className="text-[#aa8453] font-bold text-xl px-1">➔</span>
               <div className="text-center sm:text-left">
-                <p className="text-[9px] text-[#aa8453] uppercase font-condensed tracking-widest font-semibold">Arrival</p>
-                <p className="text-base font-serif font-bold text-gray-900">{selectedRoute?.to}</p>
+                <p className="text-xs text-[#aa8453] uppercase font-condensed tracking-wider font-semibold">Arrival</p>
+                <p className="text-lg font-serif font-bold text-gray-900">{selectedRoute?.to}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[9px] text-gray-400 uppercase font-condensed tracking-widest">Voyage Schedule</p>
-              <p className="text-sm font-serif text-gray-900">{voyageDate} &bull; {selectedRoute?.time}</p>
+              <p className="text-xs text-gray-500 uppercase font-condensed tracking-wider font-semibold">Voyage Schedule</p>
+              <p className="text-base font-serif text-gray-900">{voyageDate} &bull; {selectedRoute?.time}</p>
             </div>
           </div>
         )}
