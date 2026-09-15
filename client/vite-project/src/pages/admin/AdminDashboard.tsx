@@ -1334,7 +1334,7 @@ const AdminDashboard = () => {
                   className="flex-1 py-4 px-2 bg-[#aa8453] text-white rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-[#8e6d45] transition-all duration-300 shadow-md flex items-center justify-center gap-2"
                 >
                   <Download size={16} />
-                  <span>Download <Ticket></Ticket></span>
+                  <span>Download Ticket</span>
                 </button>
                 <button
                   onClick={() => handleShareAdminTicket(selectedBooking)}
