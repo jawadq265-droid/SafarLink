@@ -41,15 +41,6 @@ const busSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: [
-        "Active",
-        "On Route",
-        "Late By 30 mins",
-        "Reached at Arrival Destination",
-        "Departure in 60 mins",
-        "On Trip",
-        "Maintenance"
-      ],
       default: "Active"
     },
     image: {

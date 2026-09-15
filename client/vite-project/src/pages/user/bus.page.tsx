@@ -343,23 +343,6 @@ const BusPage = () => {
                                 <div className="relative z-10 p-8 flex-grow">
                                     <div className="flex items-center gap-3 flex-wrap">
                                         <h3 className={`text-3xl font-serif ${bus.backgroundImage ? 'text-white' : 'text-gray-900'}`}>{bus.name}</h3>
-                                        {bus.status && bus.status !== 'Active' && (
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md ${
-                                                bus.status === 'On Route' ? 'bg-amber-500/25 text-amber-300 border border-amber-400/50' :
-                                                bus.status === 'Late By 30 mins' ? 'bg-orange-500/25 text-orange-300 border border-orange-400/50' :
-                                                bus.status === 'Reached at Arrival Destination' ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/50' :
-                                                bus.status === 'Departure in 60 mins' ? 'bg-[#aa8453]/30 text-[#e6c99c] border border-[#aa8453]/60' :
-                                                'bg-gray-500/20 text-gray-300 border border-gray-400/30'
-                                            }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${
-                                                    bus.status === 'On Route' ? 'bg-amber-400 animate-pulse' :
-                                                    bus.status === 'Departure in 60 mins' ? 'bg-[#aa8453] animate-ping' :
-                                                    bus.status === 'Reached at Arrival Destination' ? 'bg-emerald-400' :
-                                                    'bg-orange-400'
-                                                }`}></span>
-                                                {bus.status}
-                                            </span>
-                                        )}
                                     </div>
                                     <div className={`flex items-center mt-2 ${bus.backgroundImage ? 'text-gray-100' : 'text-gray-600'}`}>
                                         <span className="font-semibold">{bus.from}</span>

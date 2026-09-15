@@ -278,54 +278,24 @@ export const calculateNextHourTime = (timeStr) => {
 
 /**
  * Update bus operational status.
- * If status is set to "On Route", spawns a new bus fleet service on the same route with "Departure in 60 mins".
  */
 export const updateBusStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!status) {
-      return res.status(400).json({ success: false, message: "Status is required." });
-    }
-
     const bus = await Bus.findById(id);
     if (!bus) {
       return res.status(404).json({ success: false, message: "Route not found" });
     }
 
-    bus.status = status;
+    bus.status = status || "Active";
     await bus.save();
-
-    let newBus = null;
-    // When marked as "On Route", spawn next fleet service at same location with status "Departure in 60 mins" (1 hour distance)
-    if (status === "On Route") {
-      const nextTime = calculateNextHourTime(bus.time);
-      newBus = new Bus({
-        name: bus.name,
-        route: bus.route,
-        from: bus.from,
-        to: bus.to,
-        time: nextTime,
-        price: bus.price,
-        totalSeats: bus.totalSeats || 40,
-        seatsLeft: bus.totalSeats || 40,
-        status: "Departure in 60 mins",
-        image: bus.image,
-        busImage: bus.busImage,
-        isPopular: bus.isPopular,
-        operator: bus.operator
-      });
-      await newBus.save();
-    }
 
     return res.status(200).json({
       success: true,
-      message: status === "On Route"
-        ? `Status updated to 'On Route'. Next fleet service scheduled with departure in 60 mins!`
-        : `Status updated to '${status}'.`,
-      bus,
-      newBus
+      message: `Status updated successfully.`,
+      bus
     });
   } catch (error) {
     console.error("Error updating bus status:", error);
@@ -342,9 +312,7 @@ export const resetAllBusSeats = async (req, res) => {
     const buses = await Bus.find({});
     for (const bus of buses) {
       bus.seatsLeft = bus.totalSeats || 40;
-      if (bus.status === "On Route" || bus.status === "Departure in 60 mins") {
-        bus.status = "Active";
-      }
+      bus.status = "Active";
       await bus.save();
     }
     console.log(`[Hourly Fleet Cycle] All bus seats reset to full capacity at ${new Date().toLocaleTimeString()}.`);
