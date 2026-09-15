@@ -20,15 +20,19 @@ import {
   ArrowLeft,
   MapPin,
   Clock,
-  DollarSign
+  DollarSign,
+  Star
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 interface BusType {
-  id: number;
+  id: any;
+  _id?: string;
   name: string;
   route: string;
+  from?: string;
+  to?: string;
   time: string;
   status: string;
   seatsLeft: number;
@@ -36,6 +40,8 @@ interface BusType {
   price: number;
   image: string;
   busImage?: string;
+  isPopular?: boolean;
+  operator?: string;
 }
 
 interface BookingType {
@@ -67,7 +73,7 @@ const AdminDashboard = () => {
   const userName = localStorage.getItem("userName") || "User";
   const isSuperAdmin = userRole === "superadmin" || userEmail === "superadmin@safarlink.com";
 
-  // State-driven Fleet Matrix
+  // State-driven Fleet Matrix connected to MongoDB
   const [buses, setBuses] = useState<BusType[]>(() => {
     const saved = localStorage.getItem("buses");
     if (saved) {
@@ -79,6 +85,40 @@ const AdminDashboard = () => {
     }
     return [];
   });
+
+  const fetchBuses = () => {
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    fetch(`${baseUrl}buses`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.buses)) {
+          const formatted = data.buses.map((b: any) => ({
+            id: b._id || b.id,
+            _id: b._id,
+            name: b.name,
+            route: b.route,
+            from: b.from,
+            to: b.to,
+            time: b.time,
+            status: b.status,
+            seatsLeft: b.seatsLeft ?? b.totalSeats ?? 40,
+            totalSeats: b.totalSeats ?? 40,
+            price: b.price,
+            image: b.image,
+            busImage: b.busImage,
+            isPopular: b.isPopular !== undefined ? b.isPopular : true,
+            operator: b.operator || b.name
+          }));
+          setBuses(formatted);
+          localStorage.setItem("buses", JSON.stringify(formatted));
+        }
+      })
+      .catch(err => console.error("Error loading buses from backend:", err));
+  };
+
+  React.useEffect(() => {
+    fetchBuses();
+  }, []);
 
   React.useEffect(() => {
     localStorage.setItem("buses", JSON.stringify(buses));
@@ -132,6 +172,7 @@ const AdminDashboard = () => {
   const [newBusFare, setNewBusFare] = useState('');
   const [newBusCapacity, setNewBusCapacity] = useState('');
   const [newBusTime, setNewBusTime] = useState('');
+  const [newBusIsPopular, setNewBusIsPopular] = useState(true);
 
   // Edit Bus Modal states
   const [editingBus, setEditingBus] = useState<BusType | null>(null);
@@ -143,6 +184,7 @@ const AdminDashboard = () => {
   const [editBusCapacity, setEditBusCapacity] = useState('');
   const [editBusTime, setEditBusTime] = useState('');
   const [editBusStatus, setEditBusStatus] = useState('');
+  const [editBusIsPopular, setEditBusIsPopular] = useState(true);
 
   const stats = [
     { title: 'Total Buses', value: buses.length.toString(), icon: Bus, color: 'bg-[#aa8453]', trend: '+2 this month' },
@@ -234,29 +276,48 @@ const AdminDashboard = () => {
       toast.error("Please fill in all required fields");
       return;
     }
-    const newBus: BusType = {
-      id: buses.length > 0 ? Math.max(...buses.map(b => b.id)) + 1 : 1,
-      name: newBusName,
-      route: newBusRoute,
-      time: newBusTime,
+
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    const payload = {
+      name: newBusName.trim(),
+      route: newBusRoute.trim(),
+      time: newBusTime.trim(),
       status: 'Active',
-      seatsLeft: parseInt(newBusCapacity),
       totalSeats: parseInt(newBusCapacity),
       price: parseInt(newBusFare),
-      image: newBusImage || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2000&auto=format&fit=crop',
-      busImage: newBusBusImage || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2000&auto=format&fit=crop'
+      image: newBusImage || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=800&auto=format&fit=crop',
+      busImage: newBusBusImage || 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=800&auto=format&fit=crop',
+      isPopular: newBusIsPopular
     };
-    setBuses([...buses, newBus]);
-    toast.success("New route manifest initialized successfully");
-    setShowAddBusModal(false);
-    // Clear inputs
-    setNewBusName('');
-    setNewBusRoute('');
-    setNewBusImage('');
-    setNewBusBusImage('');
-    setNewBusFare('');
-    setNewBusCapacity('');
-    setNewBusTime('');
+
+    fetch(`${baseUrl}buses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.bus) {
+          toast.success("New route manifest initialized successfully in database");
+          fetchBuses();
+          setShowAddBusModal(false);
+          // Clear inputs
+          setNewBusName('');
+          setNewBusRoute('');
+          setNewBusImage('');
+          setNewBusBusImage('');
+          setNewBusFare('');
+          setNewBusCapacity('');
+          setNewBusTime('');
+          setNewBusIsPopular(true);
+        } else {
+          toast.error(data.message || "Failed to add route");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        toast.error("Failed to add route to database");
+      });
   };
 
   // Open Edit Modal
@@ -270,6 +331,7 @@ const AdminDashboard = () => {
     setEditBusCapacity(bus.totalSeats.toString());
     setEditBusTime(bus.time);
     setEditBusStatus(bus.status);
+    setEditBusIsPopular(bus.isPopular !== undefined ? bus.isPopular : true);
   };
 
   // Save Edit Handler
@@ -281,36 +343,83 @@ const AdminDashboard = () => {
       return;
     }
 
-    const updatedBuses = buses.map(bus => {
-      if (bus.id === editingBus.id) {
-        const capacityDiff = parseInt(editBusCapacity) - bus.totalSeats;
-        return {
-          ...bus,
-          name: editBusName,
-          route: editBusRoute,
-          time: editBusTime,
-          status: editBusStatus,
-          totalSeats: parseInt(editBusCapacity),
-          seatsLeft: Math.max(0, bus.seatsLeft + capacityDiff),
-          price: parseInt(editBusFare),
-          image: editBusImage,
-          busImage: editBusBusImage
-        };
-      }
-      return bus;
-    });
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    const payload = {
+      name: editBusName.trim(),
+      route: editBusRoute.trim(),
+      time: editBusTime.trim(),
+      status: editBusStatus,
+      totalSeats: parseInt(editBusCapacity),
+      price: parseInt(editBusFare),
+      image: editBusImage,
+      busImage: editBusBusImage,
+      isPopular: editBusIsPopular
+    };
 
-    setBuses(updatedBuses);
-    toast.success("Route parameters updated successfully");
-    setEditingBus(null);
+    fetch(`${baseUrl}buses/${editingBus._id || editingBus.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          toast.success("Route parameters updated in database");
+          fetchBuses();
+          setEditingBus(null);
+        } else {
+          toast.error(data.message || "Failed to update route");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        toast.error("Failed to update route");
+      });
   };
 
   // Delete Bus Handler
-  const handleDeleteBus = (id: number) => {
+  const handleDeleteBus = (id: any) => {
     if (window.confirm("Are you sure you want to retire this route manifest?")) {
-      setBuses(buses.filter(bus => bus.id !== id));
-      toast.success("Route manifest retired successfully");
+      const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+      fetch(`${baseUrl}buses/${id}`, {
+        method: 'DELETE'
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            toast.success("Route manifest retired successfully from database");
+            fetchBuses();
+          } else {
+            toast.error(data.message || "Failed to delete route");
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          toast.error("Failed to delete route");
+        });
     }
+  };
+
+  // Toggle Popular Route status Handler
+  const handleTogglePopular = (bus: BusType) => {
+    const targetId = bus._id || bus.id;
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    fetch(`${baseUrl}buses/${targetId}/toggle-popular`, {
+      method: 'PATCH'
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          toast.success(data.message || `Route marked as ${data.isPopular ? "Popular" : "Standard"}`);
+          fetchBuses();
+        } else {
+          toast.error(data.message || "Failed to toggle popular status");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        toast.error("Failed to toggle popular status");
+      });
   };
 
   // Delete User Handler
@@ -606,6 +715,7 @@ const AdminDashboard = () => {
                         <th className="px-8 py-5">Service Name</th>
                         <th className="px-8 py-5">Route Link</th>
                         <th className="px-8 py-5">Pricing</th>
+                        <th className="px-8 py-5">Popular Route</th>
                         <th className="px-8 py-5">Status</th>
                         <th className="px-8 py-5 text-right">Actions</th>
                       </tr>
@@ -636,6 +746,20 @@ const AdminDashboard = () => {
                             <span className="font-bold text-gray-800 tracking-tighter">Rs. {bus.price.toLocaleString()}</span>
                           </td>
                           <td className="px-8 py-6">
+                            <button
+                              onClick={() => handleTogglePopular(bus)}
+                              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all duration-300 border ${
+                                bus.isPopular
+                                  ? 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100 shadow-sm'
+                                  : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'
+                              }`}
+                              title="Click to toggle whether this route appears in Popular Routes"
+                            >
+                              <Star size={12} className={bus.isPopular ? "fill-amber-400 text-amber-500" : "text-gray-300"} />
+                              <span>{bus.isPopular ? "Popular" : "Standard"}</span>
+                            </button>
+                          </td>
+                          <td className="px-8 py-6">
                             <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
                               bus.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 
                               bus.status === 'On Trip' ? 'bg-amber-50 text-[#aa8453]' :
@@ -647,13 +771,20 @@ const AdminDashboard = () => {
                           <td className="px-8 py-6 text-right">
                             <div className="flex items-center justify-end space-x-2">
                               <button 
+                                onClick={() => handleTogglePopular(bus)}
+                                title={bus.isPopular ? "Remove from Popular Routes" : "Promote to Popular Routes"}
+                                className={`p-2 rounded-lg transition-all duration-300 ${bus.isPopular ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-gray-50'}`}
+                              >
+                                <Star size={16} className={bus.isPopular ? "fill-amber-400" : ""} />
+                              </button>
+                              <button 
                                 onClick={() => openEditModal(bus)}
                                 className="p-2 text-gray-400 hover:text-[#aa8453] hover:bg-[#aa8453]/10 rounded-lg transition-all duration-300"
                               >
                                 <Edit size={16} />
                               </button>
                               <button 
-                                onClick={() => handleDeleteBus(bus.id)}
+                                onClick={() => handleDeleteBus(bus._id || bus.id)}
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-300"
                               >
                                 <Trash2 size={16} />
@@ -911,6 +1042,19 @@ const AdminDashboard = () => {
                   />
                 </div>
               </div>
+              <div className="flex items-center space-x-3 p-4 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-2xl">
+                <input 
+                  type="checkbox" 
+                  id="newBusIsPopular" 
+                  checked={newBusIsPopular} 
+                  onChange={(e) => setNewBusIsPopular(e.target.checked)} 
+                  className="w-5 h-5 accent-[#aa8453] cursor-pointer"
+                />
+                <label htmlFor="newBusIsPopular" className="cursor-pointer text-xs font-bold text-gray-700 flex items-center space-x-2">
+                  <Star size={15} className="fill-amber-400 text-amber-500" />
+                  <span>Feature in Popular Routes (Showcase on Homepage & Bus Popular Routes)</span>
+                </label>
+              </div>
               <button 
                 type="submit" 
                 className="w-full py-5 bg-[#1b1b1b] hover:bg-black text-white font-condensed tracking-widest uppercase text-sm border-none rounded-2xl transition duration-300"
@@ -1015,6 +1159,19 @@ const AdminDashboard = () => {
                     className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
+              </div>
+              <div className="flex items-center space-x-3 p-4 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-2xl">
+                <input 
+                  type="checkbox" 
+                  id="editBusIsPopular" 
+                  checked={editBusIsPopular} 
+                  onChange={(e) => setEditBusIsPopular(e.target.checked)} 
+                  className="w-5 h-5 accent-[#aa8453] cursor-pointer"
+                />
+                <label htmlFor="editBusIsPopular" className="cursor-pointer text-xs font-bold text-gray-700 flex items-center space-x-2">
+                  <Star size={15} className="fill-amber-400 text-amber-500" />
+                  <span>Feature in Popular Routes (Showcase on Homepage & Bus Popular Routes)</span>
+                </label>
               </div>
               <button 
                 type="submit" 

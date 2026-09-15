@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, MapPin, Bus, Clock, ArrowRight, ShieldCheck, Globe, Star, Search } from 'lucide-react';
 import CitySearchInput from '../../components/user/common/city-search-input';
 import { useLenis } from '../../lib/lenis';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const HOME = () => {
   useLenis();
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ur';
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -27,21 +28,22 @@ const HOME = () => {
     }
   ];
 
-  const [routes_data] = useState(() => {
+  const [routes_data, setRoutesData] = useState<any[]>(() => {
     const saved = localStorage.getItem("buses");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         return parsed
-          .filter((b: any) => b.status === "Active")
+          .filter((b: any) => b.status === "Active" && b.isPopular !== false)
           .map((b: any) => {
-            const [from, to] = b.route.split(" - ");
+            const [from, to] = (b.route || "").split(/ - | to | ➔ |->/i);
             return {
-              from: from || 'Lahore',
-              to: to || 'Islamabad',
+              id: b._id || b.id,
+              from: b.from || from || 'Lahore',
+              to: b.to || to || 'Islamabad',
               price: b.price.toString(),
               image: b.image,
-              company: b.name
+              company: b.operator || b.name
             };
           });
       } catch (e) {
@@ -50,6 +52,29 @@ const HOME = () => {
     }
     return [];
   });
+
+  useEffect(() => {
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    fetch(`${baseUrl}buses/popular`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.routes)) {
+          const formatted = data.routes.map((b: any) => {
+            const [from, to] = (b.route || "").split(/ - | to | ➔ |->/i);
+            return {
+              id: b._id || b.id,
+              from: b.from || from || 'Lahore',
+              to: b.to || to || 'Islamabad',
+              price: b.price.toString(),
+              image: b.image,
+              company: b.operator || b.name
+            };
+          });
+          setRoutesData(formatted);
+        }
+      })
+      .catch(err => console.error("Error fetching popular routes for home:", err));
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -207,7 +232,10 @@ const HOME = () => {
               <p className="text-[10px] text-[#aa8453] tracking-[0.5em] uppercase font-condensed">{t('home.routes_subtitle')}</p>
               <h2 className="text-5xl md:text-6xl font-serif">{t('home.routes_title')}</h2>
             </div>
-            <button className="text-[#aa8453] text-xs tracking-widest font-condensed flex items-center space-x-3 group uppercase">
+            <button 
+              onClick={() => navigate('/bus')}
+              className="text-[#aa8453] text-xs tracking-widest font-condensed flex items-center space-x-3 group uppercase"
+            >
               <span>{t('home.explore_routes')}</span>
               <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform rtl:rotate-180" />
             </button>
@@ -216,12 +244,13 @@ const HOME = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {routes_data.map((route: any, i: number) => (
               <motion.div
-                key={i}
+                key={route.id || i}
+                onClick={() => navigate(`/bus?from=${encodeURIComponent(route.from)}&to=${encodeURIComponent(route.to)}`)}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="luxury-card h-[500px]"
+                className="luxury-card h-[500px] cursor-pointer"
               >
                 <img
                   src={route.image}
@@ -240,13 +269,27 @@ const HOME = () => {
                       <p className="text-[10px] text-gray-400 tracking-[0.1em] uppercase font-condensed mb-1">{t('home.starting_from')}</p>
                       <p className="text-2xl font-serif"><span className="text-xs font-light text-white/50 tracking-normal mr-1">Rs.</span>{route.price}</p>
                     </div>
-                    <button className="w-12 h-12 border border-white/30 rounded-none flex items-center justify-center hover:bg-[#aa8453] hover:border-[#aa8453] transition-all">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/bus?from=${encodeURIComponent(route.from)}&to=${encodeURIComponent(route.to)}`);
+                      }}
+                      className="w-12 h-12 border border-white/30 rounded-none flex items-center justify-center hover:bg-[#aa8453] hover:border-[#aa8453] transition-all"
+                    >
                       <ArrowRight size={20} className="rtl:rotate-180" />
                     </button>
                   </div>
                 </div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="luxury-button !py-3 !px-8 !text-[10px]">{t('home.buy_ticket')}</button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/bus?from=${encodeURIComponent(route.from)}&to=${encodeURIComponent(route.to)}`);
+                    }}
+                    className="luxury-button !py-3 !px-8 !text-[10px]"
+                  >
+                    {t('home.buy_ticket')}
+                  </button>
                 </div>
               </motion.div>
             ))}
