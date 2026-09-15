@@ -21,10 +21,13 @@ import {
   MapPin,
   Clock,
   DollarSign,
-  Star
+  Star,
+  Download,
+  Share2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { downloadTicketPDF, shareTicketPDF, formatVoyageDate } from '../../utils/ticket-pdf';
 
 interface BusType {
   id: any;
@@ -54,6 +57,10 @@ interface BookingType {
   cnic: string;
   seats: string[];
   type: string;
+  routeFrom?: string;
+  routeTo?: string;
+  departureTime?: string;
+  passengerEmail?: string;
 }
 
 interface UserType {
@@ -141,7 +148,11 @@ const AdminDashboard = () => {
             phone: b.passengerPhone || b.phone,
             cnic: b.passengerCnic || b.cnic,
             seats: b.seats || [],
-            type: b.type || 'Upcoming'
+            type: b.type || 'Upcoming',
+            routeFrom: b.routeFrom,
+            routeTo: b.routeTo,
+            departureTime: b.departureTime,
+            passengerEmail: b.passengerEmail
           }));
           setBookings(formatted);
         }
@@ -450,6 +461,68 @@ const AdminDashboard = () => {
       setUsersList(usersList.filter(user => user.id !== id));
       toast.success("User removed successfully from directory");
     }
+  };
+
+  // Download Ticket PDF from Admin / User Manifest
+  const handleDownloadAdminTicket = (booking: BookingType) => {
+    let from = booking.routeFrom;
+    let to = booking.routeTo;
+    if (!from || !to) {
+      const parts = (booking.bus || "").split(/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i).filter(Boolean);
+      if (parts.length >= 2) {
+        from = parts[0].trim();
+        to = parts[1].trim();
+      } else {
+        from = "Lahore";
+        to = "Islamabad";
+      }
+    }
+
+    downloadTicketPDF({
+      passengerName: isSuperAdmin ? booking.userName : userName,
+      phone: booking.phone,
+      cnic: booking.cnic,
+      email: booking.passengerEmail || userEmail,
+      ticketId: booking.id,
+      busName: booking.bus,
+      routeFrom: from,
+      routeTo: to,
+      date: booking.date,
+      time: booking.departureTime || "08:00 AM",
+      seats: Array.isArray(booking.seats) ? booking.seats.join(", ") : String(booking.seats || "Single Seat"),
+      amount: booking.amount
+    });
+  };
+
+  // Share Ticket PDF via Web Share / WhatsApp fallback
+  const handleShareAdminTicket = async (booking: BookingType) => {
+    let from = booking.routeFrom;
+    let to = booking.routeTo;
+    if (!from || !to) {
+      const parts = (booking.bus || "").split(/\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i).filter(Boolean);
+      if (parts.length >= 2) {
+        from = parts[0].trim();
+        to = parts[1].trim();
+      } else {
+        from = "Lahore";
+        to = "Islamabad";
+      }
+    }
+
+    await shareTicketPDF({
+      passengerName: isSuperAdmin ? booking.userName : userName,
+      phone: booking.phone,
+      cnic: booking.cnic,
+      email: booking.passengerEmail || userEmail,
+      ticketId: booking.id,
+      busName: booking.bus,
+      routeFrom: from,
+      routeTo: to,
+      date: booking.date,
+      time: booking.departureTime || "08:00 AM",
+      seats: Array.isArray(booking.seats) ? booking.seats.join(", ") : String(booking.seats || "Single Seat"),
+      amount: booking.amount
+    });
   };
 
   return (
@@ -1246,7 +1319,7 @@ const AdminDashboard = () => {
                 <div className="bg-[#fcfaf7] rounded-3xl p-6 flex justify-between items-center shadow-inner border border-[#aa8453]/10">
                   <div>
                     <p className="text-base font-bold text-gray-800 tracking-tight leading-none mb-1">{selectedBooking.bus}</p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{selectedBooking.date}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formatVoyageDate(selectedBooking.date)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] uppercase font-bold text-[#aa8453] tracking-widest mb-1">Seats Allocated</p>
@@ -1255,16 +1328,24 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={() => toast.success("Downloading ticket manifest...")}
-                  className="flex-1 py-4 bg-[#aa8453] text-white rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-[#8e6d45] transition-all duration-300 shadow-md"
+                  onClick={() => handleDownloadAdminTicket(selectedBooking)}
+                  className="flex-1 py-4 px-2 bg-[#aa8453] text-white rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-[#8e6d45] transition-all duration-300 shadow-md flex items-center justify-center gap-2"
                 >
-                  Download Ticket
+                  <Download size={16} />
+                  <span>Download <Ticket></Ticket></span>
+                </button>
+                <button
+                  onClick={() => handleShareAdminTicket(selectedBooking)}
+                  className="py-4 px-6 bg-amber-50 text-[#aa8453] border border-[#aa8453]/30 rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-amber-100 transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <Share2 size={16} />
+                  <span>Share</span>
                 </button>
                 <button
                   onClick={() => setSelectedBooking(null)}
-                  className="px-8 py-4 bg-gray-100 text-gray-500 rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-gray-200 transition-all duration-300"
+                  className="px-6 py-4 bg-gray-100 text-gray-500 rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-gray-200 transition-all duration-300"
                 >
                   Close
                 </button>
