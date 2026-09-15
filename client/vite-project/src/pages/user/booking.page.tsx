@@ -24,9 +24,9 @@ const BookingPage = () => {
           id: busObj.id,
           from: busObj.from,
           to: busObj.to,
-          price: parseInt(busObj.price.replace(/[^\d]/g, '')),
+          price: parseInt(String(busObj.price || 0).replace(/[^\d]/g, '')) || 1500,
           time: busObj.time,
-          bus: busObj.name,
+          bus: busObj.name || busObj.bus || "Safar Express",
           date: busObj.date,
         };
       } catch (e) {
@@ -35,6 +35,11 @@ const BookingPage = () => {
     }
     return { id: 1, from: "Lahore", to: "Islamabad", price: 1500, time: "09:00 AM", bus: "Safar Express", date: "" };
   });
+
+  const voyageDate = selectedRoute?.date 
+    ? new Date(selectedRoute.date).toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' })
+    : new Date().toLocaleDateString('en-PK', { day: '2-digit', month: 'long', year: 'numeric' });
+
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [passengerInfo, setPassengerInfo] = useState({
@@ -519,6 +524,34 @@ const BookingPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Confirmed Voyage Summary Strip */}
+        {step < 5 && selectedRoute && (
+          <div className="bg-[#fcfbf9] border border-[#aa8453]/30 p-4 mb-8 flex flex-wrap items-center justify-between gap-4 no-print shadow-sm">
+            <div className="flex items-center space-x-3">
+              <Bus size={18} className="text-[#aa8453]" />
+              <div>
+                <p className="text-[9px] text-gray-400 uppercase font-condensed tracking-widest">Fleet Service</p>
+                <p className="text-sm font-serif font-bold text-gray-900">{selectedRoute?.bus}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="text-center sm:text-right">
+                <p className="text-[9px] text-[#aa8453] uppercase font-condensed tracking-widest font-semibold">Departure</p>
+                <p className="text-base font-serif font-bold text-gray-900">{selectedRoute?.from}</p>
+              </div>
+              <span className="text-[#aa8453] font-bold text-lg px-1">➔</span>
+              <div className="text-center sm:text-left">
+                <p className="text-[9px] text-[#aa8453] uppercase font-condensed tracking-widest font-semibold">Arrival</p>
+                <p className="text-base font-serif font-bold text-gray-900">{selectedRoute?.to}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[9px] text-gray-400 uppercase font-condensed tracking-widest">Voyage Schedule</p>
+              <p className="text-sm font-serif text-gray-900">{voyageDate} &bull; {selectedRoute?.time}</p>
+            </div>
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           <motion.div

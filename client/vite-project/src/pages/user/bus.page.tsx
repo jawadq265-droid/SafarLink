@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { ArrowRight, X } from 'lucide-react';
 import CitySearchInput from '../../components/user/common/city-search-input';
 
 const BusPage = () => {
@@ -13,6 +14,10 @@ const BusPage = () => {
     const [toCity, setToCity] = useState('');
     const [travelDate, setTravelDate] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
+
+    const [modalBus, setModalBus] = useState<any | null>(null);
+    const [selectedDirection, setSelectedDirection] = useState<'forward' | 'reverse'>('forward');
+    const [modalTravelDate, setModalTravelDate] = useState<string>('');
 
     const [popularRoutes, setPopularRoutes] = useState<any[]>([]);
     const [buses, setBuses] = useState<any[]>(() => {
@@ -117,10 +122,12 @@ const BusPage = () => {
             return;
         }
 
-        // Filter existing buses in database matching this route
+        // Filter existing buses in database matching this route in either direction
         const matches = buses.filter((b: any) => 
-            b.from.toLowerCase().trim() === from.toLowerCase().trim() &&
-            b.to.toLowerCase().trim() === to.toLowerCase().trim()
+            (b.from.toLowerCase().trim() === from.toLowerCase().trim() &&
+             b.to.toLowerCase().trim() === to.toLowerCase().trim()) ||
+            (b.from.toLowerCase().trim() === to.toLowerCase().trim() &&
+             b.to.toLowerCase().trim() === from.toLowerCase().trim())
         ).map((b: any) => ({
             ...b,
             date: date
@@ -172,29 +179,54 @@ const BusPage = () => {
         }, 100);
     };
 
-    const handleBook = (bus: any) => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            localStorage.setItem("booking_bus", JSON.stringify({
-                ...bus,
-                date: bus.date || travelDate
-            }));
-            navigate("/book-now");
-        } else {
-            navigate("/login");
-        }
-    };
-
     const getCleanCities = (route: any) => {
-        let from = route.from || '';
-        let to = route.to || '';
+        let from = route?.from || '';
+        let to = route?.to || '';
         const delimiterRegex = /\s*(?:⇄|↔|⇌|➔|->|-->|–|—|-|\bto\b|\/)\s*/i;
         if (delimiterRegex.test(from) || !to || from.toLowerCase().trim() === to.toLowerCase().trim()) {
-            const parts = (route.route || from).split(delimiterRegex).filter(Boolean);
+            const parts = (route?.route || from).split(delimiterRegex).filter(Boolean);
             from = parts[0]?.trim() || from;
             to = parts[1]?.trim() || to || 'Islamabad';
         }
         return { from, to };
+    };
+
+    const handleBook = (bus: any) => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            toast.error("Please login first to reserve tickets.");
+            navigate("/login");
+            return;
+        }
+
+        const { from, to } = getCleanCities(bus);
+        // Pre-select direction based on search if available
+        if (fromCity && fromCity.toLowerCase().trim() === to.toLowerCase().trim()) {
+            setSelectedDirection('reverse');
+        } else {
+            setSelectedDirection('forward');
+        }
+
+        const defaultDate = bus.date || travelDate || new Date().toISOString().split('T')[0];
+        setModalTravelDate(defaultDate);
+        setModalBus(bus);
+    };
+
+    const handleConfirmDirection = () => {
+        if (!modalBus) return;
+        const { from, to } = getCleanCities(modalBus);
+        const depCity = selectedDirection === 'forward' ? from : to;
+        const arrCity = selectedDirection === 'forward' ? to : from;
+
+        localStorage.setItem("booking_bus", JSON.stringify({
+            ...modalBus,
+            from: depCity,
+            to: arrCity,
+            route: `${depCity} ➔ ${arrCity}`,
+            date: modalTravelDate || travelDate || new Date().toISOString().split('T')[0]
+        }));
+        setModalBus(null);
+        navigate("/book-now");
     };
 
     return (
@@ -289,7 +321,7 @@ const BusPage = () => {
                     {hasSearched ? t('bus.select_ride') : 'EXPLORE FLEET'}
                 </p>
                 <h2 className="text-4xl font-serif text-gray-900 mb-10">
-                    {hasSearched ? `${t('bus.available_buses')} (${fromCity} ➔ ${toCity})` : t('bus.available_buses')}
+                    {hasSearched ? `${t('bus.available_buses')} (${fromCity} ⇄ ${toCity})` : t('bus.available_buses')}
                 </h2>
                 <div className="grid gap-6">
                     {displayedBuses.length > 0 ? (
@@ -311,7 +343,7 @@ const BusPage = () => {
                                     <h3 className={`text-3xl font-serif ${bus.backgroundImage ? 'text-white' : 'text-gray-900'}`}>{bus.name}</h3>
                                     <div className={`flex items-center mt-2 ${bus.backgroundImage ? 'text-gray-100' : 'text-gray-600'}`}>
                                         <span className="font-semibold">{bus.from}</span>
-                                        <svg className={`w-5 h-5 mx-2 rtl:rotate-180 ${bus.backgroundImage ? 'text-gray-300' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                        <span className="mx-2.5 text-lg font-bold text-[#aa8453]">⇄</span>
                                         <span className="font-semibold">{bus.to}</span>
                                     </div>
                                     <p className={`text-sm mt-1 ${bus.backgroundImage ? 'text-gray-200' : 'text-gray-500'}`}>{t('bus.departure_label')}: {bus.time}</p>
@@ -331,6 +363,170 @@ const BusPage = () => {
                     )}
                 </div>
             </div>
+
+            {/* Travel Direction Confirmation Modal */}
+            {modalBus && (() => {
+                const { from: cityA, to: cityB } = getCleanCities(modalBus);
+                const isForward = selectedDirection === 'forward';
+                const depCity = isForward ? cityA : cityB;
+                const arrCity = isForward ? cityB : cityA;
+
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+                        <div className="relative w-full max-w-lg bg-white shadow-2xl border border-gray-100 overflow-hidden">
+                            {/* Gold Accent Top Bar */}
+                            <div className="h-1.5 bg-[#aa8453] w-full"></div>
+
+                            {/* Close Button */}
+                            <button 
+                                onClick={() => setModalBus(null)}
+                                className="absolute top-5 right-5 text-gray-400 hover:text-gray-700 transition-colors p-1"
+                                aria-label="Close"
+                            >
+                                <X size={20} />
+                            </button>
+
+                            <div className="p-8">
+                                <p className="text-[10px] text-[#aa8453] tracking-[0.4em] uppercase font-condensed mb-1">
+                                    CONFIRM TRAVEL DIRECTION
+                                </p>
+                                <h3 className="text-2xl md:text-3xl font-serif text-gray-900 mb-2">
+                                    Departure & Arrival
+                                </h3>
+                                <p className="text-xs text-gray-500 font-sans mb-6 leading-relaxed">
+                                    This fleet operates bidirectionally (<span className="font-semibold text-gray-800">{cityA} ⇄ {cityB}</span>). Please select your exact direction of travel to seal on your ticket:
+                                </p>
+
+                                {/* Bus Info Strip */}
+                                <div className="bg-[#fcfbf9] border border-gray-200 p-3.5 mb-6 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[9px] text-gray-400 uppercase tracking-widest font-condensed">Selected Bus</p>
+                                        <p className="text-sm font-serif font-bold text-gray-900">{modalBus.name}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[9px] text-gray-400 uppercase tracking-widest font-condensed">Fare / Seat</p>
+                                        <p className="text-base font-serif font-bold text-[#aa8453]">{modalBus.price}</p>
+                                    </div>
+                                </div>
+
+                                {/* Direction Options */}
+                                <div className="space-y-3 mb-6">
+                                    {/* Option 1: City A ➔ City B */}
+                                    <div 
+                                        onClick={() => setSelectedDirection('forward')}
+                                        className={`p-4 border-2 cursor-pointer transition-all flex items-center justify-between ${
+                                            isForward 
+                                                ? 'border-[#aa8453] bg-[#aa8453]/5 shadow-sm' 
+                                                : 'border-gray-200 hover:border-gray-300 bg-white'
+                                        }`}
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                                isForward ? 'border-[#aa8453] bg-[#aa8453]' : 'border-gray-300'
+                                            }`}>
+                                                {isForward && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                                            </div>
+                                            <div>
+                                                <p className="text-base font-serif font-bold text-gray-900 flex items-center gap-2">
+                                                    <span>{cityA}</span>
+                                                    <span className="text-[#aa8453]">➔</span>
+                                                    <span>{cityB}</span>
+                                                </p>
+                                                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-condensed mt-0.5">
+                                                    Departure: <span className="text-gray-900 font-semibold">{cityA}</span> &bull; Arrival: <span className="text-gray-900 font-semibold">{cityB}</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {isForward && (
+                                            <span className="text-[9px] bg-[#aa8453] text-white px-2 py-0.5 uppercase tracking-widest font-condensed font-bold">
+                                                SELECTED
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Option 2: City B ➔ City A */}
+                                    <div 
+                                        onClick={() => setSelectedDirection('reverse')}
+                                        className={`p-4 border-2 cursor-pointer transition-all flex items-center justify-between ${
+                                            !isForward 
+                                                ? 'border-[#aa8453] bg-[#aa8453]/5 shadow-sm' 
+                                                : 'border-gray-200 hover:border-gray-300 bg-white'
+                                        }`}
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                                !isForward ? 'border-[#aa8453] bg-[#aa8453]' : 'border-gray-300'
+                                            }`}>
+                                                {!isForward && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                                            </div>
+                                            <div>
+                                                <p className="text-base font-serif font-bold text-gray-900 flex items-center gap-2">
+                                                    <span>{cityB}</span>
+                                                    <span className="text-[#aa8453]">➔</span>
+                                                    <span>{cityA}</span>
+                                                </p>
+                                                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-condensed mt-0.5">
+                                                    Departure: <span className="text-gray-900 font-semibold">{cityB}</span> &bull; Arrival: <span className="text-gray-900 font-semibold">{cityA}</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {!isForward && (
+                                            <span className="text-[9px] bg-[#aa8453] text-white px-2 py-0.5 uppercase tracking-widest font-condensed font-bold">
+                                                SELECTED
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Travel Date Picker */}
+                                <div className="mb-6">
+                                    <label className="block text-[10px] text-gray-500 tracking-[0.2em] uppercase font-condensed mb-2">
+                                        Travel Date
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        value={modalTravelDate}
+                                        onChange={(e) => setModalTravelDate(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-[#aa8453] outline-none font-serif text-sm text-gray-800"
+                                    />
+                                </div>
+
+                                {/* Live Ticket Summary Strip */}
+                                <div className="bg-[#1b1b1b] text-white p-4 mb-6 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[9px] text-[#aa8453] uppercase tracking-widest font-condensed"> Departure</p>
+                                        <p className="text-sm font-serif font-bold">{depCity}</p>
+                                    </div>
+                                    <span className="text-[#aa8453] font-bold text-lg">➔</span>
+                                    <div className="text-right">
+                                        <p className="text-[9px] text-[#aa8453] uppercase tracking-widest font-condensed"> Arrival</p>
+                                        <p className="text-sm font-serif font-bold">{arrCity}</p>
+                                    </div>
+                                </div>
+
+                                {/* Buttons */}
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setModalBus(null)}
+                                        className="w-1/3 py-3.5 border border-gray-200 text-gray-600 uppercase text-[10px] tracking-widest font-bold hover:bg-gray-50 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleConfirmDirection}
+                                        className="w-2/3 luxury-button !py-3.5 text-center flex items-center justify-center gap-2"
+                                    >
+                                        <span>CONFIRM & PROCEED</span>
+                                        <ArrowRight size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };
