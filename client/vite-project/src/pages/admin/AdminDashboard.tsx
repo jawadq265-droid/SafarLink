@@ -455,6 +455,34 @@ const AdminDashboard = () => {
       });
   };
 
+  // Update Bus Operational Status Handler
+  const handleUpdateBusStatus = async (busId: string, newStatus: string) => {
+    try {
+      const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+      const res = await fetch(`${baseUrl}buses/${busId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (newStatus === 'On Route') {
+          toast.success("Bus is now On Route! New fleet deployed with departure in 60 mins.", { duration: 5000 });
+        } else {
+          toast.success(data.message || `Status changed to "${newStatus}"`);
+        }
+        fetchBuses();
+      } else {
+        toast.error(data.message || "Failed to update bus status");
+      }
+    } catch (err) {
+      console.error("Error updating bus status:", err);
+      toast.error("Failed to update bus status");
+    }
+  };
+
   // Delete User Handler
   const handleDeleteUser = (id: string) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
@@ -855,13 +883,31 @@ const AdminDashboard = () => {
                             </button>
                           </td>
                           <td className="px-8 py-6">
-                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                              bus.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 
-                              bus.status === 'On Trip' ? 'bg-amber-50 text-[#aa8453]' :
-                              'bg-red-50 text-red-600'
-                            }`}>
-                              {bus.status}
-                            </span>
+                            <select
+                              value={bus.status || 'Active'}
+                              onChange={(e) => handleUpdateBusStatus(bus._id || bus.id, e.target.value)}
+                              className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider outline-none cursor-pointer border transition-all duration-300 shadow-sm ${
+                                bus.status === 'On Route'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 ring-2 ring-amber-400/20' :
+                                bus.status === 'Late By 30 mins'
+                                  ? 'bg-orange-50 text-orange-800 border-orange-300 hover:bg-orange-100 ring-2 ring-orange-400/20' :
+                                bus.status === 'Reached at Arrival Destination'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 ring-2 ring-emerald-400/20' :
+                                bus.status === 'Departure in 60 mins'
+                                  ? 'bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100 ring-2 ring-blue-400/20' :
+                                bus.status === 'Maintenance'
+                                  ? 'bg-red-50 text-red-800 border-red-300 hover:bg-red-100' :
+                                  'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              }`}
+                              title="Click to update bus operational status"
+                            >
+                              <option value="Active">Active</option>
+                              <option value="On Route">On Route (Deploy Next +60m)</option>
+                              <option value="Late By 30 mins">Late By 30 mins</option>
+                              <option value="Reached at Arrival Destination">Reached at Arrival Destination</option>
+                              <option value="Departure in 60 mins">Departure in 60 mins</option>
+                              <option value="Maintenance">Maintenance</option>
+                            </select>
                           </td>
                           <td className="px-8 py-6 text-right">
                             <div className="flex items-center justify-end space-x-2">
@@ -1203,7 +1249,10 @@ const AdminDashboard = () => {
                     className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm"
                   >
                     <option value="Active">Active</option>
-                    <option value="On Trip">On Trip</option>
+                    <option value="On Route">On Route</option>
+                    <option value="Late By 30 mins">Late By 30 mins</option>
+                    <option value="Reached at Arrival Destination">Reached at Arrival Destination</option>
+                    <option value="Departure in 60 mins">Departure in 60 mins</option>
                     <option value="Maintenance">Maintenance</option>
                   </select>
                 </div>

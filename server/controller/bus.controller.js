@@ -129,7 +129,7 @@ export const getBuses = async (req, res) => {
 export const getPopularRoutes = async (req, res) => {
   try {
     await ensureSeedData();
-    const routes = await Bus.find({ isPopular: true, status: "Active" }).sort({ createdAt: -1 });
+    const routes = await Bus.find({ isPopular: true, status: { $ne: "Maintenance" } }).sort({ createdAt: -1 });
     await sanitizeBusList(routes);
     return res.status(200).json({ success: true, routes });
   } catch (error) {
@@ -248,6 +248,87 @@ export const togglePopularRoute = async (req, res) => {
     });
   } catch (error) {
     console.error("Error toggling popular status:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Calculates the time 1 hour after the given time string (e.g. "08:00 AM" -> "09:00 AM")
+ */
+export const calculateNextHourTime = (timeStr) => {
+  if (!timeStr) return "09:00 AM";
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return "09:00 AM";
+  const h = parseInt(match[1], 10);
+  const min = match[2];
+  const mer = match[3].toUpperCase();
+
+  let h24 = h;
+  if (mer === "AM" && h === 12) h24 = 0;
+  else if (mer === "PM" && h !== 12) h24 = h + 12;
+
+  h24 = (h24 + 1) % 24;
+
+  const nextMer = h24 >= 12 ? "PM" : "AM";
+  let nextH = h24 % 12;
+  if (nextH === 0) nextH = 12;
+
+  return `${String(nextH).padStart(2, "0")}:${min} ${nextMer}`;
+};
+
+/**
+ * Update bus operational status.
+ * If status is set to "On Route", spawns a new bus fleet service on the same route with "Departure in 60 mins".
+ */
+export const updateBusStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ success: false, message: "Status is required." });
+    }
+
+    const bus = await Bus.findById(id);
+    if (!bus) {
+      return res.status(404).json({ success: false, message: "Route not found" });
+    }
+
+    bus.status = status;
+    await bus.save();
+
+    let newBus = null;
+    // When marked as "On Route", spawn next fleet service at same location with status "Departure in 60 mins" (1 hour distance)
+    if (status === "On Route") {
+      const nextTime = calculateNextHourTime(bus.time);
+      newBus = new Bus({
+        name: bus.name,
+        route: bus.route,
+        from: bus.from,
+        to: bus.to,
+        time: nextTime,
+        price: bus.price,
+        totalSeats: bus.totalSeats || 40,
+        seatsLeft: bus.totalSeats || 40,
+        status: "Departure in 60 mins",
+        image: bus.image,
+        busImage: bus.busImage,
+        isPopular: bus.isPopular,
+        operator: bus.operator
+      });
+      await newBus.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: status === "On Route"
+        ? `Status updated to 'On Route'. Next fleet service scheduled with departure in 60 mins!`
+        : `Status updated to '${status}'.`,
+      bus,
+      newBus
+    });
+  } catch (error) {
+    console.error("Error updating bus status:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };

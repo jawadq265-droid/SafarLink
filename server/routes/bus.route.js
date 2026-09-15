@@ -5,7 +5,8 @@ import {
   createBus,
   updateBus,
   deleteBus,
-  togglePopularRoute
+  togglePopularRoute,
+  updateBusStatus
 } from "../controller/bus.controller.js";
 
 const router = Router();
@@ -16,5 +17,6 @@ router.post("/", createBus);
 router.put("/:id", updateBus);
 router.delete("/:id", deleteBus);
 router.patch("/:id/toggle-popular", togglePopularRoute);
+router.patch("/:id/status", updateBusStatus);
 
 export default router;
