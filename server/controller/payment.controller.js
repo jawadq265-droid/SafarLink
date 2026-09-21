@@ -125,7 +125,9 @@ export const sendPaymentClearanceEmail = async (req, res) => {
 
     // Send notification email to admin
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -135,6 +137,7 @@ export const sendPaymentClearanceEmail = async (req, res) => {
     const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
 
     await transporter.sendMail({
+      from: `"SafarLink" <${process.env.EMAIL_USER}>`,
       to: adminEmail,
       subject: `Payment Cleared: Ticket Reservation ${ticketId || ""}`,
       html: `

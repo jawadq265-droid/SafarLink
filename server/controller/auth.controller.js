@@ -5,6 +5,18 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 
+const createGmailTransporter = () => {
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+};
+
 export const signup = async (req, res) => {
   try {
     let { name, email, password } = req.body;
@@ -153,16 +165,11 @@ export const forgotPassword = async (req, res) => {
 
     const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
 
-    // email config (Gmail example)
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+    // email config
+    const transporter = createGmailTransporter();
 
     await transporter.sendMail({
+      from: `"SafarLink" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: "Password Reset",
       html: `
@@ -221,17 +228,11 @@ export const resetPassword = async (req, res) => {
 const sendNewsletterEmails = async (email) => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn("[Newsletter] EMAIL_USER or EMAIL_PASS not configured in .env. Skipping email dispatch.");
-    return;
+    return { success: false, error: "EMAIL_USER or EMAIL_PASS not configured" };
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+    const transporter = createGmailTransporter();
 
     // 1. Send confirmation email to subscriber
     await transporter.sendMail({
@@ -263,28 +264,24 @@ const sendNewsletterEmails = async (email) => {
     });
 
     console.log(`[Newsletter] Confirmation emails sent successfully to: ${email}`);
+    return { success: true };
   } catch (mailError) {
     console.error("[Newsletter SMTP Error]: Could not dispatch email via nodemailer:", mailError.message);
     if (mailError.code === "EAUTH") {
-      console.error("[Newsletter SMTP Error]: Invalid login credentials. Please generate a 16-character App Password in Google Account Settings and update EMAIL_PASS in server/.env.");
+      console.error("[Newsletter SMTP Error]: Invalid login credentials. Please verify EMAIL_PASS in your environment variables.");
     }
+    return { success: false, error: mailError.message };
   }
 };
 
 const sendAlreadySubscribedEmail = async (email) => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn("[Newsletter] EMAIL_USER or EMAIL_PASS not configured in .env. Skipping email dispatch.");
-    return;
+    return { success: false, error: "EMAIL_USER or EMAIL_PASS not configured" };
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+    const transporter = createGmailTransporter();
 
     // 1. Send friendly reminder to subscriber
     await transporter.sendMail({
@@ -321,11 +318,13 @@ const sendAlreadySubscribedEmail = async (email) => {
     }
 
     console.log(`[Newsletter] Already-subscribed reminder email sent successfully to: ${email}`);
+    return { success: true };
   } catch (mailError) {
     console.error("[Newsletter SMTP Error]: Could not dispatch reminder email:", mailError.message);
     if (mailError.code === "EAUTH") {
-      console.error("[Newsletter SMTP Error]: Invalid login credentials. Please generate a 16-character App Password in Google Account Settings and update EMAIL_PASS in server/.env.");
+      console.error("[Newsletter SMTP Error]: Invalid login credentials. Please verify EMAIL_PASS in your environment variables.");
     }
+    return { success: false, error: mailError.message };
   }
 };
 
@@ -347,11 +346,13 @@ export const subscribeNewsletter = async (req, res) => {
     const existing = await Subscriber.findOne({ email });
     if (existing) {
       // Send reminder email to user
-      await sendAlreadySubscribedEmail(email);
+      const mailStatus = await sendAlreadySubscribedEmail(email);
 
       return res.status(200).json({
         success: true,
         isAlreadySubscribed: true,
+        emailSent: mailStatus?.success ?? false,
+        emailError: mailStatus?.error || null,
         message: "You are already subscribed! We have sent a confirmation reminder to your email."
       });
     }
@@ -359,11 +360,13 @@ export const subscribeNewsletter = async (req, res) => {
     // Save subscriber in DB
     await Subscriber.create({ email });
 
-    await sendNewsletterEmails(email);
+    const mailStatus = await sendNewsletterEmails(email);
 
     return res.status(200).json({
       success: true,
       isAlreadySubscribed: false,
+      emailSent: mailStatus?.success ?? false,
+      emailError: mailStatus?.error || null,
       message: "Subscribed successfully"
     });
 
@@ -395,18 +398,13 @@ export const contactQuery = async (req, res) => {
       return res.status(400).json({ success: false, message: "Required fields are missing" });
     }
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+    const transporter = createGmailTransporter();
 
     const fullName = `${firstName} ${lastName || ""}`.trim();
 
     // 1. Send confirmation to user
     await transporter.sendMail({
+      from: `"SafarLink" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `We received your message: ${subject}`,
       html: `
@@ -424,6 +422,7 @@ export const contactQuery = async (req, res) => {
     // 2. Send alert to admin
     const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
     await transporter.sendMail({
+      from: `"SafarLink" <${process.env.EMAIL_USER}>`,
       to: adminEmail,
       subject: `New Contact Query: ${subject}`,
       html: `
