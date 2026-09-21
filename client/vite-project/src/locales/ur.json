@@ -91,5 +91,28 @@
     "message": "پیغام",
     "message_placeholder": "اپنا پیغام یہاں لکھیں...",
     "send_message": "پیغام بھیجیں"
+  },
+  "footer": {
+    "portal_subtitle": "ٹکٹ پورٹل",
+    "brand_description": "شہروں کے درمیان پرتعیش سفر کے لیے پاکستان کا سب سے بڑا ڈیجیٹل پورٹل۔ آپ کو باوقار ٹرانسپورٹ آپریٹرز کے نیٹ ورک سے جوڑتا ہے۔",
+    "navigation_title": "نیویگیشن",
+    "home": "ہوم",
+    "bus_tickets": "بس ٹکٹس",
+    "about_safari": "ہمارے بارے میں",
+    "contact_concierge": "رابطہ کریں",
+    "contact_details": "رابطے کی تفصیلات",
+    "corporate_office": "کارپوریٹ دفتر",
+    "corporate_address": "گلبرگ III، لاہور، پاکستان",
+    "helpline": "24/7 ہیلپ لائن",
+    "digital_mail": "ڈیجیٹل میل",
+    "newsletter": "نیوز لیٹر",
+    "newsletter_desc": "خصوصی سفری آفرز اور روٹس کی تازہ ترین معلومات کے لیے سبسکرائب کریں۔",
+    "email_placeholder": "اپنا ای میل ایڈریس درج کریں",
+    "subscribe": "سبسکرائب کریں",
+    "subscribed_success": "کامیابی سے سبسکرائب کر لیا گیا! شکریہ۔",
+    "subscribe_failed": "سبسکرائب کرنے میں ناکامی۔ براہ کرم دوبارہ کوشش کریں۔",
+    "copyright": "سفرلنک پریمیئر پورٹل۔ جملہ حقوق محفوظ ہیں۔",
+    "privacy_policy": "پرائیویسی پالیسی",
+    "terms_of_service": "سروس کی شرائط"
   }
 }

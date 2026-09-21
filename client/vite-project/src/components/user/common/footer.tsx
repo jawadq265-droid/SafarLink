@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Instagram, Facebook, Twitter, ArrowUp, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Instagram, Facebook, Twitter, Send } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import SafarLink_Logo from '../../../assets/images/SafariLink_Logo.jpg';
 import toast from 'react-hot-toast';
 
 const Footer = () => {
+  const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
+  const isUrdu = i18n.language === 'ur';
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -26,17 +29,17 @@ const Footer = () => {
     })
     .then((res) => {
       if (!res.ok) {
-        return res.json().then((err) => { throw new Error(err.message || "Failed to subscribe"); });
+        return res.json().then((err) => { throw new Error(err.message || t('footer.subscribe_failed')); });
       }
       return res.json();
     })
     .then(() => {
-      toast.success('Subscribed successfully! Thank you.');
+      toast.success(t('footer.subscribed_success'));
       setEmail('');
     })
     .catch((err) => {
       console.error(err);
-      toast.error(err.message || "Failed to subscribe. Please try again.");
+      toast.error(err.message || t('footer.subscribe_failed'));
     });
   };
 
@@ -52,8 +55,8 @@ const Footer = () => {
 
           {/* Brand Section */}
           <div className="lg:col-span-1 space-y-10">
-            <Link to="/" onClick={scrollToTop} className="flex items-center space-x-4 group">
-              <div className="relative">
+            <Link to="/" onClick={scrollToTop} className="flex items-center gap-4 group">
+              <div className="relative shrink-0">
                 <img
                   src={SafarLink_Logo}
                   alt="SafarLink Logo"
@@ -61,15 +64,17 @@ const Footer = () => {
                 />
                 <div className="absolute inset-0 border border-[#aa8453]/30 -m-1 group-hover:m-0 transition-all duration-500"></div>
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col text-start">
                 <span className="text-2xl font-serif tracking-widest leading-none">SAFARLINK</span>
-                <span className="text-[10px] text-[#aa8453] tracking-[0.4em] uppercase mt-1 font-condensed">Ticket Portal</span>
+                <span className="text-[10px] text-[#aa8453] tracking-[0.4em] uppercase mt-1 font-condensed">
+                  {t('footer.portal_subtitle')}
+                </span>
               </div>
             </Link>
-            <p className="text-white/40 text-sm leading-relaxed font-light max-w-xs">
-              Pakistan's premier unified digital manifest for luxury inter-city travel. Connecting you to a curated network of elite transport operators.
+            <p className="text-white/40 text-sm leading-relaxed font-light max-w-xs text-start">
+              {t('footer.brand_description')}
             </p>
-            <div className="flex space-x-6">
+            <div className="flex items-center gap-4">
               {[
                 { icon: <Instagram size={18} />, label: 'Instagram' },
                 { icon: <Facebook size={18} />, label: 'Facebook' },
@@ -89,21 +94,23 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div className="space-y-10">
-            <h4 className="text-xs tracking-[0.4em] uppercase text-[#aa8453] font-condensed">Navigation</h4>
+            <h4 className="text-xs tracking-[0.4em] uppercase text-[#aa8453] font-condensed text-start">
+              {t('footer.navigation_title')}
+            </h4>
             <ul className="space-y-6">
               {[
-                { name: 'Home', path: '/' },
-                { name: 'Bus Tickets', path: '/bus' },
-                { name: 'About Safari', path: '/AboutUs' },
-                { name: 'Contact Concierge', path: '/contact' }
+                { name: t('footer.home'), path: '/' },
+                { name: t('footer.bus_tickets'), path: '/bus' },
+                { name: t('footer.about_safari'), path: '/AboutUs' },
+                { name: t('footer.contact_concierge'), path: '/contact' }
               ].map((link) => (
-                <li key={link.name}>
+                <li key={link.path}>
                   <Link
                     to={link.path}
                     onClick={scrollToTop}
                     className="text-white/60 hover:text-[#aa8453] text-sm transition-colors duration-300 font-light tracking-wide flex items-center group"
                   >
-                    <span className="w-0 group-hover:w-4 h-[1px] bg-[#aa8453] transition-all duration-300 mr-0 group-hover:mr-3"></span>
+                    <span className="w-0 group-hover:w-4 h-[1px] bg-[#aa8453] transition-all duration-300 me-0 group-hover:me-3"></span>
                     {link.name}
                   </Link>
                 </li>
@@ -113,33 +120,47 @@ const Footer = () => {
 
           {/* Contact Information */}
           <div className="space-y-10">
-            <h4 className="text-xs tracking-[0.4em] uppercase text-[#aa8453] font-condensed">Contact Details</h4>
+            <h4 className="text-xs tracking-[0.4em] uppercase text-[#aa8453] font-condensed text-start">
+              {t('footer.contact_details')}
+            </h4>
             <ul className="space-y-8">
-              <li className="flex items-start space-x-6 group">
-                <div className="w-12 h-12 border border-white/5 flex items-center justify-center text-[#aa8453] group-hover:bg-[#aa8453]/10 transition-colors">
+              <li className="flex items-start gap-6 group">
+                <div className="w-12 h-12 shrink-0 border border-white/5 flex items-center justify-center text-[#aa8453] group-hover:bg-[#aa8453]/10 transition-colors">
                   <MapPin size={20} strokeWidth={1.5} />
                 </div>
-                <div className="pt-1">
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest font-condensed mb-1">Corporate Office</p>
-                  <p className="text-white/70 text-sm font-light">Gulberg III, Lahore, Pakistan</p>
+                <div className="pt-1 text-start">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest font-condensed mb-1">
+                    {t('footer.corporate_office')}
+                  </p>
+                  <p className="text-white/70 text-sm font-light">
+                    {t('footer.corporate_address')}
+                  </p>
                 </div>
               </li>
-              <li className="flex items-start space-x-6 group">
-                <div className="w-12 h-12 border border-white/5 flex items-center justify-center text-[#aa8453] group-hover:bg-[#aa8453]/10 transition-colors">
+              <li className="flex items-start gap-6 group">
+                <div className="w-12 h-12 shrink-0 border border-white/5 flex items-center justify-center text-[#aa8453] group-hover:bg-[#aa8453]/10 transition-colors">
                   <Phone size={20} strokeWidth={1.5} />
                 </div>
-                <div className="pt-1">
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest font-condensed mb-1">24/7 Helpline</p>
-                  <p className="text-white/70 text-sm font-light">+92 300 1234567</p>
+                <div className="pt-1 text-start">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest font-condensed mb-1">
+                    {t('footer.helpline')}
+                  </p>
+                  <p className="text-white/70 text-sm font-light" dir="ltr">
+                    +92 300 1234567
+                  </p>
                 </div>
               </li>
-              <li className="flex items-start space-x-6 group">
-                <div className="w-12 h-12 border border-white/5 flex items-center justify-center text-[#aa8453] group-hover:bg-[#aa8453]/10 transition-colors">
+              <li className="flex items-start gap-6 group">
+                <div className="w-12 h-12 shrink-0 border border-white/5 flex items-center justify-center text-[#aa8453] group-hover:bg-[#aa8453]/10 transition-colors">
                   <Mail size={20} strokeWidth={1.5} />
                 </div>
-                <div className="pt-1">
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest font-condensed mb-1">Digital Mail</p>
-                  <p className="text-white/70 text-sm font-light">safarlink0@gmail.com</p>
+                <div className="pt-1 text-start">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest font-condensed mb-1">
+                    {t('footer.digital_mail')}
+                  </p>
+                  <p className="text-white/70 text-sm font-light">
+                    safarlink0@gmail.com
+                  </p>
                 </div>
               </li>
             </ul>
@@ -147,25 +168,27 @@ const Footer = () => {
 
           {/* Newsletter / CTA */}
           <div className="space-y-10">
-            <h4 className="text-xs tracking-[0.4em] uppercase text-[#aa8453] font-condensed">Newsletter</h4>
-            <p className="text-white/40 text-sm font-light leading-relaxed">
-              Subscribe to receive exclusive travel offers and route updates.
+            <h4 className="text-xs tracking-[0.4em] uppercase text-[#aa8453] font-condensed text-start">
+              {t('footer.newsletter')}
+            </h4>
+            <p className="text-white/40 text-sm font-light leading-relaxed text-start">
+              {t('footer.newsletter_desc')}
             </p>
             <form className="relative flex items-center" onSubmit={handleSubscribe}>
               <input
                 type="email"
-                placeholder="Your email address"
+                placeholder={t('footer.email_placeholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/5 border-b border-white/10 px-2 py-4 pr-10 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#aa8453] transition-colors"
+                className="w-full bg-white/5 border-b border-white/10 px-2 py-4 pe-10 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#aa8453] transition-colors text-start"
                 required
               />
               <button
                 type="submit"
-                className="absolute right-2 text-[#aa8453] hover:text-white transition-colors"
-                aria-label="Subscribe"
+                className="absolute end-2 text-[#aa8453] hover:text-white transition-colors"
+                aria-label={t('footer.subscribe')}
               >
-                <Send size={18} strokeWidth={1.5} />
+                <Send size={18} strokeWidth={1.5} className={isUrdu ? "rotate-180" : ""} />
               </button>
             </form>
           </div>
@@ -173,13 +196,17 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-around items-center gap-8">
+        <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-around items-center gap-8 text-center md:text-start">
           <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-condensed">
-            &copy; {new Date().getFullYear()} SAFARLINK PREMIER PORTAL. ALL RIGHTS RESERVED.
+            &copy; {new Date().getFullYear()} {t('footer.copyright')}
           </p>
-          <div className="flex items-center space-x-12">
-            <a href="#" className="text-[10px] text-white/30 hover:text-[#aa8453] uppercase tracking-[0.3em] font-condensed transition-colors">Privacy Policy</a>
-            <a href="#" className="text-[10px] text-white/30 hover:text-[#aa8453] uppercase tracking-[0.3em] font-condensed transition-colors">Terms of Service</a>
+          <div className="flex items-center gap-8 md:gap-12">
+            <a href="#" className="text-[10px] text-white/30 hover:text-[#aa8453] uppercase tracking-[0.3em] font-condensed transition-colors">
+              {t('footer.privacy_policy')}
+            </a>
+            <a href="#" className="text-[10px] text-white/30 hover:text-[#aa8453] uppercase tracking-[0.3em] font-condensed transition-colors">
+              {t('footer.terms_of_service')}
+            </a>
           </div>
         </div>
       </div>

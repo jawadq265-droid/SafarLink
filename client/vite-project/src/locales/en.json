@@ -91,5 +91,28 @@
     "message": "Message",
     "message_placeholder": "Your message here...",
     "send_message": "SEND MESSAGE"
+  },
+  "footer": {
+    "portal_subtitle": "Ticket Portal",
+    "brand_description": "Pakistan's premier unified digital manifest for luxury inter-city travel. Connecting you to a curated network of elite transport operators.",
+    "navigation_title": "Navigation",
+    "home": "Home",
+    "bus_tickets": "Bus Tickets",
+    "about_safari": "About Safari",
+    "contact_concierge": "Contact Concierge",
+    "contact_details": "Contact Details",
+    "corporate_office": "Corporate Office",
+    "corporate_address": "Gulberg III, Lahore, Pakistan",
+    "helpline": "24/7 Helpline",
+    "digital_mail": "Digital Mail",
+    "newsletter": "Newsletter",
+    "newsletter_desc": "Subscribe to receive exclusive travel offers and route updates.",
+    "email_placeholder": "Your email address",
+    "subscribe": "Subscribe",
+    "subscribed_success": "Subscribed successfully! Thank you.",
+    "subscribe_failed": "Failed to subscribe. Please try again.",
+    "copyright": "SAFARLINK PREMIER PORTAL. ALL RIGHTS RESERVED.",
+    "privacy_policy": "Privacy Policy",
+    "terms_of_service": "Terms of Service"
   }
 }
