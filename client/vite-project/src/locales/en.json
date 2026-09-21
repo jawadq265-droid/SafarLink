@@ -110,6 +110,7 @@
     "email_placeholder": "Your email address",
     "subscribe": "Subscribe",
     "subscribed_success": "Subscribed successfully! Thank you.",
+    "already_subscribed": "You are already subscribed! A confirmation reminder has been sent to your email.",
     "subscribe_failed": "Failed to subscribe. Please try again.",
     "copyright": "SAFARLINK PREMIER PORTAL. ALL RIGHTS RESERVED.",
     "privacy_policy": "Privacy Policy",

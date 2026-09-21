@@ -14,33 +14,37 @@ const Footer = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
-    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    const baseUrl = (import.meta.env.VITE_BASE_URL || "/api/v1/").replace(/['"]/g, "").replace(/\/?$/, "/");
 
-    fetch(`${baseUrl}auth/subscribe`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ email })
-    })
-    .then((res) => {
-      if (!res.ok) {
-        return res.json().then((err) => { throw new Error(err.message || t('footer.subscribe_failed')); });
+    try {
+      const res = await fetch(`${baseUrl}auth/subscribe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || (data && data.success === false)) {
+        throw new Error((data && data.message) || String(t('footer.subscribe_failed')));
       }
-      return res.json();
-    })
-    .then(() => {
-      toast.success(t('footer.subscribed_success'));
+
+      if (data && data.isAlreadySubscribed) {
+        toast.success(String(t('footer.already_subscribed')));
+      } else {
+        toast.success(String(t('footer.subscribed_success')));
+      }
       setEmail('');
-    })
-    .catch((err) => {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Newsletter subscription error:", err);
       toast.error(err.message || t('footer.subscribe_failed'));
-    });
+    }
   };
 
   return (

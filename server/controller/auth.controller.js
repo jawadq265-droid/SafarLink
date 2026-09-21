@@ -1,4 +1,5 @@
 import User from "../models/user.model.js";
+import Subscriber from "../models/subscriber.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
@@ -217,15 +218,13 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-export const subscribeNewsletter = async (req, res) => {
+const sendNewsletterEmails = async (email) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn("[Newsletter] EMAIL_USER or EMAIL_PASS not configured in .env. Skipping email dispatch.");
+    return;
+  }
+
   try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ success: false, message: "Email is required" });
-    }
-
-    // 1. Send confirmation email to subscriber
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -234,7 +233,9 @@ export const subscribeNewsletter = async (req, res) => {
       }
     });
 
+    // 1. Send confirmation email to subscriber
     await transporter.sendMail({
+      from: `"SafarLink" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Thank you for subscribing to SafarLink Newsletter!",
       html: `
@@ -249,6 +250,7 @@ export const subscribeNewsletter = async (req, res) => {
     // 2. Send notification email to admin
     const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
     await transporter.sendMail({
+      from: `"SafarLink" <${process.env.EMAIL_USER}>`,
       to: adminEmail,
       subject: "New Newsletter Subscriber Alert",
       html: `
@@ -260,11 +262,128 @@ export const subscribeNewsletter = async (req, res) => {
       `
     });
 
-    res.status(200).json({ success: true, message: "Subscribed successfully" });
+    console.log(`[Newsletter] Confirmation emails sent successfully to: ${email}`);
+  } catch (mailError) {
+    console.error("[Newsletter SMTP Error]: Could not dispatch email via nodemailer:", mailError.message);
+    if (mailError.code === "EAUTH") {
+      console.error("[Newsletter SMTP Error]: Invalid login credentials. Please generate a 16-character App Password in Google Account Settings and update EMAIL_PASS in server/.env.");
+    }
+  }
+};
+
+const sendAlreadySubscribedEmail = async (email) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn("[Newsletter] EMAIL_USER or EMAIL_PASS not configured in .env. Skipping email dispatch.");
+    return;
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    // 1. Send friendly reminder to subscriber
+    await transporter.sendMail({
+      from: `"SafarLink" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "You're Already Subscribed to SafarLink Newsletter!",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 25px; color: #333; max-width: 600px; border: 1px solid #e0d0b8; border-radius: 8px;">
+          <h2 style="color: #aa8453; margin-top: 0;">You're Already Subscribed!</h2>
+          <p>Hello,</p>
+          <p>We noticed you just requested to subscribe to the SafarLink newsletter with <strong>${email}</strong>.</p>
+          <p>Good news: Your email is already active in our VIP subscriber list! You do not need to register again — you are already set up to receive our exclusive inter-city travel discounts, priority booking alerts, and route updates.</p>
+          <hr style="border: 0; border-top: 1px solid #f0e6d6; margin: 20px 0;" />
+          <p style="color: #666; font-size: 13px;">If you did not request this, you can safely disregard this message.</p>
+          <p>Safe Travels,<br/><strong style="color: #aa8453;">The SafarLink Team</strong></p>
+        </div>
+      `
+    });
+
+    // 2. Alert admin that existing user attempted subscribe
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+    if (adminEmail && adminEmail !== email) {
+      await transporter.sendMail({
+        from: `"SafarLink" <${process.env.EMAIL_USER}>`,
+        to: adminEmail,
+        subject: "Newsletter Activity: Existing Subscriber Attempted Subscribe",
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+            <h3 style="color: #aa8453;">Existing Subscriber Activity</h3>
+            <p>A user who is already subscribed (<strong>${email}</strong>) submitted the newsletter form again. A reminder email was sent to them.</p>
+          </div>
+        `
+      });
+    }
+
+    console.log(`[Newsletter] Already-subscribed reminder email sent successfully to: ${email}`);
+  } catch (mailError) {
+    console.error("[Newsletter SMTP Error]: Could not dispatch reminder email:", mailError.message);
+    if (mailError.code === "EAUTH") {
+      console.error("[Newsletter SMTP Error]: Invalid login credentials. Please generate a 16-character App Password in Google Account Settings and update EMAIL_PASS in server/.env.");
+    }
+  }
+};
+
+export const subscribeNewsletter = async (req, res) => {
+  try {
+    let { email } = req.body;
+
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    email = email.toLowerCase().trim();
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, message: "Please provide a valid email address" });
+    }
+
+    // Check if already subscribed
+    const existing = await Subscriber.findOne({ email });
+    if (existing) {
+      // Send reminder email to user
+      await sendAlreadySubscribedEmail(email);
+
+      return res.status(200).json({
+        success: true,
+        isAlreadySubscribed: true,
+        message: "You are already subscribed! We have sent a confirmation reminder to your email."
+      });
+    }
+
+    // Save subscriber in DB
+    await Subscriber.create({ email });
+
+    await sendNewsletterEmails(email);
+
+    return res.status(200).json({
+      success: true,
+      isAlreadySubscribed: false,
+      message: "Subscribed successfully"
+    });
 
   } catch (error) {
     console.error("Newsletter Subscription error:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
+
+export const clearSubscribers = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (email) {
+      await Subscriber.deleteMany({ email: email.toLowerCase().trim() });
+      return res.status(200).json({ success: true, message: `Subscriber ${email} cleared successfully` });
+    }
+    await Subscriber.deleteMany({});
+    return res.status(200).json({ success: true, message: "All subscribers cleared successfully" });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
