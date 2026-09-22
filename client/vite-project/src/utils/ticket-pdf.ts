@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import toast from 'react-hot-toast';
+import QRCode from 'qrcode';
 
 export interface TicketPDFData {
   passengerName?: string;
@@ -14,7 +15,30 @@ export interface TicketPDFData {
   time?: string;
   seats?: string;
   amount?: string | number;
+  qrDataUrl?: string;
 }
+
+/**
+ * Generates a base64 QR Code Data URL for ticket validation
+ */
+export const generateTicketQRCode = async (ticketId: string): Promise<string> => {
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://safarlink.com';
+    const verifyUrl = `${origin}/verify-ticket?id=${encodeURIComponent(ticketId)}`;
+    return await QRCode.toDataURL(verifyUrl, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 256,
+      color: {
+        dark: '#1b1b1b',
+        light: '#ffffff'
+      }
+    });
+  } catch (err) {
+    console.error("Failed to generate ticket QR code:", err);
+    return "";
+  }
+};
 
 /**
  * Robust date formatter that avoids JavaScript UTC midnight timezone shift bugs.
@@ -68,7 +92,7 @@ export const formatVoyageDate = (dateStr?: string): string => {
  * Creates a high-definition vector PDF document using jsPDF directly.
  * Completely immune to Tailwind OKLCH color issues, CORS bugs, or canvas scaling artifacts.
  */
-export const buildTicketPDFDocument = (data: TicketPDFData): jsPDF => {
+export const buildTicketPDFDocument = (data: TicketPDFData, qrCodeImg?: string): jsPDF => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -244,9 +268,9 @@ export const buildTicketPDFDocument = (data: TicketPDFData): jsPDF => {
   doc.setFontSize(12);
   doc.text('Executive Luxury Class', 115, 172);
 
-  // 6. Contact & Settlement Section
+  // 6. Contact & Settlement Section WITH EMBEDDED QR CODE
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(16, 186, 178, 42, 2, 2, 'FD');
+  doc.roundedRect(16, 186, 178, 44, 2, 2, 'FD');
 
   doc.setTextColor(140, 130, 120);
   doc.setFont('helvetica', 'bold');
@@ -255,13 +279,27 @@ export const buildTicketPDFDocument = (data: TicketPDFData): jsPDF => {
 
   doc.setTextColor(27, 27, 27);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text(phone, 25, 206);
+  doc.setFontSize(11.5);
+  doc.text(phone, 25, 205);
 
   doc.setTextColor(140, 130, 120);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.text(`CNIC: ${cnic}`, 25, 216);
+  doc.setFontSize(8);
+  doc.text(`CNIC: ${cnic}`, 25, 214);
+
+  // Embedded QR Code (Middle Box)
+  const qrToEmbed = qrCodeImg || data.qrDataUrl;
+  if (qrToEmbed) {
+    try {
+      doc.addImage(qrToEmbed, 'PNG', 98, 188, 30, 30);
+      doc.setTextColor(170, 132, 83);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.text('SCAN TO VERIFY', 113, 222, { align: 'center' });
+    } catch (e) {
+      console.warn("Could not render QR code into PDF:", e);
+    }
+  }
 
   // Total Paid Amount (Right)
   doc.setTextColor(140, 130, 120);
@@ -271,7 +309,7 @@ export const buildTicketPDFDocument = (data: TicketPDFData): jsPDF => {
 
   doc.setTextColor(170, 132, 83);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.text(amountStr, 184, 207, { align: 'right' });
 
   doc.setTextColor(22, 163, 74); // Green
@@ -281,43 +319,46 @@ export const buildTicketPDFDocument = (data: TicketPDFData): jsPDF => {
 
   // 7. Travel Terms & Security Notice
   doc.setFillColor(248, 246, 240);
-  doc.roundedRect(16, 234, 178, 38, 2, 2, 'F');
+  doc.roundedRect(16, 236, 178, 38, 2, 2, 'F');
 
   doc.setFillColor(170, 132, 83);
-  doc.rect(16, 234, 3, 38, 'F');
+  doc.rect(16, 236, 3, 38, 'F');
 
   doc.setTextColor(170, 132, 83);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('IMPORTANT VOYAGE & BOARDING INSTRUCTIONS:', 24, 242);
+  doc.text('IMPORTANT VOYAGE & BOARDING INSTRUCTIONS:', 24, 244);
 
   doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.text('1. Please arrive at your departure lounge 15 minutes prior to scheduled departure.', 24, 248);
-  doc.text('2. Present this official PDF digital ticket or printed manifest at the boarding gate.', 24, 254);
-  doc.text('3. Valid Government Issued Photo ID (CNIC / Passport) is mandatory for seat verification.', 24, 260);
-  doc.text('4. For concierge service and 24/7 inquiries, reach out to safarlink0@gmail.com', 24, 266);
+  doc.text('1. Please arrive at your departure lounge 15 minutes prior to scheduled departure.', 24, 250);
+  doc.text('2. Present this official PDF digital ticket or scan the QR code above at the boarding gate.', 24, 256);
+  doc.text('3. Valid Government Issued Photo ID (CNIC / Passport) is mandatory for seat verification.', 24, 262);
+  doc.text('4. For cancellations, refunds, or 24/7 concierge assistance: safarlink0@gmail.com', 24, 268);
 
   // 8. Bottom Footer
   doc.setTextColor(170, 160, 150);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.text('SAFARLINK LUXURY BUS TRANSIT • OFFICIAL PASSENGER MANIFEST & RECEIPT', 105, 280, { align: 'center' });
+  doc.text('SAFARLINK LUXURY BUS TRANSIT • OFFICIAL PASSENGER MANIFEST & RECEIPT', 105, 281, { align: 'center' });
 
   return doc;
 };
 
 /**
- * Downloads the ticket PDF file directly to user's device
+ * Downloads the ticket PDF file directly to user's device with embedded QR code
  */
-export const downloadTicketPDF = (data: TicketPDFData): boolean => {
-  const toastId = toast.loading("Generating high-definition ticket PDF...");
+export const downloadTicketPDF = async (data: TicketPDFData): Promise<boolean> => {
+  const toastId = toast.loading("Generating verified ticket PDF with QR code...");
   try {
-    const doc = buildTicketPDFDocument(data);
-    const fileName = `SafarLink-Ticket-${data.ticketId || data.passengerName?.replace(/\s+/g, '_') || 'manifest'}.pdf`;
+    const ticketId = data.ticketId || `SL-${Date.now().toString().slice(-8)}`;
+    const qrDataUrl = data.qrDataUrl || await generateTicketQRCode(ticketId);
+
+    const doc = buildTicketPDFDocument(data, qrDataUrl);
+    const fileName = `SafarLink-Ticket-${ticketId}.pdf`;
     doc.save(fileName);
-    toast.success("Ticket PDF downloaded successfully!", { id: toastId });
+    toast.success("Verified Ticket PDF downloaded successfully!", { id: toastId });
     return true;
   } catch (error) {
     console.error("Error generating ticket PDF:", error);
@@ -330,10 +371,13 @@ export const downloadTicketPDF = (data: TicketPDFData): boolean => {
  * Shares the ticket PDF via Web Share API or download + WhatsApp fallback
  */
 export const shareTicketPDF = async (data: TicketPDFData): Promise<void> => {
-  const toastId = toast.loading("Preparing ticket PDF for sharing...");
+  const toastId = toast.loading("Preparing verified ticket for sharing...");
   try {
-    const doc = buildTicketPDFDocument(data);
-    const fileName = `SafarLink-Ticket-${data.ticketId || data.passengerName?.replace(/\s+/g, '_') || 'manifest'}.pdf`;
+    const ticketId = data.ticketId || `SL-${Date.now().toString().slice(-8)}`;
+    const qrDataUrl = data.qrDataUrl || await generateTicketQRCode(ticketId);
+
+    const doc = buildTicketPDFDocument(data, qrDataUrl);
+    const fileName = `SafarLink-Ticket-${ticketId}.pdf`;
     const pdfBlob = doc.output('blob');
     const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
@@ -342,27 +386,27 @@ export const shareTicketPDF = async (data: TicketPDFData): Promise<void> => {
     const bus = data.busName || "SafarLink Executive";
     const date = formatVoyageDate(data.date);
     const seats = data.seats || "Reserved";
+    const verifyUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://safarlink.com'}/verify-ticket?id=${ticketId}`;
 
-    // 1. If Web Share API with file support is available (Mobile devices, Android, iOS Safari, etc.)
+    // 1. If Web Share API with file support is available
     if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         toast.dismiss(toastId);
         await navigator.share({
           title: `SafarLink E-Ticket - ${passenger}`,
-          text: `Official SafarLink Travel Ticket for ${passenger} (${route} on ${date})`,
+          text: `Official SafarLink Travel Ticket for ${passenger} (${route} on ${date}). Verify: ${verifyUrl}`,
           files: [file]
         });
         return;
       } catch (shareErr: any) {
         if (shareErr?.name === 'AbortError') {
-          return; // User dismissed or cancelled the native share sheet
+          return;
         }
-        console.warn("navigator.share failed, seamlessly falling back to download + WhatsApp:", shareErr);
+        console.warn("navigator.share fallback:", shareErr);
       }
     }
 
     // 2. Desktop browser fallback:
-    // Download the PDF file directly to device
     const downloadUrl = URL.createObjectURL(pdfBlob);
     const a = document.createElement('a');
     a.href = downloadUrl;
@@ -380,6 +424,8 @@ export const shareTicketPDF = async (data: TicketPDFData): Promise<void> => {
       `📍 *Route:* ${route}\n` +
       `📅 *Date:* ${date}\n` +
       `💺 *Seat(s):* ${seats}\n` +
+      `🎟️ *Ticket ID:* ${ticketId}\n` +
+      `🔍 *Verify Ticket Online:* ${verifyUrl}\n` +
       `✅ *Status:* Confirmed & Paid\n\n` +
       `📄 _(The official PDF ticket has been downloaded to attach in this chat.)_`;
 
@@ -390,7 +436,7 @@ export const shareTicketPDF = async (data: TicketPDFData): Promise<void> => {
   } catch (error: any) {
     if (error?.name === 'AbortError') {
       toast.dismiss(toastId);
-      return; // User cancelled share modal
+      return;
     }
     console.error("Error sharing ticket PDF:", error);
     toast.error("Failed to share PDF ticket", { id: toastId });

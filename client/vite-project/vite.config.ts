@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(),],
+  plugins: [react(), tailwindcss()],
   server: {
     proxy: {
       '/api': {
@@ -12,5 +12,13 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
-  }
+  },
+  build: {
+    rollupOptions: {
+      // canvg (pulled in by jspdf) imports core-js internal module paths
+      // that Rollup cannot resolve. These are browser polyfills that modern
+      // browsers provide natively, so externalizing them is safe.
+      external: (id: string) => id.startsWith('core-js/'),
+    },
+  },
 })

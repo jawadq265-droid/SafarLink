@@ -69,10 +69,12 @@ const Navbar = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-12">
+          <div className="hidden lg:flex items-center space-x-8">
             {[
               { name: t('navbar.home'), path: '/' },
               { name: t('navbar.bus_routes'), path: '/bus' },
+              { name: 'MY BOOKINGS', path: '/bookings' },
+              { name: 'VERIFY QR', path: '/verify-ticket' },
               { name: t('navbar.about_us'), path: '/AboutUs' },
               { name: t('navbar.contact'), path: '/contact' },
             ].map((link, idx) => (

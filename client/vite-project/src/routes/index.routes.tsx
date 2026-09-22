@@ -13,6 +13,7 @@ import ResetPassword from '../pages/user/reset.page';
 import BookingPage from '../pages/user/booking.page';
 import UserActivityPage from '../pages/user/activity.page';
 import PaymentSuccessPage from '../pages/user/payment-success.page';
+import TicketVerifyPage from '../pages/user/ticket-verify.page';
 
 // Admin Side pages
 import MyBookingsPage from '../pages/admin/my-bookings.page';
@@ -63,6 +64,10 @@ const Router = () => {
                         {
                             path: "payment-success",
                             element: <PaymentSuccessPage />
+                        },
+                        {
+                            path: "verify-ticket",
+                            element: <TicketVerifyPage />
                         },
                     ]
                 },

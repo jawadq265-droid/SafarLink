@@ -233,13 +233,16 @@ const PaymentSuccessPage = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pb-32 no-print">
-              <button onClick={handleDownloadPDF} className="luxury-button !py-5 !px-16 flex items-center space-x-4 w-full sm:w-auto justify-center">
-                <Download size={24} />
+              <button onClick={handleDownloadPDF} className="luxury-button !py-5 !px-12 flex items-center space-x-3 w-full sm:w-auto justify-center">
+                <Download size={20} />
                 <span>DOWNLOAD TICKET (PDF)</span>
               </button>
-              <button onClick={handleShareTicket} className="luxury-button-outline !text-gray-900 !border-gray-200 !py-5 !px-16 flex items-center space-x-4 w-full sm:w-auto justify-center">
-                <Share2 size={24} />
-                <span>SHARE TICKET (PDF)</span>
+              <button onClick={handleShareTicket} className="luxury-button-outline !text-gray-900 !border-gray-200 !py-5 !px-12 flex items-center space-x-3 w-full sm:w-auto justify-center">
+                <Share2 size={20} />
+                <span>SHARE TICKET</span>
+              </button>
+              <button onClick={() => navigate("/bookings")} className="px-10 py-5 bg-[#1b1b1b] hover:bg-black text-white text-xs font-bold uppercase tracking-wider transition-all rounded-none w-full sm:w-auto text-center">
+                <span>VIEW MY PASSES</span>
               </button>
             </div>
           </div>

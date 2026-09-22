@@ -15,7 +15,23 @@ const bookingSchema = new mongoose.Schema(
     routeTo: { type: String, required: true },
     departureTime: { type: String, required: true },
     txnRefNo: { type: String },
-    type: { type: String, default: "Upcoming" }, // "Upcoming", "Completed"
+    status: {
+      type: String,
+      enum: ["Upcoming", "Boarded", "Completed", "Cancelled", "Refunded"],
+      default: "Upcoming"
+    },
+    type: { type: String, default: "Upcoming" }, // Backwards compatibility
+    refundAmount: { type: Number, default: 0 },
+    refundPercentage: { type: Number, default: 0 },
+    refundStatus: {
+      type: String,
+      enum: ["None", "Pending", "Processed", "Failed"],
+      default: "None"
+    },
+    cancelledAt: { type: Date },
+    cancellationReason: { type: String },
+    boardedAt: { type: Date },
+    qrCodeDataUrl: { type: String },
   },
   { timestamps: true }
 );

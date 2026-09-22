@@ -23,7 +23,12 @@ import {
   DollarSign,
   Star,
   Download,
-  Share2
+  Share2,
+  ShieldCheck,
+  QrCode,
+  RotateCcw,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -99,10 +104,17 @@ interface BookingType {
   cnic: string;
   seats: string[];
   type: string;
+  status?: string;
   routeFrom?: string;
   routeTo?: string;
   departureTime?: string;
   passengerEmail?: string;
+  refundAmount?: number;
+  refundPercentage?: number;
+  refundStatus?: string;
+  cancelledAt?: string;
+  boardedAt?: string;
+  qrCodeDataUrl?: string;
 }
 
 interface UserType {
@@ -306,7 +318,7 @@ const AdminDashboard = () => {
 
   const [bookings, setBookings] = useState<BookingType[]>([]);
 
-  React.useEffect(() => {
+  const fetchBookings = () => {
     const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
     fetch(`${baseUrl}payment/bookings`)
       .then(res => res.json())
@@ -322,16 +334,53 @@ const AdminDashboard = () => {
             cnic: b.passengerCnic || b.cnic,
             seats: b.seats || [],
             type: b.type || 'Upcoming',
+            status: b.status || b.type || 'Upcoming',
             routeFrom: b.routeFrom,
             routeTo: b.routeTo,
             departureTime: b.departureTime,
-            passengerEmail: b.passengerEmail
+            passengerEmail: b.passengerEmail,
+            refundAmount: b.refundAmount,
+            refundPercentage: b.refundPercentage,
+            refundStatus: b.refundStatus,
+            cancelledAt: b.cancelledAt,
+            boardedAt: b.boardedAt,
+            qrCodeDataUrl: b.qrCodeDataUrl
           }));
           setBookings(formatted);
         }
       })
       .catch(err => console.error("Error loading real bookings:", err));
+  };
+
+  React.useEffect(() => {
+    fetchBookings();
   }, []);
+
+  const handleAdminCancelBooking = async (booking: BookingType) => {
+    if (!window.confirm(`Are you sure you want to cancel Ticket #${booking.id} and process customer refund?`)) {
+      return;
+    }
+
+    try {
+      const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+      const res = await fetch(`${baseUrl}payment/cancel-booking/${encodeURIComponent(booking.id)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "Cancelled by Admin via Management Dashboard" })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "Booking cancelled and refund processed");
+        fetchBookings();
+        fetchBuses();
+        setSelectedBooking(null);
+      } else {
+        toast.error(data.message || "Failed to cancel booking");
+      }
+    } catch (err) {
+      toast.error("Failed to connect to cancellation gateway");
+    }
+  };
 
   // State-driven Users Directory
   const [usersList, setUsersList] = useState<UserType[]>([
@@ -778,6 +827,14 @@ const AdminDashboard = () => {
                 <Users size={18} />
                 <span className="font-medium text-sm">User Directory</span>
               </button>
+
+              <Link
+                to="/verify-ticket"
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white`}
+              >
+                <ShieldCheck size={18} className="text-[#aa8453]" />
+                <span className="font-medium text-sm">QR Ticket Scanner</span>
+              </Link>
             </>
           ) : (
             <>
@@ -788,6 +845,13 @@ const AdminDashboard = () => {
                 <Ticket size={18} />
                 <span className="font-medium text-sm">My Bookings</span>
               </button>
+              <Link
+                to="/verify-ticket"
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white`}
+              >
+                <ShieldCheck size={18} className="text-[#aa8453]" />
+                <span className="font-medium text-sm">Verify Ticket QR</span>
+              </Link>
               <Link
                 to="/bus"
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white`}
@@ -1213,52 +1277,68 @@ const AdminDashboard = () => {
                       <th className="px-8 py-5">Destination / Route</th>
                       <th className="px-8 py-5">Date</th>
                       <th className="px-8 py-5">Fare</th>
+                      <th className="px-8 py-5">Status</th>
                       <th className="px-8 py-5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {filteredBookings.map((booking) => (
-                      <tr key={booking.id} className="hover:bg-[#fcfaf7]/20 transition-all group">
-                        <td className="px-8 py-6">
-                          <span className="font-bold text-[#aa8453] text-sm tracking-tighter">#{booking.id}</span>
-                        </td>
-                        <td className="px-8 py-6">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-[#fcfaf7] rounded-2xl flex items-center justify-center text-[#aa8453] font-bold text-lg shadow-inner">
-                              {isSuperAdmin ? booking.userName.charAt(0) : <Bus size={18} />}
+                    {filteredBookings.map((booking) => {
+                      const isCancelled = booking.status === 'Cancelled' || booking.status === 'Refunded';
+                      const isBoarded = booking.status === 'Boarded';
+                      return (
+                        <tr key={booking.id} className="hover:bg-[#fcfaf7]/20 transition-all group">
+                          <td className="px-8 py-6">
+                            <span className="font-bold text-[#aa8453] text-sm tracking-tighter">#{booking.id}</span>
+                          </td>
+                          <td className="px-8 py-6">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-10 h-10 bg-[#fcfaf7] rounded-2xl flex items-center justify-center text-[#aa8453] font-bold text-lg shadow-inner">
+                                {isSuperAdmin ? booking.userName.charAt(0) : <Bus size={18} />}
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-800 text-sm leading-none mb-1">{isSuperAdmin ? booking.userName : booking.bus}</p>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                                  {isSuperAdmin ? 'Registered Client' : 'Premium Service'}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-bold text-gray-800 text-sm leading-none mb-1">{isSuperAdmin ? booking.userName : booking.bus}</p>
-                              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
-                                {isSuperAdmin ? 'Registered Client' : 'Premium Service'}
-                              </p>
+                          </td>
+                          <td className="px-8 py-6">
+                            <div className="flex flex-col">
+                              <p className="text-sm font-bold text-gray-700 leading-none mb-1">{booking.bus}</p>
+                              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Inter-City Link</p>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6">
-                          <div className="flex flex-col">
-                            <p className="text-sm font-bold text-gray-700 leading-none mb-1">{booking.bus}</p>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Inter-City Link</p>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6">
-                          <div className="px-3 py-1 bg-gray-100 rounded-lg w-fit">
-                            <span className="text-[10px] font-bold text-gray-600 uppercase tracking-tighter">{booking.date}</span>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6">
-                          <span className="font-bold text-gray-800 text-sm tracking-tighter">{booking.amount}</span>
-                        </td>
-                        <td className="px-8 py-6 text-right">
-                          <button
-                            onClick={() => setSelectedBooking(booking)}
-                            className="p-3 text-[#aa8453] hover:bg-[#aa8453]/10 rounded-2xl transition-all duration-300"
-                          >
-                            <Eye size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-8 py-6">
+                            <div className="px-3 py-1 bg-gray-100 rounded-lg w-fit">
+                              <span className="text-[10px] font-bold text-gray-600 uppercase tracking-tighter">{booking.date}</span>
+                            </div>
+                          </td>
+                          <td className="px-8 py-6">
+                            <span className="font-bold text-gray-800 text-sm tracking-tighter">{booking.amount}</span>
+                          </td>
+                          <td className="px-8 py-6">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              isCancelled
+                                ? 'bg-red-100 text-red-700 border border-red-200'
+                                : isBoarded
+                                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                  : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            }`}>
+                              {booking.status || 'Upcoming'}
+                            </span>
+                          </td>
+                          <td className="px-8 py-6 text-right">
+                            <button
+                              onClick={() => setSelectedBooking(booking)}
+                              className="p-3 text-[#aa8453] hover:bg-[#aa8453]/10 rounded-2xl transition-all duration-300"
+                            >
+                              <Eye size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1488,68 +1568,115 @@ const AdminDashboard = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSelectedBooking(null)}></div>
           <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#aa8453]/20 animate-in zoom-in duration-300">
-            <div className="bg-[#1b1b1b] p-10 text-white relative border-b border-[#aa8453]/30">
+            <div className="bg-[#1b1b1b] p-8 text-white relative border-b border-[#aa8453]/30">
               <button
                 onClick={() => setSelectedBooking(null)}
                 className="absolute top-8 right-8 w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 backdrop-blur-md"
               >
                 <X size={20} />
               </button>
-              <p className="text-[10px] uppercase font-bold tracking-[0.3em] text-[#aa8453] mb-3">Electronic Manifest</p>
+              <div className="flex items-center space-x-3 mb-2">
+                <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-[#aa8453]">Electronic Manifest</span>
+                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                  selectedBooking.status === 'Cancelled' || selectedBooking.status === 'Refunded'
+                    ? 'bg-red-500 text-white'
+                    : selectedBooking.status === 'Boarded'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-emerald-500 text-white'
+                }`}>
+                  {selectedBooking.status || 'Upcoming'}
+                </span>
+              </div>
               <h2 className="text-3xl font-serif tracking-tighter">{selectedBooking.id}</h2>
             </div>
-            <div className="p-10 space-y-8 bg-white">
-              <div className="grid grid-cols-2 gap-8">
+            <div className="p-8 space-y-6 bg-white max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-gray-300 tracking-[0.2em] mb-1">Passenger</p>
-                  <p className="font-bold text-gray-800 text-lg tracking-tight">{isSuperAdmin ? selectedBooking.userName : userName}</p>
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em] mb-1">Passenger</p>
+                  <p className="font-bold text-gray-800 text-base tracking-tight">{isSuperAdmin ? selectedBooking.userName : userName}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-gray-300 tracking-[0.2em] mb-1">Identifier</p>
-                  <p className="font-bold text-gray-800 text-lg tracking-tight">{selectedBooking.cnic}</p>
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em] mb-1">Identifier</p>
+                  <p className="font-bold text-gray-800 text-base tracking-tight">{selectedBooking.cnic}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-gray-300 tracking-[0.2em] mb-1">Contact</p>
-                  <p className="font-bold text-gray-800 text-lg tracking-tight">{selectedBooking.phone}</p>
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em] mb-1">Contact</p>
+                  <p className="font-bold text-gray-800 text-base tracking-tight">{selectedBooking.phone}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-gray-300 tracking-[0.2em] mb-1">Total Paid</p>
-                  <p className="font-bold text-[#aa8453] text-xl tracking-tighter">{selectedBooking.amount}</p>
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em] mb-1">Total Paid</p>
+                  <p className="font-bold text-[#aa8453] text-lg tracking-tighter">{selectedBooking.amount}</p>
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-gray-100">
-                <p className="text-[10px] uppercase font-bold text-gray-300 tracking-[0.2em] mb-3">Journey Parameters</p>
-                <div className="bg-[#fcfaf7] rounded-3xl p-6 flex justify-between items-center shadow-inner border border-[#aa8453]/10">
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em] mb-2">Journey Parameters</p>
+                <div className="bg-[#fcfaf7] rounded-2xl p-5 flex justify-between items-center shadow-inner border border-[#aa8453]/10">
                   <div>
                     <p className="text-base font-bold text-gray-800 tracking-tight leading-none mb-1">{selectedBooking.bus}</p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formatVoyageDate(selectedBooking.date)}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formatVoyageDate(selectedBooking.date)} at {selectedBooking.departureTime || '08:00 AM'}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] uppercase font-bold text-[#aa8453] tracking-widest mb-1">Seats Allocated</p>
-                    <p className="font-bold text-[#aa8453] text-xl tracking-tighter">{selectedBooking.seats.join(", ")}</p>
+                    <p className="font-bold text-[#aa8453] text-lg tracking-tighter">{selectedBooking.seats.join(", ")}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => handleDownloadAdminTicket(selectedBooking)}
-                  className="flex-1 py-4 px-2 bg-[#aa8453] text-white rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-[#8e6d45] transition-all duration-300 shadow-md flex items-center justify-center gap-2"
-                >
-                  <Download size={16} />
-                  <span>Download Ticket</span>
-                </button>
-                <button
-                  onClick={() => handleShareAdminTicket(selectedBooking)}
-                  className="py-4 px-6 bg-amber-50 text-[#aa8453] border border-[#aa8453]/30 rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-amber-100 transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  <Share2 size={16} />
-                  <span>Share</span>
-                </button>
+              {/* Cancellation & Refund Info if Cancelled */}
+              {(selectedBooking.status === 'Cancelled' || selectedBooking.status === 'Refunded') && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-xs space-y-1">
+                  <p className="font-bold flex items-center">
+                    <AlertTriangle size={14} className="mr-1.5 text-red-600" />
+                    Booking Cancelled
+                  </p>
+                  <p>Refund Processed: <strong>Rs. {selectedBooking.refundAmount?.toLocaleString() || 0}</strong> ({selectedBooking.refundPercentage || 0}% tier).</p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => handleDownloadAdminTicket(selectedBooking)}
+                    className="flex-1 py-3.5 px-3 bg-[#aa8453] text-white rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-[#8e6d45] transition-all duration-300 shadow-md flex items-center justify-center gap-2"
+                  >
+                    <Download size={15} />
+                    <span>Download PDF</span>
+                  </button>
+
+                  <Link
+                    to={`/verify-ticket?id=${encodeURIComponent(selectedBooking.id)}`}
+                    target="_blank"
+                    className="py-3.5 px-4 bg-gray-900 text-white rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-black transition-all duration-300 flex items-center justify-center gap-1.5"
+                  >
+                    <QrCode size={15} className="text-[#aa8453]" />
+                    <span>Verify QR</span>
+                  </Link>
+
+                  <button
+                    onClick={() => handleShareAdminTicket(selectedBooking)}
+                    className="py-3.5 px-4 bg-amber-50 text-[#aa8453] border border-[#aa8453]/30 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-amber-100 transition-all duration-300 flex items-center justify-center gap-1.5"
+                  >
+                    <Share2 size={15} />
+                    <span>Share</span>
+                  </button>
+                </div>
+
+                {/* Cancel Booking Admin Action */}
+                {isSuperAdmin && (selectedBooking.status === 'Upcoming' || !selectedBooking.status) && (
+                  <button
+                    onClick={() => handleAdminCancelBooking(selectedBooking)}
+                    className="w-full py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold uppercase text-xs tracking-wider transition-all flex items-center justify-center space-x-2"
+                  >
+                    <RotateCcw size={14} />
+                    <span>Cancel Booking & Process Refund</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => setSelectedBooking(null)}
-                  className="px-6 py-4 bg-gray-100 text-gray-500 rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-gray-200 transition-all duration-300"
+                  className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-gray-200 transition-all duration-300"
                 >
                   Close
                 </button>
