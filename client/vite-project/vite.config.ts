@@ -13,12 +13,7 @@ export default defineConfig({
       }
     }
   },
-  build: {
-    rollupOptions: {
-      // canvg (pulled in by jspdf) imports core-js internal module paths
-      // that Rollup cannot resolve. These are browser polyfills that modern
-      // browsers provide natively, so externalizing them is safe.
-      external: (id: string) => id.startsWith('core-js/'),
-    },
-  },
+  optimizeDeps: {
+    exclude: ['canvg']
+  }
 })
