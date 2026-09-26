@@ -12,7 +12,7 @@ const BusPage = () => {
 
     const [fromCity, setFromCity] = useState('');
     const [toCity, setToCity] = useState('');
-    const [travelDate, setTravelDate] = useState('');
+    const [travelDate, setTravelDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [hasSearched, setHasSearched] = useState(false);
 
     const [modalBus, setModalBus] = useState<any | null>(null);
@@ -105,9 +105,8 @@ const BusPage = () => {
         if (fromParam && toParam) {
             setFromCity(fromParam);
             setToCity(toParam);
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const dateStr = tomorrow.toISOString().split('T')[0];
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
             setTravelDate(dateStr);
             executeSearch(fromParam, toParam, dateStr);
         }
@@ -164,9 +163,8 @@ const BusPage = () => {
     };
 
     const handleRouteClick = (from: string, to: string) => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const dateStr = tomorrow.toISOString().split('T')[0];
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
 
         setFromCity(from);
         setToCity(to);

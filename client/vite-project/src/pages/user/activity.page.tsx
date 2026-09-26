@@ -192,18 +192,14 @@ const UserActivityPage = () => {
       const diffMs = departureDateTime.getTime() - now.getTime();
       const hoursRemaining = diffMs / (1000 * 60 * 60);
 
-      let percentage = 100;
-      if (hoursRemaining >= 24) percentage = 100;
-      else if (hoursRemaining >= 12) percentage = 75;
-      else if (hoursRemaining > 0) percentage = 50;
-      else percentage = 0;
+      const percentage = (hoursRemaining * 60 >= 30) ? 25 : 0;
 
       const paidNum = parseInt(String(booking.amount).replace(/[^\d]/g, ''), 10) || 0;
       const refundAmt = Math.round((paidNum * percentage) / 100);
 
       return { percentage, refundAmt, hoursRemaining };
     } catch (e) {
-      return { percentage: 100, refundAmt: 0, hoursRemaining: 48 };
+      return { percentage: 25, refundAmt: 0, hoursRemaining: 48 };
     }
   };
 
@@ -214,10 +210,23 @@ const UserActivityPage = () => {
 
     try {
       const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+      const loggedInEmail = localStorage.getItem("userEmail") || "";
+      const userRole = localStorage.getItem("role") || "user";
+      const isSuperAdmin = userRole === "superadmin" || loggedInEmail.toLowerCase() === "superadmin@safarlink.com";
+
+      const cancelledBy = isSuperAdmin
+        ? `Superadmin (${loggedInEmail || "superadmin@safarlink.com"})`
+        : `User (${loggedInEmail || cancellingTicket.passengerEmail})`;
+
       const res = await fetch(`${baseUrl}payment/cancel-booking/${encodeURIComponent(cancellingTicket.ticketId)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: cancelReason })
+        body: JSON.stringify({
+          reason: cancelReason,
+          cancelledBy,
+          role: userRole,
+          email: loggedInEmail || cancellingTicket.passengerEmail
+        })
       });
 
       const data = await res.json();
@@ -546,12 +555,18 @@ const UserActivityPage = () => {
                 );
               })()}
 
-              {/* Policy Notes */}
-              <div className="text-[11px] text-gray-500 bg-gray-50 p-3 rounded-lg space-y-1">
-                <p className="font-semibold text-gray-700">SafarLink Cancellation Policy:</p>
-                <p>• {'>'} 24 hours prior to departure: 100% Refund.</p>
-                <p>• 12 to 24 hours prior: 75% Refund.</p>
-                <p>• {'<'} 12 hours prior: 50% Refund.</p>
+              {/* Policy Notes & Refund Notice */}
+              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 space-y-1 text-xs">
+                <p className="font-bold flex items-center">
+                  <CheckCircle2 size={15} className="mr-1.5 text-emerald-600" />
+                  Refund Notice
+                </p>
+                <p className="font-bold text-emerald-800">
+                  Your amount will be refunded within 2-3 working days!
+                </p>
+                <p className="text-[11px] text-emerald-700">
+                  Cancellation is valid up to 30 minutes before bus departure timing.
+                </p>
               </div>
 
               {/* Cancellation Reason */}
@@ -576,26 +591,38 @@ const UserActivityPage = () => {
                   type="button"
                   onClick={() => setCancellingTicket(null)}
                   disabled={isCancelling}
-                  className="flex-1 py-3 border border-gray-300 hover:bg-gray-100 text-gray-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-all"
+                  className="flex-1 py-3 border border-gray-300 hover:bg-gray-100 text-gray-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
                 >
                   Keep Booking
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleConfirmCancel}
-                  disabled={isCancelling}
-                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center space-x-1.5 disabled:opacity-50"
-                >
-                  {isCancelling ? (
-                    <span>Processing...</span>
-                  ) : (
-                    <>
-                      <RotateCcw size={14} />
-                      <span>Confirm Cancellation</span>
-                    </>
-                  )}
-                </button>
+                {(() => {
+                  const est = getRefundEstimate(cancellingTicket);
+                  const isCutoff = est.hoursRemaining * 60 < 30;
+                  return (
+                    <button
+                      type="button"
+                      onClick={handleConfirmCancel}
+                      disabled={isCancelling || isCutoff}
+                      className={`flex-1 py-3 font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center space-x-1.5 ${
+                        isCutoff 
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer disabled:opacity-50'
+                      }`}
+                    >
+                      {isCancelling ? (
+                        <span>Processing...</span>
+                      ) : isCutoff ? (
+                        <span>Cutoff Passed (&lt;30m)</span>
+                      ) : (
+                        <>
+                          <RotateCcw size={14} />
+                          <span>Confirm Cancellation</span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 

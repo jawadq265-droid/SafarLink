@@ -29,6 +29,7 @@ const bookingSchema = new mongoose.Schema(
       default: "None"
     },
     cancelledAt: { type: Date },
+    cancelledBy: { type: String },
     cancellationReason: { type: String },
     boardedAt: { type: Date },
     qrCodeDataUrl: { type: String },

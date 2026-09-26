@@ -114,6 +114,8 @@ interface BookingType {
   refundPercentage?: number;
   refundStatus?: string;
   cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
   boardedAt?: string;
   qrCodeDataUrl?: string;
 }
@@ -345,6 +347,8 @@ const AdminDashboard = () => {
             refundPercentage: b.refundPercentage,
             refundStatus: b.refundStatus,
             cancelledAt: b.cancelledAt,
+            cancelledBy: b.cancelledBy,
+            cancellationReason: b.cancellationReason,
             boardedAt: b.boardedAt,
             qrCodeDataUrl: b.qrCodeDataUrl
           }));
@@ -368,7 +372,12 @@ const AdminDashboard = () => {
       const res = await fetch(`${baseUrl}payment/cancel-booking/${encodeURIComponent(booking.id)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: "Cancelled by Admin via Management Dashboard" })
+        body: JSON.stringify({
+          reason: "Cancelled by Admin via Management Dashboard",
+          cancelledBy: `Superadmin (${userEmail || "superadmin@safarlink.com"})`,
+          role: "superadmin",
+          email: userEmail || "superadmin@safarlink.com"
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -468,15 +477,56 @@ const AdminDashboard = () => {
     bus.status.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const normalizedUserEmail = userEmail.trim().toLowerCase();
+  const normalizedUserName = userName.trim().toLowerCase();
+
   const filteredBookings = isSuperAdmin
     ? bookings.filter(booking => {
-        const matchesSearch = booking.userName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              booking.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              booking.bus.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = (booking.userName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+                              (booking.id?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+                              (booking.bus?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                              (booking.passengerEmail?.toLowerCase() || '').includes(searchTerm.toLowerCase());
         const matchesDate = dateFilter ? booking.date === dateFilter : true;
         return matchesSearch && matchesDate;
       })
-    : bookings.filter(booking => booking.userName.toLowerCase() === 'you' || booking.userName.toLowerCase() === userName.toLowerCase() || booking.id === 'BK-001');
+    : bookings.filter(booking => {
+        const bEmail = (booking.passengerEmail || '').trim().toLowerCase();
+        const bName = (booking.userName || '').trim().toLowerCase();
+
+        // 1. Primary check: Email match (case-insensitive)
+        const emailMatch = Boolean(normalizedUserEmail && bEmail && bEmail === normalizedUserEmail);
+
+        // 2. Name match (case-insensitive, exact or partial)
+        const nameMatch = Boolean(normalizedUserName && normalizedUserName !== 'user' && bName && (
+          bName === normalizedUserName ||
+          bName.includes(normalizedUserName) ||
+          normalizedUserName.includes(bName)
+        ));
+
+        // 3. Match latest booking in localStorage
+        let isLatest = false;
+        try {
+          const latest = localStorage.getItem("latest_booking");
+          if (latest) {
+            const parsed = JSON.parse(latest);
+            if (parsed.ticketId && (parsed.ticketId === booking.id || parsed.ticketId === (booking as any).ticketId)) {
+              isLatest = true;
+            }
+          }
+        } catch (e) {}
+
+        const isDummy = bName === 'you' || booking.id === 'BK-001';
+
+        const matchesSearch = searchTerm ? (
+          bName.includes(searchTerm.toLowerCase()) ||
+          booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          booking.bus.toLowerCase().includes(searchTerm.toLowerCase())
+        ) : true;
+
+        const matchesDate = dateFilter ? booking.date === dateFilter : true;
+
+        return (emailMatch || nameMatch || isLatest || isDummy) && matchesSearch && matchesDate;
+      });
 
   const filteredUsers = usersList.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -1658,12 +1708,25 @@ const AdminDashboard = () => {
 
               {/* Cancellation & Refund Info if Cancelled */}
               {(selectedBooking.status === 'Cancelled' || selectedBooking.status === 'Refunded') && (
-                <div className="p-3.5 sm:p-4 bg-red-50 border border-red-200 rounded-xl sm:rounded-2xl text-red-800 text-xs space-y-1">
-                  <p className="font-bold flex items-center">
-                    <AlertTriangle size={14} className="mr-1.5 text-red-600 shrink-0" />
-                    Booking Cancelled
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl sm:rounded-2xl text-red-900 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold flex items-center text-red-950">
+                      <AlertTriangle size={15} className="mr-1.5 text-red-600 shrink-0" />
+                      Booking Cancelled
+                    </p>
+                    {selectedBooking.cancelledAt && (
+                      <span className="text-[10px] text-red-600 font-mono">
+                        {new Date(selectedBooking.cancelledAt).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  <p>
+                    Station Status: <strong className="text-red-950 font-bold">{selectedBooking.cancelledBy || `Cancelled by Superadmin`}</strong>
                   </p>
-                  <p>Refund Processed: <strong>Rs. {selectedBooking.refundAmount?.toLocaleString() || 0}</strong> ({selectedBooking.refundPercentage || 0}% tier).</p>
+                  <p>Refund Processed: <strong>Rs. {selectedBooking.refundAmount?.toLocaleString() || 0}</strong> ({selectedBooking.refundPercentage || 25}% policy tier).</p>
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 font-bold text-[11px]">
+                    Notice: Your amount will be refunded within 2-3 working days!
+                  </div>
                 </div>
               )}
 

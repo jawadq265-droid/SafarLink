@@ -18,11 +18,29 @@ const MyBookingsPage = () => {
       .then(data => {
         if (data.success && Array.isArray(data.bookings)) {
           let list = data.bookings;
-          if (userEmail) {
-            const filtered = list.filter((b: any) =>
-              b.passengerEmail?.toLowerCase() === userEmail.toLowerCase() ||
-              (userName && b.userName?.toLowerCase() === userName.toLowerCase())
-            );
+          const role = localStorage.getItem("role") || "user";
+          const isSuperAdmin = role === "superadmin" || userEmail.toLowerCase() === "superadmin@safarlink.com";
+
+          if (isSuperAdmin) {
+            setBookings(list);
+          } else if (userEmail) {
+            const normalizedEmail = userEmail.trim().toLowerCase();
+            const normalizedName = userName.trim().toLowerCase();
+            const filtered = list.filter((b: any) => {
+              const bEmail = (b.passengerEmail || '').trim().toLowerCase();
+              const bName = (b.userName || '').trim().toLowerCase();
+              const emailMatch = Boolean(bEmail && bEmail === normalizedEmail);
+              const nameMatch = Boolean(normalizedName && normalizedName !== 'user' && (bName === normalizedName || bName.includes(normalizedName) || normalizedName.includes(bName)));
+              let isLatest = false;
+              try {
+                const latest = localStorage.getItem("latest_booking");
+                if (latest) {
+                  const p = JSON.parse(latest);
+                  if (p.ticketId && (p.ticketId === b.ticketId || p.ticketId === b._id)) isLatest = true;
+                }
+              } catch(e) {}
+              return emailMatch || nameMatch || isLatest;
+            });
             setBookings(filtered.length > 0 ? filtered : list);
           } else {
             setBookings(list);

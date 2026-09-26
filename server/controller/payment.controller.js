@@ -274,6 +274,15 @@ export const sendPaymentClearanceEmail = async (req, res) => {
 export const getBookings = async (req, res) => {
   try {
     const bookings = await Booking.find().sort({ createdAt: -1 });
+    // Normalize cancelled bookings to 25% policy tier
+    for (let b of bookings) {
+      if ((b.status === "Cancelled" || b.status === "Refunded") && b.refundPercentage !== 25) {
+        b.refundPercentage = 25;
+        const paidNum = parseInt(String(b.amount).replace(/[^\d]/g, ''), 10) || 0;
+        b.refundAmount = Math.round((paidNum * 25) / 100);
+        await b.save();
+      }
+    }
     return res.status(200).json({ success: true, bookings });
   } catch (error) {
     console.error("Error fetching bookings:", error);
@@ -329,6 +338,14 @@ export const verifyTicket = async (req, res) => {
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
     const verificationUrl = `${clientUrl}/verify-ticket?id=${encodeURIComponent(booking.ticketId)}`;
 
+    // Normalize refund percentage to 25% only for cancelled bookings
+    if ((booking.status === "Cancelled" || booking.status === "Refunded") && booking.refundPercentage !== 25) {
+      booking.refundPercentage = 25;
+      const paidNum = parseInt(String(booking.amount).replace(/[^\d]/g, ''), 10) || 0;
+      booking.refundAmount = Math.round((paidNum * 25) / 100);
+      await booking.save();
+    }
+
     let qrCode = booking.qrCodeDataUrl;
     if (!qrCode) {
       try {
@@ -367,6 +384,8 @@ export const verifyTicket = async (req, res) => {
         refundPercentage: booking.refundPercentage,
         boardedAt: booking.boardedAt,
         cancelledAt: booking.cancelledAt,
+        cancelledBy: booking.cancelledBy,
+        cancellationReason: booking.cancellationReason,
         qrCodeDataUrl: qrCode,
         createdAt: booking.createdAt
       }
@@ -424,7 +443,7 @@ export const markTicketBoarded = async (req, res) => {
 export const cancelBooking = async (req, res) => {
   try {
     const { ticketId } = req.params;
-    const { reason } = req.body;
+    const { reason, cancelledBy: reqCancelledBy, role, email: reqEmail } = req.body;
 
     const booking = await Booking.findOne({ ticketId });
     if (!booking) {
@@ -439,10 +458,11 @@ export const cancelBooking = async (req, res) => {
       return res.status(400).json({ success: false, message: "Cannot cancel a completed or already boarded trip." });
     }
 
-    // Calculate hours remaining until departure
-    let hoursRemaining = 48; // default fallback
+    // Calculate exact minutes remaining until bus departure
+    let diffMinutes = 999999;
+    let hoursRemaining = 48;
     try {
-      const departureDateStr = booking.date; // e.g. "2026-09-23"
+      const departureDateStr = booking.date; // e.g. "2026-09-26" or "26-09-2026"
       const timeStr = booking.departureTime || "08:00 AM";
 
       const timeMatch = timeStr.match(/^(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
@@ -471,35 +491,52 @@ export const cancelBooking = async (req, res) => {
       const departureDateTime = new Date(year, month, day, hours, minutes, 0);
       const now = new Date();
       const diffMs = departureDateTime.getTime() - now.getTime();
+      diffMinutes = Math.floor(diffMs / (1000 * 60));
       hoursRemaining = diffMs / (1000 * 60 * 60);
     } catch (dateErr) {
-      console.warn("Date parse error for refund calculation:", dateErr);
+      console.warn("Date parse error for cancellation check:", dateErr);
     }
 
-    // Determine refund policy percentage
-    let refundPercentage = 100;
-    if (hoursRemaining >= 24) {
-      refundPercentage = 100; // > 24 hrs: Full 100% refund
-    } else if (hoursRemaining >= 12) {
-      refundPercentage = 75; // 12-24 hrs: 75% refund
-    } else if (hoursRemaining > 0) {
-      refundPercentage = 50; // < 12 hrs: 50% refund
-    } else {
-      refundPercentage = 0; // past departure
+    const isSuperAdminRequest = role === 'superadmin' || 
+      (reqCancelledBy && reqCancelledBy.toLowerCase().includes('superadmin')) ||
+      (reqEmail && reqEmail.toLowerCase().includes('superadmin@safarlink.com'));
+
+    // Half hour (30 minutes) rule: user cancellation is strictly valid until 30 minutes before departure
+    if (!isSuperAdminRequest && diffMinutes < 30) {
+      return res.status(400).json({
+        success: false,
+        message: diffMinutes <= 0
+          ? "Departure time has passed. Cancellation is no longer valid."
+          : "Cancellation deadline expired. Cancellations can only be made up to 30 minutes before bus departure timing."
+      });
     }
+
+    // Format attribution: "Cancelled by User (<user_email>)" or "Cancelled by Superadmin (<superadmin_email>)"
+    let cancelledByText = "";
+    if (isSuperAdminRequest) {
+      const adminEmail = reqEmail || (reqCancelledBy && reqCancelledBy.includes('@') ? reqCancelledBy.replace(/^[^(]*\(([^)]+)\).*$/, '$1') : "superadmin@safarlink.com");
+      cancelledByText = `Cancelled by Superadmin (${adminEmail})`;
+    } else {
+      const userEmail = reqEmail || (reqCancelledBy && reqCancelledBy.includes('@') ? reqCancelledBy.replace(/^[^(]*\(([^)]+)\).*$/, '$1') : (booking.passengerEmail || "user"));
+      cancelledByText = `Cancelled by User (${userEmail})`;
+    }
+
+    // Determine refund policy percentage: strictly 25% only
+    const refundPercentage = diffMinutes >= 30 ? 25 : 0;
 
     // Parse numeric paid amount
     const paidAmountNum = parseInt(String(booking.amount).replace(/[^\d]/g, ''), 10) || 0;
     const refundAmount = Math.round((paidAmountNum * refundPercentage) / 100);
 
-    // Update booking status
+    // Update booking status & attribution
     booking.status = "Cancelled";
     booking.type = "Cancelled";
     booking.refundAmount = refundAmount;
     booking.refundPercentage = refundPercentage;
     booking.refundStatus = refundPercentage > 0 ? "Processed" : "None";
     booking.cancelledAt = new Date();
-    booking.cancellationReason = reason || "Customer request";
+    booking.cancelledBy = cancelledByText;
+    booking.cancellationReason = reason || "Customer requested cancellation";
     await booking.save();
 
     // Release seats back to the bus inventory
@@ -520,8 +557,8 @@ export const cancelBooking = async (req, res) => {
       console.error("Error restoring bus seats on cancellation:", busRestoreErr);
     }
 
-    // Send cancellation & refund confirmation email to customer
-    if (booking.passengerEmail && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    // Dispatch Emails to both User and Admin
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       try {
         const transporter = nodemailer.createTransport({
           host: "smtp.gmail.com",
@@ -533,54 +570,182 @@ export const cancelBooking = async (req, res) => {
           }
         });
 
-        await transporter.sendMail({
-          from: `"SafarLink Support" <${process.env.EMAIL_USER}>`,
-          to: booking.passengerEmail,
-          subject: `Cancellation & Refund Confirmation - Ticket ${booking.ticketId}`,
-          html: `
-            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; padding: 25px; color: #222; max-width: 600px; margin: auto; background-color: #fcfaf7; border: 1px solid #e5dfd5; border-radius: 8px;">
-              <div style="text-align: center; margin-bottom: 20px;">
-                <h1 style="color: #1b1b1b; margin: 0; font-size: 26px; letter-spacing: 2px;">SAFAR<span style="color: #aa8453; font-style: italic;">LINK</span></h1>
-                <p style="color: #aa8453; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; margin-top: 5px; font-weight: bold;">Booking Cancellation Notice</p>
-              </div>
+        // 1. Send confirmation email to Passenger / User
+        if (booking.passengerEmail) {
+          try {
+            await transporter.sendMail({
+              from: `"SafarLink Support" <${process.env.EMAIL_USER}>`,
+              to: booking.passengerEmail,
+              subject: `🎟️ Ticket Cancellation Successful - Ref #${booking.ticketId} | SafarLink`,
+              html: `
+                <div style="font-family: 'Helvetica Neue', Arial, sans-serif; padding: 25px; color: #222; max-width: 600px; margin: auto; background-color: #fcfaf7; border: 1px solid #e5dfd5; border-radius: 8px;">
+                  <div style="text-align: center; margin-bottom: 20px;">
+                    <h1 style="color: #1b1b1b; margin: 0; font-size: 26px; letter-spacing: 2px;">SAFAR<span style="color: #aa8453; font-style: italic;">LINK</span></h1>
+                    <p style="color: #aa8453; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; margin-top: 5px; font-weight: bold;">Verified Travel Notice</p>
+                  </div>
 
-              <div style="background-color: #fff1f2; color: #9f1239; padding: 16px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #fecdd3;">
-                <h3 style="margin: 0 0 5px 0; font-size: 16px;">Booking Cancelled Successfully</h3>
-                <p style="margin: 0; font-size: 13px;">Your reservation for Ticket ID <strong>${booking.ticketId}</strong> has been cancelled.</p>
-              </div>
+                  <div style="background-color: #fff1f2; color: #9f1239; padding: 18px 22px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #fecdd3;">
+                    <h3 style="margin: 0 0 6px 0; font-size: 17px; color: #be123c;">Your Ticket Cancellation Successfully Processed</h3>
+                    <p style="margin: 0; font-size: 13px; color: #881337;">Your reservation for Ticket ID <strong>#${booking.ticketId}</strong> has been cancelled.</p>
+                  </div>
 
-              <div style="background: #ffffff; padding: 20px; border-radius: 6px; border: 1px solid #ebe5dc; margin-bottom: 20px;">
-                <h4 style="color: #aa8453; margin-top: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">Refund Breakdown</h4>
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                  <tr>
-                    <td style="padding: 6px 0; color: #777;">Original Fare Paid:</td>
-                    <td style="padding: 6px 0; font-weight: bold; text-align: right;">Rs. ${paidAmountNum.toLocaleString()}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #777;">Refund Policy Tier:</td>
-                    <td style="padding: 6px 0; font-weight: bold; text-align: right; color: #aa8453;">${refundPercentage}% Refund</td>
-                  </tr>
-                  <tr style="border-top: 1px solid #eee;">
-                    <td style="padding: 10px 0 6px 0; font-weight: bold; font-size: 15px; color: #1b1b1b;">Refund Amount Processed:</td>
-                    <td style="padding: 10px 0 6px 0; font-weight: bold; font-size: 17px; text-align: right; color: #16a34a;">Rs. ${refundAmount.toLocaleString()}</td>
-                  </tr>
-                </table>
-              </div>
+                  <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px 20px; border-radius: 6px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 6px 0; color: #166534; font-size: 14px;">💳 Refund Notice</h4>
+                    <p style="margin: 0; font-size: 14px; font-weight: bold; color: #15803d;">
+                      Your amount will be refunded within 2-3 working days!
+                    </p>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #166534;">
+                      Refund Amount: <strong>Rs. ${refundAmount.toLocaleString()}</strong> (${refundPercentage}% policy tier) will be returned to your original payment method.
+                    </p>
+                  </div>
 
-              <p style="font-size: 12px; color: #666; line-height: 1.5;">Refunds to credit/debit cards are automatically credited back to your original payment method within 3–5 business days.</p>
-            </div>
-          `
-        });
+                  <div style="background: #ffffff; padding: 20px; border-radius: 6px; border: 1px solid #ebe5dc; margin-bottom: 20px;">
+                    <h4 style="color: #aa8453; margin-top: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #f0eae1; padding-bottom: 8px;">Trip & Passenger Details</h4>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                      <tr>
+                        <td style="padding: 6px 0; color: #777;">Ticket Reference:</td>
+                        <td style="padding: 6px 0; font-weight: bold; text-align: right; color: #aa8453; font-mono;">#${booking.ticketId}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #777;">Passenger Name:</td>
+                        <td style="padding: 6px 0; font-weight: bold; text-align: right;">${booking.userName}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #777;">Route:</td>
+                        <td style="padding: 6px 0; font-weight: bold; text-align: right;">${booking.routeFrom} ➔ ${booking.routeTo}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #777;">Fleet Service:</td>
+                        <td style="padding: 6px 0; font-weight: bold; text-align: right;">${booking.bus}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #777;">Travel Date & Time:</td>
+                        <td style="padding: 6px 0; font-weight: bold; text-align: right;">${booking.date} at ${booking.departureTime}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #777;">Seats Released:</td>
+                        <td style="padding: 6px 0; font-weight: bold; text-align: right;">${Array.isArray(booking.seats) ? booking.seats.join(', ') : booking.seats}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #777;">Cancelled By:</td>
+                        <td style="padding: 6px 0; font-weight: bold; text-align: right; color: #b91c1c;">${cancelledByText}</td>
+                      </tr>
+                      <tr style="border-top: 1px solid #f0eae1;">
+                        <td style="padding: 8px 0; font-weight: bold; color: #1b1b1b;">Original Fare:</td>
+                        <td style="padding: 8px 0; font-weight: bold; text-align: right;">Rs. ${paidAmountNum.toLocaleString()}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; font-weight: bold; color: #16a34a;">Refund Payable:</td>
+                        <td style="padding: 6px 0; font-weight: bold; font-size: 15px; text-align: right; color: #16a34a;">Rs. ${refundAmount.toLocaleString()}</td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <p style="font-size: 11px; color: #888; text-align: center; margin-top: 20px;">
+                    Thank you for choosing SafarLink. If you have any questions, our support team is available 24/7.
+                  </p>
+                </div>
+              `
+            });
+            console.log(`Cancellation confirmation email sent to passenger: ${booking.passengerEmail}`);
+          } catch (passengerMailErr) {
+            console.error("Error sending passenger cancellation email:", passengerMailErr);
+          }
+        }
+
+        // 2. Send cancellation notification email to Admin
+        try {
+          const adminEmailTarget = process.env.EMAIL_USER;
+          await transporter.sendMail({
+            from: `"SafarLink Alert" <${process.env.EMAIL_USER}>`,
+            to: adminEmailTarget,
+            subject: `⚠️ Ticket Cancellation Alert - Ref #${booking.ticketId} | SafarLink`,
+            html: `
+              <div style="font-family: 'Helvetica Neue', Arial, sans-serif; padding: 25px; color: #222; max-width: 600px; margin: auto; background-color: #fcfaf7; border: 1px solid #e5dfd5; border-radius: 8px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <h1 style="color: #1b1b1b; margin: 0; font-size: 24px;">SAFAR<span style="color: #aa8453; font-style: italic;">LINK</span> <span style="font-size: 13px; color: #d97706; text-transform: uppercase;">[ADMIN NOTIFICATION]</span></h1>
+                  <p style="color: #666; font-size: 12px; margin-top: 4px;">Ticket Cancellation Record Manifest</p>
+                </div>
+
+                <div style="background-color: #fffbeb; border: 1px solid #fde68a; padding: 14px 18px; border-radius: 6px; margin-bottom: 20px;">
+                  <strong style="color: #b45309; font-size: 13px;">Booking Cancellation Alert:</strong>
+                  <p style="margin: 4px 0 0 0; font-size: 13px; color: #92400e;">
+                    Ticket <strong>#${booking.ticketId}</strong> was cancelled. Seats have been restored to fleet inventory.
+                  </p>
+                </div>
+
+                <div style="background: #ffffff; padding: 18px; border-radius: 6px; border: 1px solid #ebe5dc; margin-bottom: 18px;">
+                  <h4 style="color: #aa8453; margin-top: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #f0eae1; padding-bottom: 6px;">Manifest Breakdown</h4>
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Ticket Reference ID:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right; color: #aa8453; font-mono;">#${booking.ticketId}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Passenger:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right;">${booking.userName} (${booking.passengerEmail})</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Phone / CNIC:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right;">${booking.passengerPhone} / ${booking.passengerCnic}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Fleet & Route:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right;">${booking.bus} | ${booking.routeFrom} ➔ ${booking.routeTo}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Travel Date & Time:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right;">${booking.date} at ${booking.departureTime}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Seats Restored:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right;">${Array.isArray(booking.seats) ? booking.seats.join(', ') : booking.seats}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Original Fare:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right;">Rs. ${paidAmountNum.toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Refund Amount:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right; color: #16a34a;">Rs. ${refundAmount.toLocaleString()} (${refundPercentage}%)</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Cancelled By:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right; color: #dc2626;">${cancelledByText}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Cancellation Time:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right;">${new Date().toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Reason:</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right;">${reason || "Customer requested"}</td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div style="background-color: #f3f4f6; padding: 12px 16px; border-radius: 4px; font-size: 12px; color: #4b5563;">
+                  <strong>Action Required:</strong> Please ensure refund settlement is finalized within 2-3 working days.
+                </div>
+              </div>
+            `
+          });
+          console.log(`Cancellation alert email sent to admin: ${adminEmailTarget}`);
+        } catch (adminMailErr) {
+          console.error("Error sending admin cancellation email:", adminMailErr);
+        }
+
       } catch (refundMailErr) {
-        console.error("Error sending cancellation email:", refundMailErr);
+        console.error("Error in mail transport during cancellation:", refundMailErr);
       }
     }
 
     return res.status(200).json({
       success: true,
-      message: `Booking cancelled successfully. Refund of Rs. ${refundAmount} (${refundPercentage}%) has been processed.`,
+      message: `Booking cancelled successfully! Your amount will be refunded within 2-3 working days. (Rs. ${refundAmount})`,
       refundAmount,
       refundPercentage,
+      cancelledBy: cancelledByText,
       booking
     });
 
