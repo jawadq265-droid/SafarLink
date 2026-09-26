@@ -4,9 +4,14 @@
     "bus_routes": "بس روٹس",
     "about_us": "ہمارے بارے میں",
     "contact": "رابطہ کریں",
+    "verify_ticket": "ٹکٹ تصدیق",
+    "my_bookings": "میری بکنگز",
     "login": "لاگ ان",
     "join_now": "ابھی شامل ہوں",
-    "portal_subtitle": "ٹکٹ پورٹل"
+    "portal_subtitle": "ٹکٹ پورٹل",
+    "admin_panel": "ایڈمن پینل",
+    "dashboard": "ڈیش بورڈ",
+    "logout": "لاگ آؤٹ"
   },
   "home": {
     "slide1_subtitle": "پاکستان کا سب سے بہترین ٹکٹ پورٹل",

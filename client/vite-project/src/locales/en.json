@@ -4,9 +4,14 @@
     "bus_routes": "BUS ROUTES",
     "about_us": "ABOUT US",
     "contact": "CONTACT",
+    "verify_ticket": "VERIFY TICKET",
+    "my_bookings": "MY BOOKINGS",
     "login": "LOGIN",
     "join_now": "JOIN NOW",
-    "portal_subtitle": "Ticket Portal"
+    "portal_subtitle": "Ticket Portal",
+    "admin_panel": "ADMIN PANEL",
+    "dashboard": "DASHBOARD",
+    "logout": "LOGOUT"
   },
   "home": {
     "slide1_subtitle": "PAKISTAN'S PREMIER TICKET PORTAL",
