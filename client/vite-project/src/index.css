@@ -58,6 +58,23 @@
     overscroll-behavior: contain;
   }
 
+  [data-lenis-prevent]::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  [data-lenis-prevent]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  [data-lenis-prevent]::-webkit-scrollbar-thumb {
+    background: rgba(170, 132, 83, 0.25);
+    border-radius: 9999px;
+  }
+
+  [data-lenis-prevent]::-webkit-scrollbar-thumb:hover {
+    background: rgba(170, 132, 83, 0.5);
+  }
+
   .lenis.lenis-stopped {
     overflow: hidden;
   }

@@ -18,9 +18,11 @@ const FloatingBotButton = () => {
     { sender: "bot", text: "Welcome to SafarLink Concierge. How may I assist your journey today?" }
   ]);
   const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
 
   const chatRef = useRef<HTMLDivElement | null>(null);
-
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,7 +33,6 @@ const FloatingBotButton = () => {
       }
     };
 
-
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
@@ -39,7 +40,36 @@ const FloatingBotButton = () => {
     };
   }, []);
 
-  const [typing, setTyping] = useState(false);
+  // Isolate wheel scrolling to chat window and prevent background Lenis/body scroll
+  useEffect(() => {
+    const chatEl = chatRef.current;
+    if (!open || !chatEl) return;
+
+    const onWheelNative = (e: WheelEvent) => {
+      e.stopPropagation();
+
+      if (messagesContainerRef.current) {
+        const isInsideMessages = messagesContainerRef.current.contains(e.target as Node);
+        // If cursor is on header or input area, forward wheel scroll to messages container
+        if (!isInsideMessages) {
+          e.preventDefault();
+          messagesContainerRef.current.scrollTop += e.deltaY;
+        }
+      }
+    };
+
+    chatEl.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => {
+      chatEl.removeEventListener("wheel", onWheelNative);
+    };
+  }, [open]);
+
+  // Auto-scroll to latest message when open, typing, or new message arrives
+  useEffect(() => {
+    if (open && messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages, typing, open]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -129,14 +159,19 @@ const FloatingBotButton = () => {
         {open && (
           <motion.div
             ref={chatRef}
+            data-lenis-prevent="true"
+            data-lenis-prevent-wheel="true"
+            data-lenis-prevent-touch="true"
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="fixed bottom-28 right-8 w-[380px] bg-white shadow-[-20px_20px_60px_rgba(0,0,0,0.2)] overflow-hidden z-50 border border-gray-100"
+            className="fixed bottom-28 right-8 w-[380px] bg-white shadow-[-20px_20px_60px_rgba(0,0,0,0.2)] overflow-hidden z-50 border border-gray-100 overscroll-contain"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             {/* HEADER */}
-            <div className="px-8 py-6 bg-[#1b1b1b] text-white relative border-b border-[#aa8453]/30">
+            <div className="px-8 py-6 bg-[#1b1b1b] text-white relative border-b border-[#aa8453]/30 select-none">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl font-serif text-white opacity-[0.03] whitespace-nowrap pointer-events-none">
                 SAFARLINK
               </div>
@@ -167,7 +202,14 @@ const FloatingBotButton = () => {
             </div>
 
             {/* MESSAGES */}
-            <div className="h-[400px] overflow-y-auto px-8 py-8 bg-[#fcfbf9] space-y-6 scrollbar-hide">
+            <div
+              ref={messagesContainerRef}
+              data-lenis-prevent="true"
+              data-lenis-prevent-wheel="true"
+              data-lenis-prevent-touch="true"
+              className="h-[400px] overflow-y-auto px-8 py-8 bg-[#fcfbf9] space-y-6 overscroll-contain [scrollbar-width:thin] [scrollbar-color:#aa845340_transparent]"
+              onWheel={(e) => e.stopPropagation()}
+            >
               {messages.map((m, i) => (
                 <div
                   key={i}
@@ -198,6 +240,7 @@ const FloatingBotButton = () => {
                   </motion.div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* INPUT */}
