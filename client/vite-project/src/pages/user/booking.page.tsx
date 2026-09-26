@@ -7,11 +7,26 @@ import {
   Share2,
   Download,
   Smartphone,
-  Wallet
+  Wallet,
+  Tag,
+  Percent,
+  X,
+  Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { downloadTicketPDF, shareTicketPDF, formatVoyageDate } from '../../utils/ticket-pdf';
+
+interface AppliedPromoType {
+  code: string;
+  title: string;
+  message?: string;
+  discountType: string;
+  discountValue: number;
+  discountAmount: number;
+  originalAmount: number;
+  finalAmount: number;
+}
 
 const BookingPage = () => {
   const navigate = useNavigate();
@@ -41,12 +56,72 @@ const BookingPage = () => {
 
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [passengerInfo, setPassengerInfo] = useState({
-    name: '',
+  const [passengerInfo, setPassengerInfo] = useState(() => ({
+    name: localStorage.getItem("userName") || '',
     phone: '',
     cnic: '',
-    email: ''
-  });
+    email: localStorage.getItem("userEmail") || ''
+  }));
+
+  // Promo Code States
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromoType | null>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [promoError, setPromoError] = useState('');
+
+  const rawTotalAmount = selectedSeats.length * (selectedRoute?.price || 0);
+  const discountAmount = appliedPromo?.discountAmount || 0;
+  const finalPayableAmount = Math.max(0, rawTotalAmount - discountAmount);
+
+  const handleApplyPromoCode = async () => {
+    if (!promoCodeInput.trim()) {
+      toast.error("Please enter a promo code");
+      return;
+    }
+
+    if (rawTotalAmount <= 0) {
+      toast.error("Please select at least one seat first.");
+      return;
+    }
+
+    setIsApplyingPromo(true);
+    setPromoError('');
+
+    try {
+      const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+      const res = await fetch(`${baseUrl}promotions/validate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: promoCodeInput.trim().toUpperCase(),
+          amount: rawTotalAmount,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Invalid promo code");
+      }
+
+      setAppliedPromo(data.discountDetails);
+      setPromoError('');
+      toast.success(data.message || `Promo code "${data.discountDetails.code}" applied!`);
+    } catch (err: any) {
+      setPromoError(err.message || "Failed to apply promo code");
+      toast.error(err.message || "Failed to apply promo code");
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
+
+  const handleRemovePromoCode = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput('');
+    setPromoError('');
+    toast.success("Promo code removed");
+  };
 
 
   React.useEffect(() => {
@@ -139,7 +214,6 @@ const BookingPage = () => {
     if (step === 4) {
       setIsProcessing(true);
 
-      const totalAmount = selectedSeats.length * (selectedRoute?.price || 0);
       const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
       const ticketId = `SL-${Date.now()}`;
 
@@ -148,7 +222,12 @@ const BookingPage = () => {
         selectedRoute,
         selectedSeats,
         passengerInfo,
-        ticketId
+        userEmail: localStorage.getItem("userEmail") || passengerInfo.email,
+        ticketId,
+        promoCode: appliedPromo?.code || null,
+        discountAmount: discountAmount,
+        originalAmount: `Rs. ${rawTotalAmount}`,
+        amount: `Rs. ${finalPayableAmount}`
       };
       localStorage.setItem("temp_booking", JSON.stringify(tempBooking));
 
@@ -158,7 +237,9 @@ const BookingPage = () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          amount: totalAmount,
+          amount: finalPayableAmount,
+          rawAmount: rawTotalAmount,
+          promoCode: appliedPromo?.code || null,
           description: `Booking for ${selectedRoute?.from} to ${selectedRoute?.to}`,
           ticketId: ticketId
         })
@@ -186,7 +267,6 @@ const BookingPage = () => {
   };
 
   const handleDownloadPDF = () => {
-    const totalAmount = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
     downloadTicketPDF({
       passengerName: passengerInfo?.name,
       phone: passengerInfo?.phone,
@@ -198,12 +278,11 @@ const BookingPage = () => {
       date: selectedRoute?.date,
       time: selectedRoute?.time,
       seats: selectedSeats?.join(", "),
-      amount: totalAmount ? `Rs. ${totalAmount}` : undefined
+      amount: `Rs. ${finalPayableAmount}`
     });
   };
 
   const handleShareTicket = async () => {
-    const totalAmount = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
     await shareTicketPDF({
       passengerName: passengerInfo?.name,
       phone: passengerInfo?.phone,
@@ -215,7 +294,7 @@ const BookingPage = () => {
       date: selectedRoute?.date,
       time: selectedRoute?.time,
       seats: selectedSeats?.join(", "),
-      amount: totalAmount ? `Rs. ${totalAmount}` : undefined
+      amount: `Rs. ${finalPayableAmount}`
     });
   };
 
@@ -358,7 +437,7 @@ const BookingPage = () => {
         <div className="flex items-center space-x-6">
           <div className="text-right">
             <p className="text-xs text-gray-500 font-condensed uppercase tracking-wider mb-0.5">Total Valuation</p>
-            <p className="text-2xl font-serif text-[#aa8453] tracking-tight">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+            <p className="text-2xl font-serif text-[#aa8453] tracking-tight">Rs. {rawTotalAmount}</p>
           </div>
           <button onClick={nextStep} className="luxury-button !px-12 !py-3.5 uppercase text-xs font-bold tracking-wider">
             Proceed to Checkout
@@ -371,51 +450,150 @@ const BookingPage = () => {
   const renderPaymentSelection = () => (
     <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-4 p-2 max-w-4xl mx-auto">
       <div className="text-center space-y-1">
-        <h2 className="text-3xl font-serif text-gray-900 leading-none">Payment Gateway</h2>
-        <p className="text-xs text-[#aa8453] tracking-[0.25em] uppercase font-condensed font-semibold">SECURE SETTLEMENT</p>
+        <h2 className="text-3xl font-serif text-gray-900 leading-none">Payment & Summary</h2>
+        <p className="text-xs text-[#aa8453] tracking-[0.25em] uppercase font-condensed font-semibold">SECURE SETTLEMENT & PROMOTIONS</p>
       </div>
 
-      <div className="max-w-xl mx-auto luxury-card p-6 rounded-none border border-gray-100 relative overflow-hidden group">
-        {isProcessing ? (
-          <div className="py-12 flex flex-col items-center justify-center space-y-6">
-            <div className="w-16 h-16 border-[2px] border-gray-100 border-t-[#aa8453] rounded-full animate-spin"></div>
-            <div className="text-center">
-              <h3 className="text-xl font-serif text-gray-800">Redirecting to Stripe...</h3>
-              <p className="text-[#aa8453] mt-2 animate-pulse text-xs tracking-[0.2em] uppercase font-condensed font-semibold">Connecting to Stripe Secure Gateway</p>
+      <div className="max-w-xl mx-auto space-y-4">
+        {/* Promo Code Voucher Card */}
+        <div className="luxury-card p-5 rounded-none border border-[#aa8453]/30 bg-gradient-to-r from-[#fcfaf7] to-white relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <Tag size={18} className="text-[#aa8453]" />
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-800 font-condensed">Apply Promo Code / Voucher</span>
             </div>
+            {appliedPromo && (
+              <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-full">
+                <Sparkles size={12} className="mr-1" />
+                Promo Applied
+              </span>
+            )}
           </div>
-        ) : (
-          <div className="space-y-4 relative z-10">
-            <div className="bg-[#fcfbf9] p-4 rounded-none flex items-center justify-between border border-gray-100">
-              <div className="flex items-center space-x-4">
-                <div className="p-2.5 bg-white rounded-none shadow-sm border border-gray-100">
-                  <Wallet className="text-[#aa8453]" size={26} />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider font-condensed font-semibold">Settlement via</p>
-                  <p className="text-base font-serif font-bold text-gray-800">Stripe Hosted Checkout</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500 uppercase tracking-wider font-condensed font-semibold">Authorized Amount</p>
-                <p className="text-2xl font-serif text-[#aa8453] font-bold">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
-              </div>
-            </div>
 
-            <div className="space-y-2 bg-[#fcfbf9] p-4 border border-gray-100 font-sans text-gray-700 text-sm leading-relaxed">
-              <p className="font-medium text-gray-800">You are about to be redirected to the secure <span className="text-[#aa8453] font-semibold">Stripe Payment Gateway</span>.</p>
-              <p className="text-xs text-gray-500">You can complete your settlement using your Credit/Debit Card. Once payment is authorized, you will be automatically returned to SafarLink to view your digital ticket.</p>
+          {!appliedPromo ? (
+            <div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={promoCodeInput}
+                    onChange={(e) => {
+                      setPromoCodeInput(e.target.value.toUpperCase());
+                      setPromoError('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleApplyPromoCode();
+                      }
+                    }}
+                    placeholder="ENTER PROMO CODE (e.g. SUMMER20)"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-[#aa8453] uppercase tracking-wider font-serif text-sm outline-none text-gray-800"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleApplyPromoCode}
+                  disabled={isApplyingPromo || !promoCodeInput.trim()}
+                  className="luxury-button !px-6 !py-2.5 text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                >
+                  {isApplyingPromo ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    "Apply"
+                  )}
+                </button>
+              </div>
+              {promoError && (
+                <p className="text-xs text-red-600 mt-2 font-medium">{promoError}</p>
+              )}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="bg-emerald-50/80 border border-emerald-300 p-3.5 flex items-center justify-between">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-bold text-sm tracking-wider text-emerald-900 uppercase font-serif">{appliedPromo.code}</span>
+                  <span className="text-xs font-bold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded">
+                    {appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountValue}% OFF` : `Rs. ${appliedPromo.discountValue} OFF`}
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-700 mt-0.5">
+                  You save <strong className="font-bold">Rs. {appliedPromo.discountAmount}</strong> on this booking!
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemovePromoCode}
+                className="text-gray-400 hover:text-red-600 p-1 transition-colors"
+                title="Remove promo code"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Payment & Valuation Summary Card */}
+        <div className="luxury-card p-6 rounded-none border border-gray-100 relative overflow-hidden group">
+          {isProcessing ? (
+            <div className="py-12 flex flex-col items-center justify-center space-y-6">
+              <div className="w-16 h-16 border-[2px] border-gray-100 border-t-[#aa8453] rounded-full animate-spin"></div>
+              <div className="text-center">
+                <h3 className="text-xl font-serif text-gray-800">Redirecting to Stripe...</h3>
+                <p className="text-[#aa8453] mt-2 animate-pulse text-xs tracking-[0.2em] uppercase font-condensed font-semibold">Connecting to Stripe Secure Gateway</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 relative z-10">
+              <div className="bg-[#fcfbf9] p-4 rounded-none border border-gray-100 space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500 font-condensed uppercase tracking-wider font-semibold">Standard Fare ({selectedSeats.length} {selectedSeats.length === 1 ? 'seat' : 'seats'})</span>
+                  <span className="font-serif font-bold text-gray-800">Rs. {rawTotalAmount}</span>
+                </div>
+
+                {discountAmount > 0 && appliedPromo && (
+                  <div className="flex items-center justify-between text-sm text-emerald-700 border-t border-dashed border-gray-200 pt-2">
+                    <span className="font-condensed uppercase tracking-wider font-semibold flex items-center gap-1">
+                      <Percent size={14} />
+                      Promo Discount ({appliedPromo.code})
+                    </span>
+                    <span className="font-serif font-bold text-emerald-700">- Rs. {discountAmount}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between border-t border-gray-200 pt-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-white rounded-none shadow-sm border border-gray-100">
+                      <Wallet className="text-[#aa8453]" size={22} />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider font-condensed font-semibold">Settlement via</p>
+                      <p className="text-xs font-serif font-bold text-gray-800">Stripe Gateway</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider font-condensed font-semibold">Authorized Amount</p>
+                    <p className="text-2xl font-serif text-[#aa8453] font-bold">Rs. {finalPayableAmount}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1 bg-[#fcfbf9] p-3 border border-gray-100 font-sans text-gray-700 text-xs leading-relaxed">
+                <p className="font-medium text-gray-800">You will be redirected to the secure <span className="text-[#aa8453] font-semibold">Stripe Payment Gateway</span>.</p>
+                <p className="text-gray-500">Pay securely using Debit/Credit cards. Upon authorization, your verified digital ticket will be issued.</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
       {!isProcessing && (
         <div className="flex justify-between mt-6 max-w-xl mx-auto items-center">
           <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-300 !px-10 !py-3 uppercase text-xs font-bold tracking-wider hover:bg-gray-100">Return to Profile</button>
           <div className="flex items-center space-x-6">
             <div className="text-right">
               <p className="text-xs text-gray-500 font-condensed uppercase tracking-wider mb-0.5">Total Valuation</p>
-              <p className="text-2xl font-serif text-[#aa8453] tracking-tight font-bold">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+              <p className="text-2xl font-serif text-[#aa8453] tracking-tight font-bold">Rs. {finalPayableAmount}</p>
             </div>
             <button onClick={nextStep} className="luxury-button !px-12 !py-3.5 uppercase text-xs font-bold tracking-wider">
               Proceed to Stripe
@@ -504,7 +682,7 @@ const BookingPage = () => {
               </div>
               <div className="text-left md:text-right min-w-0">
                 <p className="text-[10px] text-gray-400 uppercase font-condensed tracking-widest mb-2">Paid in Full</p>
-                <p className="text-4xl sm:text-5xl md:text-6xl font-serif text-[#aa8453] tracking-tighter leading-none">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+                <p className="text-4xl sm:text-5xl md:text-6xl font-serif text-[#aa8453] tracking-tighter leading-none">Rs. {finalPayableAmount}</p>
               </div>
             </div>
           </div>

@@ -63,7 +63,8 @@ const PaymentSuccessPage = () => {
   const handleDownloadPDF = () => {
     if (!bookingData) return;
     const { selectedRoute, selectedSeats, passengerInfo, ticketId } = bookingData;
-    const totalAmount = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
+    const rawTotal = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
+    const amountStr = bookingData.amount || `Rs. ${rawTotal}`;
     const rawDate = selectedRoute?.date || bookingData?.date || bookingData?.travelDate;
     downloadTicketPDF({
       passengerName: passengerInfo?.name,
@@ -77,14 +78,15 @@ const PaymentSuccessPage = () => {
       date: rawDate,
       time: selectedRoute?.time,
       seats: selectedSeats?.join(", "),
-      amount: totalAmount ? `Rs. ${totalAmount}` : undefined
+      amount: amountStr
     });
   };
 
   const handleShareTicket = async () => {
     if (!bookingData) return;
     const { selectedRoute, selectedSeats, passengerInfo, ticketId } = bookingData;
-    const totalAmount = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
+    const rawTotal = (selectedSeats?.length || 1) * (selectedRoute?.price || 0);
+    const amountStr = bookingData.amount || `Rs. ${rawTotal}`;
     const rawDate = selectedRoute?.date || bookingData?.date || bookingData?.travelDate;
     await shareTicketPDF({
       passengerName: passengerInfo?.name,
@@ -98,7 +100,7 @@ const PaymentSuccessPage = () => {
       date: rawDate,
       time: selectedRoute?.time,
       seats: selectedSeats?.join(", "),
-      amount: totalAmount ? `Rs. ${totalAmount}` : undefined
+      amount: amountStr
     });
   };
 
@@ -223,10 +225,18 @@ const PaymentSuccessPage = () => {
                   <div className="min-w-0">
                     <p className="text-[10px] text-gray-700 uppercase font-condensed tracking-widest mb-2">Passenger Contact</p>
                     <p className="text-2xl sm:text-3xl font-serif text-gray-900 tracking-tighter whitespace-nowrap">+92 {passengerInfo.phone}</p>
+                    {bookingData.promoCode && (
+                      <p className="text-xs text-emerald-700 font-medium mt-1">
+                        Promo Applied: <strong className="font-bold">{bookingData.promoCode}</strong>
+                        {bookingData.discountAmount ? ` (Saved Rs. ${bookingData.discountAmount})` : ''}
+                      </p>
+                    )}
                   </div>
                   <div className="text-left md:text-right min-w-0">
                     <p className="text-[10px] text-gray-700 uppercase font-condensed tracking-widest mb-2">Paid</p>
-                    <p className="text-2xl sm:text-3xl md:text-4xl font-serif text-[#aa8453] tracking-tighter leading-none">Rs. {selectedSeats.length * (selectedRoute?.price || 0)}</p>
+                    <p className="text-2xl sm:text-3xl md:text-4xl font-serif text-[#aa8453] tracking-tighter leading-none">
+                      {bookingData.amount || `Rs. ${(selectedSeats?.length || 1) * (selectedRoute?.price || 0)}`}
+                    </p>
                   </div>
                 </div>
               </div>

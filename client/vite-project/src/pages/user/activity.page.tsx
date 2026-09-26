@@ -57,22 +57,29 @@ const UserActivityPage = () => {
 
   const userEmail = localStorage.getItem("userEmail") || "";
   const userName = localStorage.getItem("userName") || "";
+  const userRole = localStorage.getItem("role") || "user";
 
   const fetchUserBookings = () => {
     setLoading(true);
     const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
-    fetch(`${baseUrl}payment/bookings`)
+
+    // Always send email + role so the backend returns only this user's bookings.
+    // SuperAdmin (role=superadmin) will get all bookings from the backend.
+    const params = new URLSearchParams();
+    if (userEmail) params.set("email", userEmail);
+    if (userRole) params.set("role", userRole);
+
+    fetch(`${baseUrl}payment/bookings?${params.toString()}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && Array.isArray(data.bookings)) {
-          // Format bookings
           const formatted: BookingRecord[] = data.bookings.map((b: any) => ({
             id: b.ticketId || b._id,
             ticketId: b.ticketId || b._id,
             userName: b.userName,
             passengerPhone: b.passengerPhone || b.phone || "",
             passengerCnic: b.passengerCnic || b.cnic || "",
-            passengerEmail: b.passengerEmail || "",
+            passengerEmail: b.passengerEmail || (b as any).userEmail || "",
             bus: b.bus,
             date: b.date,
             departureTime: b.departureTime || "08:00 AM",
@@ -88,16 +95,42 @@ const UserActivityPage = () => {
             qrCodeDataUrl: b.qrCodeDataUrl
           }));
 
-          // Filter by user if logged in
-          if (userEmail) {
-            const filtered = formatted.filter(b => 
-              b.passengerEmail?.toLowerCase() === userEmail.toLowerCase() ||
-              (userName && b.userName?.toLowerCase() === userName.toLowerCase())
-            );
-            setBookings(filtered.length > 0 ? filtered : formatted);
-          } else {
-            setBookings(formatted);
+          // If a new booking was just created in localStorage, ensure it is immediately visible
+          try {
+            const latestStr = localStorage.getItem("latest_booking");
+            if (latestStr) {
+              const latest = JSON.parse(latestStr);
+              const latestTicketId = latest.ticketId;
+              const alreadyPresent = formatted.some(b => b.ticketId === latestTicketId || b.id === latestTicketId);
+              if (!alreadyPresent && latestTicketId) {
+                const latestUserEmail = (latest.userEmail || latest.passengerInfo?.email || "").toLowerCase();
+                const currentUserEmail = userEmail.toLowerCase();
+                if (!currentUserEmail || latestUserEmail === currentUserEmail) {
+                  formatted.unshift({
+                    id: latestTicketId,
+                    ticketId: latestTicketId,
+                    userName: latest.passengerInfo?.name || userName || "Passenger",
+                    passengerPhone: latest.passengerInfo?.phone || "",
+                    passengerCnic: latest.passengerInfo?.cnic || "",
+                    passengerEmail: latest.passengerInfo?.email || userEmail,
+                    bus: latest.selectedRoute?.bus || latest.selectedRoute?.name || "Safar Express",
+                    date: latest.selectedRoute?.date || latest.date || new Date().toISOString().split('T')[0],
+                    departureTime: latest.selectedRoute?.time || "08:00 AM",
+                    routeFrom: latest.selectedRoute?.from || "Lahore",
+                    routeTo: latest.selectedRoute?.to || "Islamabad",
+                    seats: Array.isArray(latest.selectedSeats) ? latest.selectedSeats.map(String) : [],
+                    amount: latest.amount || "Rs. 1,500",
+                    status: "Upcoming",
+                    qrCodeDataUrl: latest.qrCodeDataUrl
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Error reading latest_booking:", e);
           }
+
+          setBookings(formatted);
         }
       })
       .catch(err => {
@@ -110,7 +143,7 @@ const UserActivityPage = () => {
 
   useEffect(() => {
     fetchUserBookings();
-  }, [userEmail, userName]);
+  }, [userEmail, userRole]);
 
   // Open digital QR modal
   const handleOpenQRModal = async (booking: BookingRecord) => {

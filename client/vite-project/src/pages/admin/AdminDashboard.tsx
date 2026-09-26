@@ -29,11 +29,44 @@ import {
   QrCode,
   RotateCcw,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Tag,
+  Percent,
+  Send,
+  Copy,
+  Sparkles,
+  Gift,
+  Mail,
+  Check,
+  Image as ImageIcon,
+  Bell
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { downloadTicketPDF, shareTicketPDF, formatVoyageDate } from '../../utils/ticket-pdf';
+
+export interface PromotionType {
+  _id: string;
+  id?: string;
+  title: string;
+  message: string;
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  maxDiscount?: number | null;
+  minBookingAmount?: number;
+  expiryDate: string;
+  startDate?: string;
+  imageUrl?: string;
+  isActive: boolean;
+  usageCount: number;
+  usageLimit?: number | null;
+  notifiedSubscribers?: boolean;
+  subscribersNotifiedCount?: number;
+  lastNotifiedAt?: string;
+  createdAt?: string;
+  isExpired?: boolean;
+}
 
 // Robust bus time helpers for runtime departure countdowns
 export const parseBusTime = (timeStr?: string) => {
@@ -75,6 +108,23 @@ export const formatDisplayDepartureTime = (timeStr?: string) => {
   if (!timeStr) return "10:00 AM";
   const { hours, minutes } = parseBusTime(timeStr);
   return formatTime12h(hours, minutes);
+};
+
+export const formatFriendlyDateDisplay = (dateStr?: string) => {
+  if (!dateStr) return "No Expiry";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("en-PK", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return dateStr;
+  }
 };
 
 interface BusType {
@@ -122,9 +172,10 @@ interface BookingType {
 
 interface UserType {
   id: string;
+  _id?: string;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   role: string;
   dateJoined: string;
 }
@@ -324,7 +375,8 @@ const AdminDashboard = () => {
 
   const fetchBookings = () => {
     const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
-    fetch(`${baseUrl}payment/bookings`)
+    // Pass role=superadmin so the backend returns all bookings for admin view
+    fetch(`${baseUrl}payment/bookings?role=superadmin`)
       .then(res => res.json())
       .then(data => {
         if (data.success && Array.isArray(data.bookings)) {
@@ -393,13 +445,31 @@ const AdminDashboard = () => {
     }
   };
 
-  // State-driven Users Directory
-  const [usersList, setUsersList] = useState<UserType[]>([
-    { id: 'US-001', name: 'Jawad Ahmad', email: 'jawad@example.com', phone: '0300-1234567', role: 'user', dateJoined: '2024-01-15' },
-    { id: 'US-002', name: 'Ali Khan', email: 'ali@example.com', phone: '0311-9876543', role: 'user', dateJoined: '2024-02-18' },
-    { id: 'US-003', name: 'Sara Malik', email: 'sara@example.com', phone: '0321-5555555', role: 'user', dateJoined: '2024-03-22' },
-    { id: 'US-004', name: 'Hamza Sheikh', email: 'hamza@example.com', phone: '0345-6666666', role: 'user', dateJoined: '2024-04-10' },
-  ]);
+  // State-driven Users Directory connected to MongoDB
+  const [usersList, setUsersList] = useState<UserType[]>([]);
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
+
+  const fetchUsers = async () => {
+    setIsUsersLoading(true);
+    try {
+      const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+      const res = await fetch(`${baseUrl}users`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.users)) {
+        setUsersList(data.users);
+      }
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    } finally {
+      setIsUsersLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isSuperAdmin) {
+      fetchUsers();
+    }
+  }, [isSuperAdmin]);
 
   // Tab & Filters
   const [activeTab, setActiveTab] = useState(isSuperAdmin ? 'dashboard' : 'my-bookings');
@@ -429,6 +499,264 @@ const AdminDashboard = () => {
   const [editBusTime, setEditBusTime] = useState('');
   const [editBusStatus, setEditBusStatus] = useState('');
   const [editBusIsPopular, setEditBusIsPopular] = useState(true);
+
+  // Promotions Management State
+  const [promotions, setPromotions] = useState<PromotionType[]>([]);
+  const [isPromotionsLoading, setIsPromotionsLoading] = useState(false);
+  const [promoStatusFilter, setPromoStatusFilter] = useState<'all' | 'active' | 'inactive' | 'expired'>('all');
+  const [promoSearchTerm, setPromoSearchTerm] = useState('');
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
+  const [editingPromotion, setEditingPromotion] = useState<PromotionType | null>(null);
+  const [isSavingPromo, setIsSavingPromo] = useState(false);
+  const [isNotifyingPromoId, setIsNotifyingPromoId] = useState<string | null>(null);
+  const [deletePromoModal, setDeletePromoModal] = useState<PromotionType | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const [promoFormData, setPromoFormData] = useState({
+    title: '',
+    message: '',
+    code: '',
+    discountType: 'percentage' as 'percentage' | 'fixed',
+    discountValue: '20',
+    maxDiscount: '',
+    minBookingAmount: '0',
+    expiryDate: '',
+    imageUrl: '',
+    isActive: true,
+    notifySubscribers: true,
+  });
+
+  const generateRandomPromoCode = () => {
+    const prefixes = ['SAFAR', 'SUPER', 'VOYAGE', 'VIP', 'EXPRESS', 'SAVE'];
+    const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const randomNum = Math.floor(10 + Math.random() * 90);
+    const newCode = `${randomPrefix}${randomNum}`;
+    setPromoFormData((prev) => ({ ...prev, code: newCode }));
+  };
+
+  const fetchPromotions = async () => {
+    setIsPromotionsLoading(true);
+    try {
+      const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+      const res = await fetch(`${baseUrl}promotions`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.promotions)) {
+        setPromotions(data.promotions);
+      }
+    } catch (err) {
+      console.error("Error fetching promotions:", err);
+    } finally {
+      setIsPromotionsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isSuperAdmin) {
+      fetchPromotions();
+    }
+  }, [isSuperAdmin]);
+
+  const handleOpenCreatePromoModal = () => {
+    setEditingPromotion(null);
+    const defaultExpiry = new Date();
+    defaultExpiry.setDate(defaultExpiry.getDate() + 14);
+    const year = defaultExpiry.getFullYear();
+    const month = String(defaultExpiry.getMonth() + 1).padStart(2, '0');
+    const day = String(defaultExpiry.getDate()).padStart(2, '0');
+    const hours = String(defaultExpiry.getHours()).padStart(2, '0');
+    const mins = String(defaultExpiry.getMinutes()).padStart(2, '0');
+    const expiryStr = `${year}-${month}-${day}T${hours}:${mins}`;
+
+    const randomNum = Math.floor(10 + Math.random() * 90);
+
+    setPromoFormData({
+      title: '',
+      message: '',
+      code: `SAFAR${randomNum}`,
+      discountType: 'percentage',
+      discountValue: '20',
+      maxDiscount: '',
+      minBookingAmount: '0',
+      expiryDate: expiryStr,
+      imageUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=800&auto=format&fit=crop',
+      isActive: true,
+      notifySubscribers: true,
+    });
+    setIsPromoModalOpen(true);
+  };
+
+  const handleOpenEditPromoModal = (promo: PromotionType) => {
+    setEditingPromotion(promo);
+    let expiryStr = '';
+    if (promo.expiryDate) {
+      const d = new Date(promo.expiryDate);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      expiryStr = `${year}-${month}-${day}T${hours}:${mins}`;
+    }
+
+    setPromoFormData({
+      title: promo.title || '',
+      message: promo.message || '',
+      code: promo.code || '',
+      discountType: promo.discountType || 'percentage',
+      discountValue: String(promo.discountValue || 20),
+      maxDiscount: promo.maxDiscount ? String(promo.maxDiscount) : '',
+      minBookingAmount: promo.minBookingAmount ? String(promo.minBookingAmount) : '0',
+      expiryDate: expiryStr,
+      imageUrl: promo.imageUrl || '',
+      isActive: promo.isActive !== false,
+      notifySubscribers: false,
+    });
+    setIsPromoModalOpen(true);
+  };
+
+  const handleSavePromotion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoFormData.title.trim() || !promoFormData.message.trim() || !promoFormData.code.trim() || !promoFormData.expiryDate) {
+      toast.error("Please fill in all required fields (Title, Message, Promo Code, Expiry Date).");
+      return;
+    }
+
+    const discountValNum = Number(promoFormData.discountValue);
+    if (isNaN(discountValNum) || discountValNum <= 0) {
+      toast.error("Please enter a valid discount value greater than 0.");
+      return;
+    }
+
+    setIsSavingPromo(true);
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+
+    try {
+      const payload = {
+        title: promoFormData.title.trim(),
+        message: promoFormData.message.trim(),
+        code: promoFormData.code.trim().toUpperCase(),
+        discountType: promoFormData.discountType,
+        discountValue: discountValNum,
+        maxDiscount: promoFormData.maxDiscount ? Number(promoFormData.maxDiscount) : null,
+        minBookingAmount: promoFormData.minBookingAmount ? Number(promoFormData.minBookingAmount) : 0,
+        expiryDate: new Date(promoFormData.expiryDate).toISOString(),
+        imageUrl: promoFormData.imageUrl.trim(),
+        isActive: promoFormData.isActive,
+        notifySubscribers: editingPromotion ? false : promoFormData.notifySubscribers,
+      };
+
+      const url = editingPromotion ? `${baseUrl}promotions/${editingPromotion._id}` : `${baseUrl}promotions`;
+      const method = editingPromotion ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to save promotion");
+      }
+
+      if (!editingPromotion && promoFormData.notifySubscribers && data.notifyResult?.sentCount) {
+        toast.success(`Promotion created & ${data.notifyResult.sentCount} subscribers notified via email!`);
+      } else {
+        toast.success(editingPromotion ? "Promotion updated successfully" : "Promotion created successfully");
+      }
+
+      setIsPromoModalOpen(false);
+      fetchPromotions();
+    } catch (err: any) {
+      console.error("Save promotion error:", err);
+      toast.error(err.message || "Error saving promotion");
+    } finally {
+      setIsSavingPromo(false);
+    }
+  };
+
+  const handleTogglePromotionActive = async (promo: PromotionType) => {
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    try {
+      const res = await fetch(`${baseUrl}promotions/${promo._id}/toggle-status`, {
+        method: 'PATCH',
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Promotion "${promo.code}" is now ${data.promotion.isActive ? 'Active' : 'Deactivated'}`);
+        fetchPromotions();
+      } else {
+        toast.error(data.message || "Failed to toggle status");
+      }
+    } catch (err) {
+      toast.error("Failed to update promotion status");
+    }
+  };
+
+  const handleDeletePromotion = async () => {
+    if (!deletePromoModal) return;
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    try {
+      const res = await fetch(`${baseUrl}promotions/${deletePromoModal._id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Promotion "${deletePromoModal.code}" deleted successfully`);
+        setDeletePromoModal(null);
+        fetchPromotions();
+      } else {
+        toast.error(data.message || "Failed to delete promotion");
+      }
+    } catch (err) {
+      toast.error("Failed to delete promotion");
+    }
+  };
+
+  const handleBroadcastPromotion = async (promo: PromotionType) => {
+    setIsNotifyingPromoId(promo._id);
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+    try {
+      const res = await fetch(`${baseUrl}promotions/${promo._id}/notify-subscribers`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Dispatched promo broadcast to ${data.result?.sentCount ?? 'all'} newsletter subscribers!`);
+        fetchPromotions();
+      } else {
+        toast.error(data.message || "Failed to broadcast promotion to subscribers");
+      }
+    } catch (err) {
+      toast.error("Failed to connect to email broadcast system");
+    } finally {
+      setIsNotifyingPromoId(null);
+    }
+  };
+
+  const handleCopyPromoCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    toast.success(`Promo code "${code}" copied to clipboard!`);
+    setTimeout(() => {
+      setCopiedCode(null);
+    }, 2500);
+  };
+
+  const filteredPromotions = promotions.filter((promo) => {
+    const isExpired = new Date(promo.expiryDate) < new Date();
+    if (promoStatusFilter === 'active' && (!promo.isActive || isExpired)) return false;
+    if (promoStatusFilter === 'inactive' && promo.isActive) return false;
+    if (promoStatusFilter === 'expired' && !isExpired) return false;
+
+    if (!promoSearchTerm.trim()) return true;
+    const term = promoSearchTerm.toLowerCase().trim();
+    return (
+      (promo.code || '').toLowerCase().includes(term) ||
+      (promo.title || '').toLowerCase().includes(term) ||
+      (promo.message || '').toLowerCase().includes(term)
+    );
+  });
 
   // Helper to compute dynamic booked seat metrics and load percentage for each bus
   const getBusSeatMetrics = (bus: BusType) => {
@@ -529,9 +857,10 @@ const AdminDashboard = () => {
       });
 
   const filteredUsers = usersList.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone.includes(searchTerm)
+    (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.phone || '').includes(searchTerm) ||
+    (user.role || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleLogout = () => {
@@ -763,10 +1092,23 @@ const AdminDashboard = () => {
 
 
   // Delete User Handler
-  const handleDeleteUser = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      setUsersList(usersList.filter(user => user.id !== id));
-      toast.success("User removed successfully from directory");
+  const handleDeleteUser = async (id: string, name?: string) => {
+    if (window.confirm(`Are you sure you want to permanently delete user "${name || 'Account'}" from the database?`)) {
+      const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
+      try {
+        const res = await fetch(`${baseUrl}users/${id}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (data.success) {
+          toast.success(data.message || "User deleted successfully");
+          fetchUsers();
+        } else {
+          toast.error(data.message || "Failed to delete user");
+        }
+      } catch (err) {
+        toast.error("Failed to connect to user service");
+      }
     }
   };
 
@@ -899,6 +1241,14 @@ const AdminDashboard = () => {
                 <span className="font-medium text-sm">User Directory</span>
               </button>
 
+              <button
+                onClick={() => { setActiveTab('promotions'); setSearchTerm(''); setIsSidebarOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === 'promotions' ? 'bg-[#aa8453] text-white shadow-lg' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+              >
+                <Tag size={18} />
+                <span className="font-medium text-sm">Promotions & Offers</span>
+              </button>
+
               <Link
                 to="/verify-ticket"
                 onClick={() => setIsSidebarOpen(false)}
@@ -969,7 +1319,7 @@ const AdminDashboard = () => {
               </Link>
             ) : (
               <h1 className="text-lg sm:text-xl md:text-2xl font-serif font-black text-gray-800 capitalize tracking-tight truncate max-w-[170px] sm:max-w-none">
-                {activeTab === 'my-bookings' ? 'My Travel History' : activeTab === 'buses' ? 'Fleet Matrix' : activeTab === 'users' ? 'User Directory' : 'All Bookings'}
+                {activeTab === 'my-bookings' ? 'My Travel History' : activeTab === 'buses' ? 'Fleet Matrix' : activeTab === 'users' ? 'User Directory' : activeTab === 'promotions' ? 'Promotions & Discounts' : 'All Bookings'}
               </h1>
             )}
           </div>
@@ -1263,21 +1613,38 @@ const AdminDashboard = () => {
               <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg sm:text-xl font-serif font-bold text-gray-800">User Directory</h3>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Manage registered passengers</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
+                    Total Registered Users: {usersList.length}
+                  </p>
                 </div>
-                <div className="relative w-full sm:w-auto">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search users..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-full focus:ring-1 focus:ring-[#aa8453] outline-none w-full sm:w-64 transition-all text-sm font-medium"
-                  />
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search users by name, email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 pr-4 py-2 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-full focus:ring-1 focus:ring-[#aa8453] outline-none w-full transition-all text-sm font-medium"
+                    />
+                  </div>
+                  <button
+                    onClick={fetchUsers}
+                    title="Refresh Directory"
+                    disabled={isUsersLoading}
+                    className="p-2.5 bg-gray-50 hover:bg-[#aa8453]/10 text-gray-600 hover:text-[#aa8453] border border-gray-200 rounded-full transition-all duration-300 cursor-pointer disabled:opacity-50"
+                  >
+                    <RotateCcw size={15} className={isUsersLoading ? "animate-spin" : ""} />
+                  </button>
                 </div>
               </div>
               
-              {filteredUsers.length === 0 ? (
+              {isUsersLoading ? (
+                <div className="p-12 text-center space-y-3">
+                  <div className="w-8 h-8 border-2 border-[#aa8453] border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading passenger directory...</p>
+                </div>
+              ) : filteredUsers.length === 0 ? (
                 <div className="p-8 sm:p-12 text-center">
                   <Users size={40} className="mx-auto text-gray-200 mb-3" />
                   <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No users found</p>
@@ -1296,27 +1663,49 @@ const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {filteredUsers.map((user) => (
-                        <tr key={user.id} className="hover:bg-[#fcfaf7]/20 transition-all group">
-                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 font-bold text-gray-800 text-xs sm:text-sm">{user.name}</td>
-                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">{user.email}</td>
-                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">{user.phone}</td>
-                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
-                            <span className="px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#aa8453]/10 text-[#aa8453]">
-                              {user.role}
-                            </span>
-                          </td>
-                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs text-gray-400">{user.dateJoined}</td>
-                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-right">
-                            <button 
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-300 cursor-pointer"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredUsers.map((user) => {
+                        const isSuperAdminAccount = user.role === 'superadmin' || user.email === 'superadmin@safarlink.com';
+                        return (
+                          <tr key={user.id} className="hover:bg-[#fcfaf7]/20 transition-all group">
+                            <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 font-bold text-gray-800 text-xs sm:text-sm">
+                              {user.name}
+                            </td>
+                            <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">
+                              {user.email}
+                            </td>
+                            <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">
+                              {user.phone || "—"}
+                            </td>
+                            <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                              <span className={`px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                isSuperAdminAccount 
+                                  ? 'bg-[#aa8453] text-white shadow-sm' 
+                                  : 'bg-[#aa8453]/10 text-[#aa8453]'
+                              }`}>
+                                {user.role}
+                              </span>
+                            </td>
+                            <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs text-gray-400 font-medium">
+                              {user.dateJoined}
+                            </td>
+                            <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-right">
+                              {isSuperAdminAccount ? (
+                                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider px-2 py-1 bg-gray-50 rounded">
+                                  Protected
+                                </span>
+                              ) : (
+                                <button 
+                                  onClick={() => handleDeleteUser(user.id, user.name)}
+                                  title="Delete User Account"
+                                  className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-300 cursor-pointer"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1424,6 +1813,334 @@ const AdminDashboard = () => {
                     })}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'promotions' && isSuperAdmin && (
+            <div className="space-y-6 sm:space-y-8">
+              {/* Promotions Top Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5 lg:gap-6">
+                <div className="bg-white p-5 rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Promotions</p>
+                    <h3 className="text-2xl sm:text-3xl font-serif font-black text-gray-800 mt-1">{promotions.length}</h3>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-[#aa8453]/10 flex items-center justify-center text-[#aa8453]">
+                    <Tag size={22} />
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Campaigns</p>
+                    <h3 className="text-2xl sm:text-3xl font-serif font-black text-emerald-700 mt-1">
+                      {promotions.filter(p => p.isActive && new Date(p.expiryDate) >= new Date()).length}
+                    </h3>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <Sparkles size={22} />
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Expired / Inactive</p>
+                    <h3 className="text-2xl sm:text-3xl font-serif font-black text-amber-700 mt-1">
+                      {promotions.filter(p => !p.isActive || new Date(p.expiryDate) < new Date()).length}
+                    </h3>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
+                    <Clock size={22} />
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Redemptions</p>
+                    <h3 className="text-2xl sm:text-3xl font-serif font-black text-[#aa8453] mt-1">
+                      {promotions.reduce((sum, p) => sum + (p.usageCount || 0), 0)}
+                    </h3>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-[#aa8453]/10 flex items-center justify-center text-[#aa8453]">
+                    <Percent size={22} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Bar & Filter Bar */}
+              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10 p-4 sm:p-6 lg:p-8">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-serif font-bold text-gray-800">Promotions & Vouchers</h3>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
+                      Manage discount campaigns, broadcast to newsletter subscribers, & monitor promo redemptions
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                    <div className="relative flex-1 sm:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                      <input
+                        type="text"
+                        placeholder="Search promo or code..."
+                        value={promoSearchTerm}
+                        onChange={(e) => setPromoSearchTerm(e.target.value)}
+                        className="pl-10 pr-4 py-2.5 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-full focus:ring-1 focus:ring-[#aa8453] outline-none w-full text-xs sm:text-sm font-medium"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleOpenCreatePromoModal}
+                      className="px-5 py-2.5 bg-[#aa8453] text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#8e6d45] transition-all duration-300 shadow-md flex items-center space-x-2 cursor-pointer"
+                    >
+                      <Plus size={16} />
+                      <span>Create Promotion</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex flex-wrap gap-2 pb-4 border-b border-gray-100">
+                  {(['all', 'active', 'inactive', 'expired'] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setPromoStatusFilter(filter)}
+                      className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                        promoStatusFilter === filter
+                          ? 'bg-[#1b1b1b] text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Promotions Grid */}
+                {isPromotionsLoading ? (
+                  <div className="py-16 text-center space-y-3">
+                    <div className="w-10 h-10 border-2 border-gray-200 border-t-[#aa8453] rounded-full animate-spin mx-auto"></div>
+                    <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">Loading Promotions...</p>
+                  </div>
+                ) : filteredPromotions.length === 0 ? (
+                  <div className="py-16 text-center space-y-4">
+                    <div className="w-16 h-16 bg-[#fcfaf7] rounded-full flex items-center justify-center text-[#aa8453] mx-auto border border-[#aa8453]/20">
+                      <Tag size={28} />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-gray-700 font-serif">No promotions found</h4>
+                      <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+                        {promoSearchTerm || promoStatusFilter !== 'all'
+                          ? "Try adjusting your search query or status filter."
+                          : "Create your first promotional discount campaign to boost bus reservations."}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleOpenCreatePromoModal}
+                      className="px-6 py-2.5 bg-[#aa8453] text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#8e6d45] transition-all cursor-pointer shadow-md inline-flex items-center space-x-2"
+                    >
+                      <Plus size={15} />
+                      <span>Create New Promotion</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pt-6">
+                    {filteredPromotions.map((promo) => {
+                      const isExpired = new Date(promo.expiryDate) < new Date();
+                      const expiryFormatted = formatFriendlyDateDisplay(promo.expiryDate);
+                      const isNotifying = isNotifyingPromoId === promo._id;
+
+                      return (
+                        <div
+                          key={promo._id}
+                          className="bg-white rounded-2xl border border-gray-200 hover:border-[#aa8453]/40 transition-all duration-300 shadow-sm hover:shadow-md overflow-hidden flex flex-col justify-between"
+                        >
+                          <div>
+                            {/* Image Header */}
+                            <div className="relative h-44 bg-[#1b1b1b] overflow-hidden group">
+                              {promo.imageUrl ? (
+                                <img
+                                  src={promo.imageUrl}
+                                  alt={promo.title}
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                  onError={(e: any) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-tr from-[#1b1b1b] via-[#2a241e] to-[#aa8453]/30 flex items-center justify-center p-4 text-center">
+                                  <span className="text-3xl font-serif text-white tracking-widest font-light opacity-80">
+                                    SAFAR<span className="text-[#aa8453] italic font-normal">LINK</span>
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Status Badge */}
+                              <div className="absolute top-3 left-3 flex gap-2">
+                                {isExpired ? (
+                                  <span className="px-2.5 py-1 bg-red-600/95 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow">
+                                    Expired
+                                  </span>
+                                ) : promo.isActive ? (
+                                  <span className="px-2.5 py-1 bg-emerald-600/95 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                                    Active
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 bg-gray-700/95 backdrop-blur-md text-gray-200 text-[10px] font-bold rounded-full uppercase tracking-wider shadow">
+                                    Inactive
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Discount Badge */}
+                              <div className="absolute top-3 right-3">
+                                <span className="px-3 py-1 bg-[#aa8453] text-white text-xs font-black rounded-full uppercase tracking-wider shadow-lg">
+                                  {promo.discountType === 'percentage'
+                                    ? `${promo.discountValue}% OFF`
+                                    : `Rs. ${promo.discountValue} OFF`}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Content Body */}
+                            <div className="p-5 space-y-4">
+                              {/* Title & Message */}
+                              <div>
+                                <h4 className="text-lg font-bold font-serif text-gray-900 leading-snug line-clamp-1">
+                                  {promo.title}
+                                </h4>
+                                <p className="text-xs text-gray-600 mt-1.5 line-clamp-2 leading-relaxed">
+                                  {promo.message}
+                                </p>
+                              </div>
+
+                              {/* Promo Code Box with Copy */}
+                              <div className="bg-[#fcfaf7] border border-dashed border-[#aa8453] p-3 rounded-xl flex items-center justify-between">
+                                <div>
+                                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest font-condensed">
+                                    Promo Code
+                                  </p>
+                                  <span className="font-serif font-black text-base text-gray-900 tracking-wider">
+                                    {promo.code}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyPromoCode(promo.code)}
+                                  className="p-2 hover:bg-white text-[#aa8453] rounded-lg border border-transparent hover:border-[#aa8453]/20 transition-all cursor-pointer flex items-center space-x-1 text-xs font-bold"
+                                  title="Copy promo code"
+                                >
+                                  {copiedCode === promo.code ? (
+                                    <Check size={16} className="text-emerald-600" />
+                                  ) : (
+                                    <Copy size={16} />
+                                  )}
+                                  <span className="text-[10px] uppercase font-condensed">
+                                    {copiedCode === promo.code ? "Copied" : "Copy"}
+                                  </span>
+                                </button>
+                              </div>
+
+                              {/* Meta Details */}
+                              <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                                <div className="space-y-0.5">
+                                  <span className="text-gray-400 uppercase tracking-wider font-condensed text-[10px] block">
+                                    Expires
+                                  </span>
+                                  <span className={`font-semibold ${isExpired ? 'text-red-600' : 'text-gray-700'}`}>
+                                    {expiryFormatted}
+                                  </span>
+                                </div>
+
+                                <div className="space-y-0.5 text-right">
+                                  <span className="text-gray-400 uppercase tracking-wider font-condensed text-[10px] block">
+                                    Redemptions
+                                  </span>
+                                  <span className="font-semibold text-gray-800">
+                                    {promo.usageCount || 0} times
+                                  </span>
+                                </div>
+                              </div>
+
+                              {promo.minBookingAmount && promo.minBookingAmount > 0 && (
+                                <p className="text-[11px] text-gray-500 italic">
+                                  * Min booking amount: Rs. {promo.minBookingAmount}
+                                </p>
+                              )}
+
+                              {/* Subscriber Notification Pill */}
+                              <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+                                <span className="text-gray-500 flex items-center gap-1.5">
+                                  <Mail size={13} className="text-[#aa8453]" />
+                                  {promo.notifiedSubscribers ? (
+                                    <span className="text-emerald-700 font-medium">
+                                      Notified {promo.subscribersNotifiedCount || 0} subscribers
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400">Not broadcasted yet</span>
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Bar at card bottom */}
+                          <div className="p-4 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between gap-2">
+                            {/* Toggle Active Button */}
+                            <button
+                              onClick={() => handleTogglePromotionActive(promo)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                promo.isActive
+                                  ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                                  : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                              }`}
+                              title={promo.isActive ? "Deactivate promo" : "Activate promo"}
+                            >
+                              {promo.isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+
+                            {/* Broadcast / Send to subscribers button */}
+                            <button
+                              onClick={() => handleBroadcastPromotion(promo)}
+                              disabled={isNotifying || !promo.isActive || isExpired}
+                              className="px-3 py-1.5 bg-[#aa8453] hover:bg-[#8e6d45] text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                              title="Broadcast promotion to all newsletter subscribers"
+                            >
+                              {isNotifying ? (
+                                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <Send size={13} />
+                              )}
+                              <span>Email VIPs</span>
+                            </button>
+
+                            <div className="flex items-center space-x-1">
+                              {/* Edit Button */}
+                              <button
+                                onClick={() => handleOpenEditPromoModal(promo)}
+                                className="p-2 text-gray-500 hover:text-[#aa8453] hover:bg-white rounded-lg transition-all cursor-pointer"
+                                title="Edit promotion"
+                              >
+                                <Edit size={16} />
+                              </button>
+
+                              {/* Delete Button */}
+                              <button
+                                onClick={() => setDeletePromoModal(promo)}
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                title="Delete promotion"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1777,6 +2494,353 @@ const AdminDashboard = () => {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create / Edit Promotion Modal */}
+      {isPromoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => !isSavingPromo && setIsPromoModalOpen(false)}></div>
+          <div className="relative bg-white w-full max-w-2xl rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#aa8453]/20 animate-in zoom-in duration-300 flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-[#1b1b1b] p-5 sm:p-7 text-white relative border-b border-[#aa8453]/30 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsPromoModalOpen(false)}
+                disabled={isSavingPromo}
+                className="absolute top-4 sm:top-6 right-4 sm:right-6 w-9 h-9 sm:w-10 sm:h-10 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 backdrop-blur-md cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+              <div className="flex items-center space-x-2.5 mb-1.5">
+                <span className="p-1.5 bg-[#aa8453]/20 rounded-lg text-[#aa8453]">
+                  <Tag size={16} />
+                </span>
+                <span className="text-[10px] uppercase font-bold tracking-[0.25em] text-[#aa8453]">
+                  {editingPromotion ? 'Modify Campaign' : 'Exclusive Campaign Creation'}
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-serif tracking-tight">
+                {editingPromotion ? 'Edit Promotion Voucher' : 'Create New Promotion'}
+              </h2>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSavePromotion} className="p-5 sm:p-7 space-y-4 sm:space-y-5 bg-white overflow-y-auto">
+              {/* Campaign Title */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-1">
+                  <span>Campaign Title</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Spring Super Voyage Sale"
+                  value={promoFormData.title}
+                  onChange={(e) => setPromoFormData({ ...promoFormData, title: e.target.value })}
+                  className="w-full px-4 py-3 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all text-sm font-medium text-gray-800"
+                />
+              </div>
+
+              {/* Promo Code & Auto-generate */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-1">
+                    <span>Voucher Promo Code</span>
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g., SAFAR25"
+                      value={promoFormData.code}
+                      onChange={(e) => setPromoFormData({ ...promoFormData, code: e.target.value.toUpperCase().replace(/\s+/g, '') })}
+                      className="w-full pl-4 pr-24 py-3 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all text-sm font-mono font-black tracking-widest text-[#aa8453]"
+                    />
+                    <button
+                      type="button"
+                      onClick={generateRandomPromoCode}
+                      className="absolute right-1.5 px-2.5 py-1.5 bg-[#aa8453]/10 hover:bg-[#aa8453]/20 text-[#aa8453] rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles size={11} />
+                      <span>Generate</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expiry Date & Time */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-1">
+                    <span>Valid Until (Expiry Date & Time)</span>
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={promoFormData.expiryDate}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, expiryDate: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all text-sm font-medium text-gray-800"
+                  />
+                </div>
+              </div>
+
+              {/* Discount Type & Value */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest ml-1">Discount Mode</label>
+                  <div className="flex bg-[#fcfaf7] p-1 border border-[#aa8453]/20 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setPromoFormData({ ...promoFormData, discountType: 'percentage' })}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                        promoFormData.discountType === 'percentage'
+                          ? 'bg-[#aa8453] text-white shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900'
+                      }`}
+                    >
+                      % Percent
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPromoFormData({ ...promoFormData, discountType: 'fixed' })}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                        promoFormData.discountType === 'fixed'
+                          ? 'bg-[#aa8453] text-white shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900'
+                      }`}
+                    >
+                      Fixed Rs.
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-1">
+                    <span>{promoFormData.discountType === 'percentage' ? 'Discount Rate (%)' : 'Discount Amount (Rs.)'}</span>
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max={promoFormData.discountType === 'percentage' ? '100' : '50000'}
+                      placeholder={promoFormData.discountType === 'percentage' ? '20' : '500'}
+                      value={promoFormData.discountValue}
+                      onChange={(e) => setPromoFormData({ ...promoFormData, discountValue: e.target.value })}
+                      className="w-full px-4 py-3 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all text-sm font-bold text-gray-800"
+                    />
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                      {promoFormData.discountType === 'percentage' ? '%' : 'PKR'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest ml-1">
+                    {promoFormData.discountType === 'percentage' ? 'Max Cap (Rs. Optional)' : 'Min Ticket Total (Rs.)'}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder={promoFormData.discountType === 'percentage' ? 'e.g. 1000' : 'e.g. 1500'}
+                    value={promoFormData.discountType === 'percentage' ? promoFormData.maxDiscount : promoFormData.minBookingAmount}
+                    onChange={(e) => {
+                      if (promoFormData.discountType === 'percentage') {
+                        setPromoFormData({ ...promoFormData, maxDiscount: e.target.value });
+                      } else {
+                        setPromoFormData({ ...promoFormData, minBookingAmount: e.target.value });
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all text-sm font-medium text-gray-800"
+                  />
+                </div>
+              </div>
+
+              {/* Promotion Pitch / Message */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-1">
+                  <span>Promotion Pitch & Message</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Describe your special offer. This message will be sent in the newsletter email and shown to passengers..."
+                  value={promoFormData.message}
+                  onChange={(e) => setPromoFormData({ ...promoFormData, message: e.target.value })}
+                  className="w-full px-4 py-3 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all text-sm font-medium text-gray-800 resize-none"
+                />
+              </div>
+
+              {/* Banner Picture Option & Live Preview */}
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest ml-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <ImageIcon size={13} className="text-[#aa8453]" />
+                    <span>Picture Banner Option (Included in Email & Cards)</span>
+                  </span>
+                  <span className="text-[9px] text-gray-400 font-normal">Direct Image URL</span>
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/photo-..."
+                  value={promoFormData.imageUrl}
+                  onChange={(e) => setPromoFormData({ ...promoFormData, imageUrl: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all text-xs font-mono text-gray-700"
+                />
+
+                {/* Preset Banner Quick Pickers */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="text-[10px] font-bold text-gray-400 self-center mr-1">Presets:</span>
+                  {[
+                    { label: '🚌 Luxury Coach', url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=800&auto=format&fit=crop' },
+                    { label: '🌄 Scenic Voyage', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop' },
+                    { label: '🌃 Night Express', url: 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?q=80&w=800&auto=format&fit=crop' },
+                    { label: '✨ Gold Travel', url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800&auto=format&fit=crop' }
+                  ].map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setPromoFormData({ ...promoFormData, imageUrl: preset.url })}
+                      className="px-2.5 py-1 bg-gray-100 hover:bg-[#aa8453]/10 hover:text-[#aa8453] rounded-lg text-[10px] font-bold text-gray-600 transition-colors cursor-pointer"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Live Preview Box */}
+                {promoFormData.imageUrl && (
+                  <div className="relative h-28 rounded-xl overflow-hidden border border-[#aa8453]/20 mt-2 group">
+                    <img
+                      src={promoFormData.imageUrl}
+                      alt="Banner Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end p-3 text-white">
+                      <div className="flex items-center justify-between w-full">
+                        <div>
+                          <p className="text-xs font-serif font-bold text-white leading-tight">
+                            {promoFormData.title || 'Campaign Title Preview'}
+                          </p>
+                          <p className="text-[10px] text-amber-200 font-mono font-bold tracking-wider">
+                            Code: {promoFormData.code || 'SAFAR20'}
+                          </p>
+                        </div>
+                        <span className="px-2 py-1 bg-[#aa8453] text-white text-[10px] font-black rounded-lg uppercase">
+                          {promoFormData.discountType === 'percentage' ? `${promoFormData.discountValue || 0}% OFF` : `Rs. ${promoFormData.discountValue || 0} OFF`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Status and Subscriber Notification Option */}
+              <div className="pt-2 border-t border-gray-100 space-y-3">
+                <div className="flex items-center space-x-3 p-3 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-xl">
+                  <input
+                    type="checkbox"
+                    id="promoIsActive"
+                    checked={promoFormData.isActive}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, isActive: e.target.checked })}
+                    className="w-4 h-4 accent-[#aa8453] cursor-pointer"
+                  />
+                  <label htmlFor="promoIsActive" className="cursor-pointer text-xs font-bold text-gray-700 flex items-center space-x-1.5">
+                    <span>Activate Campaign Immediately</span>
+                    <span className="text-[10px] text-gray-400 font-normal">(Passengers can apply this code right away)</span>
+                  </label>
+                </div>
+
+                {!editingPromotion && (
+                  <div className="p-3.5 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-2">
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="checkbox"
+                        id="promoNotifySubscribers"
+                        checked={promoFormData.notifySubscribers}
+                        onChange={(e) => setPromoFormData({ ...promoFormData, notifySubscribers: e.target.checked })}
+                        className="w-4 h-4 mt-0.5 accent-[#aa8453] cursor-pointer"
+                      />
+                      <div>
+                        <label htmlFor="promoNotifySubscribers" className="cursor-pointer text-xs font-bold text-[#aa8453] flex items-center space-x-1.5">
+                          <Mail size={14} />
+                          <span>Automatically notify all newsletter subscribers via email</span>
+                        </label>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                          Dispatches a luxury branded email with your campaign message, picture banner, promo code voucher, discount rate, and expiry timestamp to all registered newsletter subscribers.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="pt-3 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPromoModalOpen(false)}
+                  disabled={isSavingPromo}
+                  className="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold uppercase text-xs tracking-wider rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingPromo}
+                  className="flex-1 py-3.5 bg-[#aa8453] hover:bg-[#8e6d45] text-white font-condensed tracking-widest uppercase text-xs sm:text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingPromo ? (
+                    <span>Publishing Campaign...</span>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      <span>{editingPromotion ? 'Update Promotion' : 'Publish & Broadcast'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Promotion Confirmation Dialog */}
+      {deletePromoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setDeletePromoModal(null)}></div>
+          <div className="relative bg-white w-full max-w-md rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-2xl border border-red-200 text-center animate-in zoom-in duration-300">
+            <div className="w-14 h-14 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
+              <Trash2 size={26} />
+            </div>
+            <h3 className="text-xl font-serif font-bold text-gray-900 mb-1.5">Delete Promotion Campaign?</h3>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-gray-800">"{deletePromoModal.title}"</strong> with promo code <span className="font-mono font-bold text-[#aa8453] bg-amber-50 px-1.5 py-0.5 rounded">[{deletePromoModal.code}]</span>? Passengers will no longer be able to redeem this voucher.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletePromoModal(null)}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold uppercase text-xs tracking-wider rounded-xl transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeletePromotion}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold uppercase text-xs tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
+              >
+                Delete Campaign
+              </button>
             </div>
           </div>
         </div>

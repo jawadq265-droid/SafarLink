@@ -4,13 +4,46 @@ import Stripe from 'stripe';
 import QRCode from 'qrcode';
 import Booking from '../models/booking.model.js';
 import Bus from '../models/bus.model.js';
+import Promotion from '../models/promotion.model.js';
 
 export const createStripeCheckoutSession = async (req, res) => {
   try {
-    const { amount, ticketId, description } = req.body;
+    const { amount, ticketId, description, promoCode, rawAmount } = req.body;
 
-    if (!amount) {
+    if (amount === undefined || amount === null) {
       return res.status(400).json({ success: false, message: "Amount is required." });
+    }
+
+    let finalChargeAmount = Number(amount);
+    let appliedPromoDetails = null;
+
+    // If promoCode provided, verify validity securely on server
+    if (promoCode) {
+      try {
+        const cleanCode = String(promoCode).trim().toUpperCase();
+        const promo = await Promotion.findOne({ code: cleanCode });
+        if (promo && promo.isActive && new Date(promo.expiryDate) >= new Date()) {
+          const base = Number(rawAmount) || finalChargeAmount;
+          let calculatedDiscount = 0;
+          if (promo.discountType === "percentage") {
+            calculatedDiscount = Math.round((base * promo.discountValue) / 100);
+            if (promo.maxDiscount && promo.maxDiscount > 0) {
+              calculatedDiscount = Math.min(calculatedDiscount, promo.maxDiscount);
+            }
+          } else {
+            calculatedDiscount = Math.min(promo.discountValue, base);
+          }
+          finalChargeAmount = Math.max(0, base - calculatedDiscount);
+          appliedPromoDetails = {
+            code: promo.code,
+            discountAmount: calculatedDiscount,
+            discountValue: promo.discountValue,
+            discountType: promo.discountType,
+          };
+        }
+      } catch (promoErr) {
+        console.warn("Could not verify promo code during checkout session creation:", promoErr.message);
+      }
     }
 
     const stripeKey = process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.trim() : null;
@@ -32,7 +65,7 @@ export const createStripeCheckoutSession = async (req, res) => {
                   name: `Bus Ticket - SafarLink`,
                   description: description || `Bus ticket reservation via SafarLink`,
                 },
-                unit_amount: Math.round(parseFloat(amount) * 100), // in cents / paisa
+                unit_amount: Math.round(parseFloat(finalChargeAmount) * 100), // in cents / paisa
               },
               quantity: 1,
             },
@@ -42,6 +75,8 @@ export const createStripeCheckoutSession = async (req, res) => {
           cancel_url: `${clientUrl}/bus?status=cancelled&message=Payment cancelled`,
           metadata: {
             ticketId: ticketId || "",
+            promoCode: appliedPromoDetails?.code || promoCode || "",
+            discountAmount: appliedPromoDetails ? String(appliedPromoDetails.discountAmount) : "0",
           },
         });
 
@@ -83,7 +118,7 @@ export const sendPaymentClearanceEmail = async (req, res) => {
       return res.status(400).json({ success: false, message: "Booking data is required" });
     }
 
-    const { selectedRoute, selectedSeats, passengerInfo, ticketId, txnRefNo } = bookingData;
+    const { selectedRoute, selectedSeats, passengerInfo, ticketId, txnRefNo, promoCode, discountAmount: reqDiscount, originalAmount: reqOriginal } = bookingData;
 
     // Format and sort seats list
     const sortedSeats = Array.isArray(selectedSeats)
@@ -109,6 +144,12 @@ export const sendPaymentClearanceEmail = async (req, res) => {
       console.error("QR Code generation error:", qrErr);
     }
 
+    const rawFare = selectedRoute?.price ? selectedRoute.price * (selectedSeats?.length || 1) : 0;
+    const discountAmount = Number(reqDiscount) || (bookingData?.discountAmount ? Number(bookingData.discountAmount) : 0);
+    const finalAmountNum = Math.max(0, rawFare - discountAmount);
+    const totalAmount = bookingData.amount || `Rs. ${finalAmountNum}`;
+    const originalAmountStr = reqOriginal || `Rs. ${rawFare}`;
+
     // Save actual booking to database
     try {
       const busName = selectedRoute?.bus || selectedRoute?.name || "N/A";
@@ -116,7 +157,6 @@ export const sendPaymentClearanceEmail = async (req, res) => {
       const routeFrom = selectedRoute?.from || "N/A";
       const routeTo = selectedRoute?.to || "N/A";
       const depTime = selectedRoute?.time || "N/A";
-      const totalAmount = `Rs. ${selectedRoute?.price ? selectedRoute.price * (selectedSeats?.length || 1) : 0}`;
 
       // Check if ticket already exists
       let existing = await Booking.findOne({ ticketId });
@@ -127,6 +167,7 @@ export const sendPaymentClearanceEmail = async (req, res) => {
           passengerPhone: passengerInfo?.phone || "N/A",
           passengerCnic: passengerInfo?.cnic || "N/A",
           passengerEmail: passengerInfo?.email || "N/A",
+          userEmail: bookingData.userEmail || passengerInfo?.userEmail || passengerInfo?.email || "N/A",
           bus: busName,
           date: travelDate,
           amount: totalAmount,
@@ -137,10 +178,25 @@ export const sendPaymentClearanceEmail = async (req, res) => {
           txnRefNo: txnRefNo || "N/A",
           status: "Upcoming",
           type: "Upcoming",
-          qrCodeDataUrl: qrDataUrl
+          qrCodeDataUrl: qrDataUrl,
+          promoCode: promoCode ? String(promoCode).trim().toUpperCase() : null,
+          discountAmount: discountAmount,
+          originalAmount: originalAmountStr
         });
         await newBooking.save();
         console.log("Booking successfully saved in database:", ticketId);
+
+        // Increment promo code usage count if applied
+        if (promoCode) {
+          try {
+            await Promotion.findOneAndUpdate(
+              { code: String(promoCode).trim().toUpperCase() },
+              { $inc: { usageCount: 1 } }
+            );
+          } catch (promoIncErr) {
+            console.warn("Failed to increment promotion usage count:", promoIncErr.message);
+          }
+        }
 
         // Deduct booked seats from matching bus
         try {
@@ -231,9 +287,19 @@ export const sendPaymentClearanceEmail = async (req, res) => {
                     <td style="padding: 6px 0; color: #777;">Allocated Seat(s):</td>
                     <td style="padding: 6px 0; font-weight: bold; text-align: right; color: #aa8453; font-size: 16px;">${seatsList || "N/A"}</td>
                   </tr>
+                  ${discountAmount > 0 ? `
+                  <tr>
+                    <td style="padding: 6px 0; color: #777;">Standard Fare:</td>
+                    <td style="padding: 6px 0; text-decoration: line-through; text-align: right; color: #888;">${originalAmountStr}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #16a34a; font-weight: bold;">Promo Code (${promoCode || 'PROMO'}):</td>
+                    <td style="padding: 6px 0; font-weight: bold; text-align: right; color: #16a34a;">-Rs. ${discountAmount}</td>
+                  </tr>
+                  ` : ''}
                   <tr>
                     <td style="padding: 6px 0; color: #777;">Total Amount Paid:</td>
-                    <td style="padding: 6px 0; font-weight: bold; text-align: right; color: #1b1b1b; font-size: 16px;">${selectedRoute?.price ? `Rs. ${selectedRoute.price * (selectedSeats?.length || 1)}` : "N/A"}</td>
+                    <td style="padding: 6px 0; font-weight: bold; text-align: right; color: #aa8453; font-size: 18px;">${totalAmount}</td>
                   </tr>
                 </table>
               </div>
@@ -273,7 +339,24 @@ export const sendPaymentClearanceEmail = async (req, res) => {
 
 export const getBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find().sort({ createdAt: -1 });
+    const { email, role } = req.query;
+
+    // If a specific user email is provided AND they are not superadmin,
+    // only return their own bookings — never expose other users' data
+    const isSuperAdmin = role === 'superadmin' || email === 'superadmin@safarlink.com';
+
+    let query = {};
+    if (email && !isSuperAdmin) {
+      const cleanEmail = email.trim();
+      query = {
+        $or: [
+          { passengerEmail: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } },
+          { userEmail: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } }
+        ]
+      };
+    }
+
+    const bookings = await Booking.find(query).sort({ createdAt: -1 });
     // Normalize cancelled bookings to 25% policy tier
     for (let b of bookings) {
       if ((b.status === "Cancelled" || b.status === "Refunded") && b.refundPercentage !== 25) {

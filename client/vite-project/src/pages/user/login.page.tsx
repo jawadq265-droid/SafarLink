@@ -42,7 +42,12 @@ const LoginPage = () => {
             localStorage.setItem("userName", data.user.name);
 
             toast.success("Login Successful");
-            navigate("/admin");
+            const isSuperAdmin = data.user.role === "superadmin" || data.user.email === "superadmin@safarlink.com";
+            if (isSuperAdmin) {
+                navigate("/admin");
+            } else {
+                navigate("/");
+            }
 
         } 
 catch (err) {

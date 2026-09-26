@@ -7,6 +7,7 @@ const bookingSchema = new mongoose.Schema(
     passengerPhone: { type: String, required: true },
     passengerCnic: { type: String, required: true },
     passengerEmail: { type: String, required: true },
+    userEmail: { type: String },
     bus: { type: String, required: true },
     date: { type: String, required: true }, // e.g. "2026-07-02"
     amount: { type: String, required: true },
@@ -33,6 +34,9 @@ const bookingSchema = new mongoose.Schema(
     cancellationReason: { type: String },
     boardedAt: { type: Date },
     qrCodeDataUrl: { type: String },
+    promoCode: { type: String, default: null },
+    discountAmount: { type: Number, default: 0 },
+    originalAmount: { type: String, default: null },
   },
   { timestamps: true }
 );

@@ -15,5 +15,11 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['canvg']
+  },
+  build: {
+    rollupOptions: {
+      external: (id) => id.startsWith('core-js/'),
+    }
   }
 })
+

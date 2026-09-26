@@ -143,7 +143,7 @@ const Navbar = () => {
             {isLoggedIn ? (
               <div className="flex items-center space-x-3">
                 <Link
-                  to="/admin"
+                  to={isSuperAdmin ? "/admin" : "/bookings"}
                   className="h-9 px-4 inline-flex items-center gap-2 bg-[#aa8453] hover:bg-[#8e6d45] text-white rounded-full text-xs font-condensed tracking-[0.15em] font-bold uppercase transition-all duration-300 shadow-md shadow-amber-950/20 border border-[#aa8453]"
                 >
                   <LayoutDashboard size={14} />
@@ -188,7 +188,7 @@ const Navbar = () => {
             {/* Tablet-only Admin Panel Button */}
             {isLoggedIn && (
               <Link
-                to="/admin"
+                to={isSuperAdmin ? "/admin" : "/bookings"}
                 className="hidden sm:inline-flex md:inline-flex items-center gap-1.5 h-8 px-3 bg-[#aa8453] hover:bg-[#8e6d45] text-white rounded-full text-[10px] font-condensed tracking-[0.15em] font-bold uppercase border border-[#aa8453] transition-all"
               >
                 <LayoutDashboard size={13} />
@@ -257,7 +257,7 @@ const Navbar = () => {
                   </div>
 
                   <Link
-                    to="/admin"
+                    to={isSuperAdmin ? "/admin" : "/bookings"}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="w-full h-11 bg-[#aa8453] hover:bg-[#8e6d45] text-white rounded-xl text-xs font-condensed tracking-[0.2em] font-bold uppercase flex items-center justify-center gap-2 shadow-lg shadow-amber-950/20 transition-all border border-[#aa8453]"
                   >
