@@ -56,29 +56,29 @@ const MyBookingsPage = () => {
   };
 
   return (
-    <div className="bg-[#fcfaf7] min-h-screen pt-28 pb-20 font-sans">
-      <div className="container mx-auto px-6 max-w-6xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-6 border-b border-gray-200">
+    <div className="bg-[#fcfaf7] min-h-screen pt-24 sm:pt-28 pb-16 sm:pb-20 font-sans">
+      <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 sm:mb-8 pb-5 sm:pb-6 border-b border-gray-200 gap-4">
           <div>
             <Link to="/admin" className="inline-flex items-center space-x-1 text-xs text-[#aa8453] uppercase font-bold tracking-wider mb-2 hover:underline">
               <ArrowLeft size={14} />
               <span>Back to Admin Dashboard</span>
             </Link>
-            <h1 className="text-3xl font-serif font-bold text-gray-800">Booking Records & Manifests</h1>
-            <p className="text-gray-500 text-sm mt-1">Live customer bookings, payment clearance receipts, and QR validation statuses.</p>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-gray-800">Booking Records & Manifests</h1>
+            <p className="text-gray-500 text-xs sm:text-sm mt-1">Live customer bookings, payment clearance receipts, and QR validation statuses.</p>
           </div>
 
-          <div className="mt-4 md:mt-0 flex items-center space-x-3">
+          <div className="flex items-center space-x-3 shrink-0">
             <button
               onClick={loadBookings}
-              className="p-2.5 border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 rounded-xl transition"
+              className="p-2.5 border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 rounded-xl transition cursor-pointer"
               title="Refresh"
             >
               <RefreshCw size={16} className={loading ? "animate-spin text-[#aa8453]" : ""} />
             </button>
             <Link
               to="/verify-ticket"
-              className="px-5 py-2.5 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center space-x-2 shadow"
+              className="px-4 sm:px-5 py-2.5 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center space-x-2 shadow cursor-pointer"
             >
               <QrCode size={14} className="text-[#aa8453]" />
               <span>QR Scanner</span>
@@ -86,25 +86,25 @@ const MyBookingsPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
           {loading ? (
-            <div className="p-16 text-center text-gray-500 font-serif">
+            <div className="p-12 sm:p-16 text-center text-gray-500 font-serif">
               <div className="w-8 h-8 border-2 border-[#aa8453] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
               <p>Fetching booking records...</p>
             </div>
           ) : bookings.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left min-w-[640px]">
                 <thead className="bg-[#fcfaf7] border-b border-gray-100">
                   <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    <th className="px-6 py-4">Ticket ID</th>
-                    <th className="px-6 py-4">Passenger</th>
-                    <th className="px-6 py-4">Fleet / Service</th>
-                    <th className="px-6 py-4">Route</th>
-                    <th className="px-6 py-4">Date & Time</th>
-                    <th className="px-6 py-4">Amount</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Ticket ID</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Passenger</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Fleet / Service</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Route</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Date & Time</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Amount</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4">Status</th>
+                    <th className="px-4 sm:px-6 py-3.5 sm:py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm">
@@ -115,24 +115,24 @@ const MyBookingsPage = () => {
 
                     return (
                       <tr key={booking._id || ticketId} className="hover:bg-[#fcfaf7]/50 transition">
-                        <td className="px-6 py-4 font-mono font-bold text-[#aa8453]">
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 font-mono font-bold text-[#aa8453] text-xs sm:text-sm">
                           #{ticketId}
                         </td>
-                        <td className="px-6 py-4 font-bold text-gray-800">
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-gray-800 text-xs sm:text-sm">
                           <div>{booking.userName}</div>
                           <div className="text-[11px] text-gray-400 font-normal font-mono">{booking.passengerPhone}</div>
                         </td>
-                        <td className="px-6 py-4 text-gray-700 font-medium">{booking.bus}</td>
-                        <td className="px-6 py-4 text-gray-700">
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 text-gray-700 font-medium text-xs sm:text-sm">{booking.bus}</td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 text-gray-700 text-xs sm:text-sm">
                           {booking.routeFrom || "Lahore"} <span className="text-[#aa8453]">➔</span> {booking.routeTo || "Islamabad"}
                         </td>
-                        <td className="px-6 py-4 text-gray-600 text-xs">
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 text-gray-600 text-xs">
                           <div>{formatVoyageDate(booking.date)}</div>
                           <div className="text-gray-400">{booking.departureTime || "08:00 AM"}</div>
                         </td>
-                        <td className="px-6 py-4 font-bold text-gray-900">{booking.amount}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-gray-900 text-xs sm:text-sm">{booking.amount}</td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${
                             isCancelled 
                               ? 'bg-red-100 text-red-700 border border-red-200' 
                               : isBoarded
@@ -142,7 +142,7 @@ const MyBookingsPage = () => {
                             {booking.status || 'Upcoming'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 text-right">
                           <div className="flex items-center justify-end space-x-2">
                             <Link
                               to={`/verify-ticket?id=${encodeURIComponent(ticketId)}`}

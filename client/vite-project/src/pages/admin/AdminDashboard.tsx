@@ -16,6 +16,7 @@ import {
   Filter,
   Eye,
   X,
+  Menu,
   Ticket,
   ArrowLeft,
   MapPin,
@@ -133,6 +134,7 @@ const AdminDashboard = () => {
   const userEmail = localStorage.getItem("userEmail") || "";
   const userName = localStorage.getItem("userName") || "User";
   const isSuperAdmin = userRole === "superadmin" || userEmail === "superadmin@safarlink.com";
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // State-driven Fleet Matrix connected to MongoDB
   const [buses, setBuses] = useState<BusType[]>(() => {
@@ -782,22 +784,41 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex h-screen bg-[#fcfaf7] overflow-hidden font-sans">
+      {/* Mobile Sidebar Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-[#1b1b1b] flex flex-col z-20 shadow-2xl border-r border-[#aa8453]/20">
-        <div className="p-6 border-b border-[#aa8453]/20 bg-[#141414] flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2">
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#1b1b1b] flex flex-col shadow-2xl border-r border-[#aa8453]/20 transition-transform duration-300 ease-in-out lg:static lg:w-64 lg:z-20 lg:translate-x-0 ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="p-5 sm:p-6 border-b border-[#aa8453]/20 bg-[#141414] flex items-center justify-between">
+          <Link to="/" onClick={() => setIsSidebarOpen(false)} className="flex items-center space-x-2">
             <span className="text-2xl font-serif text-white tracking-tighter">Safar<span className="text-[#aa8453] font-light italic">Link</span></span>
             <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md ${isSuperAdmin ? 'bg-[#aa8453] text-white' : 'bg-white/10 text-gray-300'}`}>
               {isSuperAdmin ? 'Super' : 'Portal'}
             </span>
           </Link>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            aria-label="Close sidebar"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2 mt-4">
+        <nav className="flex-1 p-4 space-y-2 mt-4 overflow-y-auto">
           {isSuperAdmin ? (
             <>
               <button
-                onClick={() => { setActiveTab('dashboard'); setSearchTerm(''); }}
+                onClick={() => { setActiveTab('dashboard'); setSearchTerm(''); setIsSidebarOpen(false); }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-[#aa8453] text-white shadow-lg' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
               >
                 <LayoutDashboard size={18} />
@@ -805,7 +826,7 @@ const AdminDashboard = () => {
               </button>
 
               <button
-                onClick={() => { setActiveTab('buses'); setSearchTerm(''); }}
+                onClick={() => { setActiveTab('buses'); setSearchTerm(''); setIsSidebarOpen(false); }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === 'buses' ? 'bg-[#aa8453] text-white shadow-lg' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
               >
                 <Bus size={18} />
@@ -813,7 +834,7 @@ const AdminDashboard = () => {
               </button>
 
               <button
-                onClick={() => { setActiveTab('bookings'); setSearchTerm(''); }}
+                onClick={() => { setActiveTab('bookings'); setSearchTerm(''); setIsSidebarOpen(false); }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === 'bookings' ? 'bg-[#aa8453] text-white shadow-lg' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
               >
                 <Calendar size={18} />
@@ -821,7 +842,7 @@ const AdminDashboard = () => {
               </button>
 
               <button
-                onClick={() => { setActiveTab('users'); setSearchTerm(''); }}
+                onClick={() => { setActiveTab('users'); setSearchTerm(''); setIsSidebarOpen(false); }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === 'users' ? 'bg-[#aa8453] text-white shadow-lg' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
               >
                 <Users size={18} />
@@ -830,6 +851,7 @@ const AdminDashboard = () => {
 
               <Link
                 to="/verify-ticket"
+                onClick={() => setIsSidebarOpen(false)}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white`}
               >
                 <ShieldCheck size={18} className="text-[#aa8453]" />
@@ -839,7 +861,7 @@ const AdminDashboard = () => {
           ) : (
             <>
               <button
-                onClick={() => { setActiveTab('my-bookings'); setSearchTerm(''); }}
+                onClick={() => { setActiveTab('my-bookings'); setSearchTerm(''); setIsSidebarOpen(false); }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeTab === 'my-bookings' ? 'bg-[#aa8453] text-white shadow-lg' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
               >
                 <Ticket size={18} />
@@ -847,6 +869,7 @@ const AdminDashboard = () => {
               </button>
               <Link
                 to="/verify-ticket"
+                onClick={() => setIsSidebarOpen(false)}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white`}
               >
                 <ShieldCheck size={18} className="text-[#aa8453]" />
@@ -854,6 +877,7 @@ const AdminDashboard = () => {
               </Link>
               <Link
                 to="/bus"
+                onClick={() => setIsSidebarOpen(false)}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white`}
               >
                 <Plus size={18} />
@@ -865,7 +889,7 @@ const AdminDashboard = () => {
 
         <div className="p-4 border-t border-[#aa8453]/20 bg-[#141414]">
           <button
-            className="w-full flex items-center justify-center space-x-3 px-4 py-3 bg-red-950/40 text-red-400 hover:text-white hover:bg-red-900/60 rounded-xl font-bold transition-all duration-300 shadow-inner"
+            className="w-full flex items-center justify-center space-x-3 px-4 py-3 bg-red-950/40 text-red-400 hover:text-white hover:bg-red-900/60 rounded-xl font-bold transition-all duration-300 shadow-inner cursor-pointer"
             onClick={handleLogout}
           >
             <LogOut size={16} />
@@ -877,61 +901,70 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">
         {/* Header */}
-        <header className="sticky top-0 bg-[#fcfaf7]/85 backdrop-blur-md border-b border-[#aa8453]/10 z-10 px-8 py-5 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        <header className="sticky top-0 bg-[#fcfaf7]/90 backdrop-blur-md border-b border-[#aa8453]/15 z-10 px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            {/* Mobile hamburger button */}
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden w-9 h-9 rounded-xl bg-white border border-[#aa8453]/25 shadow-sm text-gray-700 hover:text-[#aa8453] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              aria-label="Open sidebar menu"
+            >
+              <Menu size={20} />
+            </button>
+
             {activeTab === 'dashboard' ? (
-              <Link to="/" className="flex items-center space-x-2 text-gray-500 hover:text-[#aa8453] transition-colors group">
-                <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                <span className="text-sm font-bold font-condensed tracking-wider text-[#aa8453] uppercase">Back To Home</span>
+              <Link to="/" className="flex items-center space-x-1.5 sm:space-x-2 text-gray-500 hover:text-[#aa8453] transition-colors group">
+                <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform sm:w-[18px] sm:h-[18px]" />
+                <span className="text-xs sm:text-sm font-bold font-condensed tracking-wider text-[#aa8453] uppercase whitespace-nowrap">Back To Home</span>
               </Link>
             ) : (
-              <h1 className="text-2xl font-serif font-black text-gray-800 capitalize tracking-tight">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-serif font-black text-gray-800 capitalize tracking-tight truncate max-w-[170px] sm:max-w-none">
                 {activeTab === 'my-bookings' ? 'My Travel History' : activeTab === 'buses' ? 'Fleet Matrix' : activeTab === 'users' ? 'User Directory' : 'All Bookings'}
               </h1>
             )}
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {isSuperAdmin && activeTab === 'bookings' && (
-              <div className="flex items-center space-x-2 px-4 py-2 bg-white border border-[#aa8453]/20 rounded-full shadow-sm">
-                <Filter size={14} className="text-[#aa8453]" />
+              <div className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white border border-[#aa8453]/20 rounded-full shadow-sm">
+                <Filter size={13} className="text-[#aa8453] shrink-0" />
                 <input
                   type="date"
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value)}
-                  className="text-xs font-bold text-gray-600 outline-none border-none bg-transparent"
+                  className="text-[11px] sm:text-xs font-bold text-gray-600 outline-none border-none bg-transparent"
                 />
               </div>
             )}
-            <div className="flex items-center space-x-3 ml-4 border-l pl-4 border-gray-200">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-serif font-black shadow-lg bg-[#aa8453]`}>
-                {userName.substring(0, 1).toUpperCase()}
+            <div className="flex items-center space-x-2 sm:space-x-3 sm:ml-2 sm:border-l sm:pl-3 border-gray-200">
+              <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-white font-serif font-black text-xs sm:text-sm shadow-md bg-[#aa8453] shrink-0`}>
+                {userName ? userName.substring(0, 1).toUpperCase() : "U"}
               </div>
               <div className="hidden md:block">
                 <p className="text-xs font-black text-gray-800 leading-none mb-1">{isSuperAdmin ? 'Super Admin' : 'Active User'}</p>
-                <p className="text-[9px] text-[#aa8453] font-bold uppercase tracking-widest">{userEmail}</p>
+                <p className="text-[9px] text-[#aa8453] font-bold uppercase tracking-widest truncate max-w-[140px] lg:max-w-[180px]">{userEmail}</p>
               </div>
             </div>
           </div>
         </header>
 
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {activeTab === 'dashboard' && isSuperAdmin && (
             <>
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5 lg:gap-6 mb-6 sm:mb-8">
                 {stats.map((stat, i) => (
-                  <div key={i} className="bg-white p-6 rounded-3xl shadow-sm border border-[#aa8453]/10 hover:border-[#aa8453]/30 transition-all duration-300 hover:shadow-md group overflow-hidden relative">
+                  <div key={i} className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10 hover:border-[#aa8453]/30 transition-all duration-300 hover:shadow-md group overflow-hidden relative">
                     <div className="relative z-10 flex items-start justify-between">
                       <div>
                         <p className="text-[9px] uppercase font-black text-gray-400 tracking-widest mb-1">{stat.title}</p>
-                        <h3 className="text-2xl font-serif font-bold text-gray-800">{stat.value}</h3>
+                        <h3 className="text-xl sm:text-2xl font-serif font-bold text-gray-800">{stat.value}</h3>
                       </div>
-                      <div className={`${stat.color} p-3 rounded-2xl text-white group-hover:rotate-6 transition duration-300 shadow-md`}>
-                        <stat.icon size={20} />
+                      <div className={`${stat.color} p-2.5 sm:p-3 rounded-2xl text-white group-hover:rotate-6 transition duration-300 shadow-md shrink-0`}>
+                        <stat.icon size={18} />
                       </div>
                     </div>
-                    <div className="mt-4 flex items-center text-[10px] relative z-10">
+                    <div className="mt-3 sm:mt-4 flex items-center text-[10px] relative z-10">
                       <span className="text-[#aa8453] font-black mr-1 uppercase">↑ {stat.trend}</span>
                     </div>
                   </div>
@@ -939,21 +972,21 @@ const AdminDashboard = () => {
               </div>
 
               {/* Quick Actions & Recent */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                 {/* Recent Buses Table */}
-                <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-[#aa8453]/10 overflow-hidden">
-                  <div className="p-6 border-b border-[#aa8453]/10 flex items-center justify-between flex-wrap gap-3">
+                <div className="lg:col-span-2 bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10 overflow-hidden">
+                  <div className="p-4 sm:p-6 border-b border-[#aa8453]/10 flex items-center justify-between flex-wrap gap-2.5">
                     <div className="flex items-center space-x-3">
-                      <h3 className="text-lg font-serif font-bold text-gray-800">Live Fleet Performance</h3>
+                      <h3 className="text-base sm:text-lg font-serif font-bold text-gray-800">Live Fleet Performance</h3>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <span className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold tracking-wider uppercase">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <span className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[9px] sm:text-[10px] font-bold tracking-wider uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
                         <span>1h Dispatch Cycle</span>
                       </span>
                       <button 
                         onClick={() => setActiveTab('buses')}
-                        className="flex items-center space-x-1 text-[#aa8453] hover:text-[#8e6d45] font-bold text-xs uppercase tracking-widest"
+                        className="flex items-center space-x-1 text-[#aa8453] hover:text-[#8e6d45] font-bold text-[11px] sm:text-xs uppercase tracking-widest cursor-pointer"
                       >
                         <span>Full Fleet</span>
                         <ChevronRight size={14} />
@@ -961,13 +994,13 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[560px]">
                       <thead>
                         <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-[#fcfaf7]/50">
-                          <th className="px-6 py-4">Vehicle</th>
-                          <th className="px-6 py-4">Availability</th>
-                          <th className="px-6 py-4">Departure Time</th>
-                          <th className="px-6 py-4 text-right">Load</th>
+                          <th className="px-4 sm:px-6 py-3.5 sm:py-4">Vehicle</th>
+                          <th className="px-4 sm:px-6 py-3.5 sm:py-4">Availability</th>
+                          <th className="px-4 sm:px-6 py-3.5 sm:py-4">Departure Time</th>
+                          <th className="px-4 sm:px-6 py-3.5 sm:py-4 text-right">Load</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -976,41 +1009,41 @@ const AdminDashboard = () => {
                           const { effectiveSeatsLeft, loadPercent } = getBusSeatMetrics(bus);
                           return (
                             <tr key={bus.id || bus._id} className="hover:bg-[#fcfaf7]/40 transition-all group">
-                              <td className="px-6 py-4">
+                              <td className="px-4 sm:px-6 py-3.5 sm:py-4">
                                 <div className="flex items-center space-x-3">
-                                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${effectiveSeatsLeft === 0 ? 'bg-red-50 text-red-600' : 'bg-[#aa8453]/10 text-[#aa8453]'}`}>
-                                    <Bus size={18} />
+                                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center shadow-inner shrink-0 ${effectiveSeatsLeft === 0 ? 'bg-red-50 text-red-600' : 'bg-[#aa8453]/10 text-[#aa8453]'}`}>
+                                    <Bus size={17} />
                                   </div>
                                   <div>
-                                    <p className="font-bold text-gray-800 text-sm leading-none mb-1">{bus.name}</p>
+                                    <p className="font-bold text-gray-800 text-xs sm:text-sm leading-none mb-1">{bus.name}</p>
                                     <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">{bus.route}</p>
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-6 py-4">
+                              <td className="px-4 sm:px-6 py-3.5 sm:py-4">
                                 <div className="flex items-center space-x-2">
-                                  <span className={`text-sm font-black ${effectiveSeatsLeft < 10 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                  <span className={`text-xs sm:text-sm font-black ${effectiveSeatsLeft < 10 ? 'text-red-500' : 'text-emerald-600'}`}>
                                     {effectiveSeatsLeft}
                                   </span>
                                   <span className="text-[10px] font-bold text-gray-400 tracking-tighter uppercase">Seats Left</span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4">
-                                <div className="flex items-center space-x-2.5">
-                                  <div className="p-1.5 bg-[#aa8453]/10 text-[#aa8453] rounded-lg">
-                                    <Clock size={14} />
+                              <td className="px-4 sm:px-6 py-3.5 sm:py-4">
+                                <div className="flex items-center space-x-2">
+                                  <div className="p-1 sm:p-1.5 bg-[#aa8453]/10 text-[#aa8453] rounded-lg shrink-0">
+                                    <Clock size={13} />
                                   </div>
                                   <div>
                                     <p className="text-xs font-bold text-gray-800 leading-none mb-1">{depRuntime.formattedTime}</p>
-                                    <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase bg-amber-50 text-[#aa8453] border border-[#aa8453]/20 animate-pulse">
+                                    <span className="inline-block px-1.5 sm:px-2 py-0.5 rounded-full text-[8.5px] sm:text-[9px] font-black tracking-wider uppercase bg-amber-50 text-[#aa8453] border border-[#aa8453]/20 animate-pulse">
                                       {depRuntime.displayCountdown}
                                     </span>
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-6 py-4">
-                                <div className="flex items-center justify-end space-x-3">
-                                  <div className="w-24 bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner">
+                              <td className="px-4 sm:px-6 py-3.5 sm:py-4">
+                                <div className="flex items-center justify-end space-x-2 sm:space-x-3">
+                                  <div className="w-16 sm:w-24 bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner">
                                     <div
                                       className={`h-full transition-all duration-1000 ${effectiveSeatsLeft === 0 ? 'bg-red-500' : 'bg-[#aa8453]'}`}
                                       style={{ width: `${loadPercent}%` }}
@@ -1028,33 +1061,33 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="space-y-6">
-                  <div className="bg-white p-8 rounded-3xl shadow-sm border border-[#aa8453]/10">
-                    <h3 className="text-lg font-serif font-bold text-gray-800 mb-6">Operations</h3>
+                  <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10">
+                    <h3 className="text-base sm:text-lg font-serif font-bold text-gray-800 mb-4 sm:mb-6">Operations</h3>
                     <div className="space-y-3">
                       <button 
                         onClick={() => setShowAddBusModal(true)}
-                        className="w-full flex items-center justify-center space-x-2 py-4 bg-[#aa8453] text-white rounded-2xl font-bold hover:bg-[#8e6d45] shadow-lg shadow-amber-100 transition-all duration-300"
+                        className="w-full flex items-center justify-center space-x-2 py-3.5 sm:py-4 bg-[#aa8453] text-white rounded-2xl font-bold hover:bg-[#8e6d45] shadow-lg shadow-amber-100 transition-all duration-300 cursor-pointer"
                       >
                         <Plus size={18} />
-                        <span className="text-sm font-condensed tracking-wider uppercase">Register New Vehicle</span>
+                        <span className="text-xs sm:text-sm font-condensed tracking-wider uppercase">Register New Vehicle</span>
                       </button>
                       <button 
                         onClick={() => setActiveTab('buses')}
-                        className="w-full flex items-center justify-center space-x-2 py-4 bg-white border border-[#aa8453]/30 text-gray-700 rounded-2xl font-bold hover:bg-[#fcfaf7] transition-all duration-300"
+                        className="w-full flex items-center justify-center space-x-2 py-3.5 sm:py-4 bg-white border border-[#aa8453]/30 text-gray-700 rounded-2xl font-bold hover:bg-[#fcfaf7] transition-all duration-300 cursor-pointer"
                       >
                         <Calendar size={18} />
-                        <span className="text-sm font-condensed tracking-wider uppercase">Update Schedules</span>
+                        <span className="text-xs sm:text-sm font-condensed tracking-wider uppercase">Update Schedules</span>
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-[#1b1b1b] p-8 rounded-3xl shadow-2xl text-white relative overflow-hidden group border border-[#aa8453]/30">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-150 transition-all duration-700">
+                  <div className="bg-[#1b1b1b] p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl text-white relative overflow-hidden group border border-[#aa8453]/30">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-150 transition-all duration-700 pointer-events-none">
                       <TrendingUp size={120} />
                     </div>
-                    <h4 className="text-xl font-serif text-[#aa8453] font-bold mb-2 relative z-10">Neural Sync</h4>
-                    <p className="text-xs text-gray-400 mb-8 relative z-10 leading-relaxed">System-wide terminal synchronization is active at 99.9% precision.</p>
-                    <div className="flex items-center space-x-3 text-emerald-400 font-bold text-[10px] uppercase tracking-[0.2em] relative z-10 bg-emerald-400/10 w-fit px-4 py-2 rounded-full border border-emerald-400/20">
+                    <h4 className="text-lg sm:text-xl font-serif text-[#aa8453] font-bold mb-2 relative z-10">Neural Sync</h4>
+                    <p className="text-xs text-gray-400 mb-6 sm:mb-8 relative z-10 leading-relaxed">System-wide terminal synchronization is active at 99.9% precision.</p>
+                    <div className="flex items-center space-x-2 sm:space-x-3 text-emerald-400 font-bold text-[9px] sm:text-[10px] uppercase tracking-[0.2em] relative z-10 bg-emerald-400/10 w-fit px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-emerald-400/20">
                       <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></div>
                       <span>Live Cloud Matrix Active</span>
                     </div>
@@ -1065,27 +1098,27 @@ const AdminDashboard = () => {
           )}
 
           {activeTab === 'buses' && isSuperAdmin && (
-            <div className="space-y-8">
-              <div className="bg-white rounded-3xl shadow-sm border border-[#aa8453]/10 overflow-hidden">
-                <div className="p-8 border-b border-gray-100 flex items-center justify-between flex-wrap gap-4">
+            <div className="space-y-6 sm:space-y-8">
+              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10 overflow-hidden">
+                <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-xl font-serif font-bold text-gray-800">Fleet & Route Matrix</h3>
+                    <h3 className="text-lg sm:text-xl font-serif font-bold text-gray-800">Fleet & Route Matrix</h3>
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Configure your inter-city network</p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-auto">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                       <input
                         type="text"
                         placeholder="Search fleet..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 pr-4 py-2 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-full focus:ring-1 focus:ring-[#aa8453] outline-none w-64 transition-all text-sm font-medium"
+                        className="pl-10 pr-4 py-2 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-full focus:ring-1 focus:ring-[#aa8453] outline-none w-full sm:w-56 md:w-64 transition-all text-sm font-medium"
                       />
                     </div>
                     <button 
                       onClick={() => setShowAddBusModal(true)}
-                      className="flex items-center space-x-2 px-6 py-2 bg-[#aa8453] text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#8e6d45] transition-all duration-300 shadow-md"
+                      className="flex items-center justify-center space-x-2 px-5 py-2.5 bg-[#aa8453] text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#8e6d45] transition-all duration-300 shadow-md cursor-pointer shrink-0"
                     >
                       <Plus size={14} />
                       <span>Add Route</span>
@@ -1093,22 +1126,22 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[640px]">
                     <thead>
                       <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-[#fcfaf7]/50">
-                        <th className="px-8 py-5">Vehicle Image</th>
-                        <th className="px-8 py-5">Service Name</th>
-                        <th className="px-8 py-5">Route Link</th>
-                        <th className="px-8 py-5">Pricing</th>
-                        <th className="px-8 py-5">Popular Route</th>
-                        <th className="px-8 py-5 text-right">Actions</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Vehicle Image</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Service Name</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Route Link</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Pricing</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Popular Route</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {filteredBuses.map((bus) => (
                         <tr key={bus.id} className="hover:bg-[#fcfaf7]/20 transition-all group">
-                          <td className="px-8 py-6">
-                            <div className="w-20 h-14 bg-gray-100 rounded-xl overflow-hidden border border-gray-100 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                            <div className="w-16 h-12 sm:w-20 sm:h-14 bg-gray-100 rounded-xl overflow-hidden border border-gray-100 shadow-inner group-hover:scale-105 transition-transform duration-500">
                               <img 
                                 src={bus.image} 
                                 className="w-full h-full object-cover" 
@@ -1116,53 +1149,53 @@ const AdminDashboard = () => {
                               />
                             </div>
                           </td>
-                          <td className="px-8 py-6">
-                            <p className="font-bold text-gray-800 text-sm leading-none mb-1">{bus.name}</p>
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                            <p className="font-bold text-gray-800 text-xs sm:text-sm leading-none mb-1">{bus.name}</p>
                             <p className="text-[10px] text-[#aa8453] font-bold uppercase tracking-tighter">Luxury Executive</p>
                           </td>
-                          <td className="px-8 py-6">
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
                             <div className="flex items-center space-x-2">
-                              <MapPin size={12} className="text-[#aa8453]" />
-                              <span className="text-sm font-medium text-gray-700">{bus.route}</span>
+                              <MapPin size={12} className="text-[#aa8453] shrink-0" />
+                              <span className="text-xs sm:text-sm font-medium text-gray-700">{bus.route}</span>
                             </div>
                           </td>
-                          <td className="px-8 py-6">
-                            <span className="font-bold text-gray-800 tracking-tighter">Rs. {bus.price.toLocaleString()}</span>
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                            <span className="font-bold text-gray-800 tracking-tighter text-xs sm:text-sm">Rs. {bus.price.toLocaleString()}</span>
                           </td>
-                          <td className="px-8 py-6">
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
                             <button
                               onClick={() => handleTogglePopular(bus)}
-                              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all duration-300 border ${
+                              className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold tracking-wider uppercase transition-all duration-300 border cursor-pointer ${
                                 bus.isPopular
                                   ? 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100 shadow-sm'
                                   : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'
                               }`}
                               title="Click to toggle whether this route appears in Popular Routes"
                             >
-                              <Star size={12} className={bus.isPopular ? "fill-amber-400 text-amber-500" : "text-gray-300"} />
+                              <Star size={11} className={bus.isPopular ? "fill-amber-400 text-amber-500" : "text-gray-300"} />
                               <span>{bus.isPopular ? "Popular" : "Standard"}</span>
                             </button>
                           </td>
-                          <td className="px-8 py-6 text-right">
-                            <div className="flex items-center justify-end space-x-2">
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-right">
+                            <div className="flex items-center justify-end space-x-1 sm:space-x-2">
                               <button 
                                 onClick={() => handleTogglePopular(bus)}
                                 title={bus.isPopular ? "Remove from Popular Routes" : "Promote to Popular Routes"}
-                                className={`p-2 rounded-lg transition-all duration-300 ${bus.isPopular ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-gray-50'}`}
+                                className={`p-1.5 sm:p-2 rounded-lg transition-all duration-300 cursor-pointer ${bus.isPopular ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-gray-50'}`}
                               >
-                                <Star size={16} className={bus.isPopular ? "fill-amber-400" : ""} />
+                                <Star size={15} className={bus.isPopular ? "fill-amber-400" : ""} />
                               </button>
                               <button 
                                 onClick={() => openEditModal(bus)}
-                                className="p-2 text-gray-400 hover:text-[#aa8453] hover:bg-[#aa8453]/10 rounded-lg transition-all duration-300"
+                                className="p-1.5 sm:p-2 text-gray-400 hover:text-[#aa8453] hover:bg-[#aa8453]/10 rounded-lg transition-all duration-300 cursor-pointer"
                               >
-                                <Edit size={16} />
+                                <Edit size={15} />
                               </button>
                               <button 
                                 onClick={() => handleDeleteBus(bus._id || bus.id)}
-                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-300"
+                                className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-300 cursor-pointer"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={15} />
                               </button>
                             </div>
                           </td>
@@ -1176,60 +1209,60 @@ const AdminDashboard = () => {
           )}
 
           {activeTab === 'users' && isSuperAdmin && (
-            <div className="bg-white rounded-3xl shadow-sm border border-[#aa8453]/10 overflow-hidden">
-              <div className="p-8 border-b border-gray-100 flex items-center justify-between">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10 overflow-hidden">
+              <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-serif font-bold text-gray-800">User Directory</h3>
+                  <h3 className="text-lg sm:text-xl font-serif font-bold text-gray-800">User Directory</h3>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Manage registered passengers</p>
                 </div>
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                   <input
                     type="text"
                     placeholder="Search users..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-full focus:ring-1 focus:ring-[#aa8453] outline-none w-64 transition-all text-sm font-medium"
+                    className="pl-10 pr-4 py-2 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-full focus:ring-1 focus:ring-[#aa8453] outline-none w-full sm:w-64 transition-all text-sm font-medium"
                   />
                 </div>
               </div>
               
               {filteredUsers.length === 0 ? (
-                <div className="p-12 text-center">
-                  <Users size={48} className="mx-auto text-gray-200 mb-4" />
+                <div className="p-8 sm:p-12 text-center">
+                  <Users size={40} className="mx-auto text-gray-200 mb-3" />
                   <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No users found</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[640px]">
                     <thead>
                       <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-[#fcfaf7]/50">
-                        <th className="px-8 py-5">Name</th>
-                        <th className="px-8 py-5">Email</th>
-                        <th className="px-8 py-5">Phone</th>
-                        <th className="px-8 py-5">Role</th>
-                        <th className="px-8 py-5">Date Joined</th>
-                        <th className="px-8 py-5 text-right">Actions</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Name</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Email</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Phone</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Role</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Date Joined</th>
+                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {filteredUsers.map((user) => (
                         <tr key={user.id} className="hover:bg-[#fcfaf7]/20 transition-all group">
-                          <td className="px-8 py-6 font-bold text-gray-800 text-sm">{user.name}</td>
-                          <td className="px-8 py-6 text-sm text-gray-600">{user.email}</td>
-                          <td className="px-8 py-6 text-sm text-gray-600">{user.phone}</td>
-                          <td className="px-8 py-6">
-                            <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#aa8453]/10 text-[#aa8453]">
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 font-bold text-gray-800 text-xs sm:text-sm">{user.name}</td>
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">{user.email}</td>
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">{user.phone}</td>
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                            <span className="px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#aa8453]/10 text-[#aa8453]">
                               {user.role}
                             </span>
                           </td>
-                          <td className="px-8 py-6 text-xs text-gray-400">{user.dateJoined}</td>
-                          <td className="px-8 py-6 text-right">
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs text-gray-400">{user.dateJoined}</td>
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-right">
                             <button 
                               onClick={() => handleDeleteUser(user.id)}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-300"
+                              className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-300 cursor-pointer"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={15} />
                             </button>
                           </td>
                         </tr>
@@ -1242,43 +1275,43 @@ const AdminDashboard = () => {
           )}
 
           {(activeTab === 'bookings' || activeTab === 'my-bookings') && (
-            <div className="bg-white rounded-3xl shadow-sm border border-[#aa8453]/10 overflow-hidden">
-              <div className="p-8 border-b border-gray-100 flex items-center justify-between">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-[#aa8453]/10 overflow-hidden">
+              <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-serif font-bold text-gray-800">{isSuperAdmin ? 'Fleet Bookings' : 'My Trips'}</h3>
+                  <h3 className="text-lg sm:text-xl font-serif font-bold text-gray-800">{isSuperAdmin ? 'Fleet Bookings' : 'My Trips'}</h3>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Total Records: {filteredBookings.length}</p>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:space-x-4 w-full sm:w-auto">
                   {isSuperAdmin && (
-                    <div className="relative">
+                    <div className="relative w-full sm:w-auto">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                       <input
                         type="text"
                         placeholder="Search records..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 pr-4 py-2 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-full focus:ring-1 focus:ring-[#aa8453] outline-none w-64 transition-all text-sm font-medium"
+                        className="pl-10 pr-4 py-2 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-full focus:ring-1 focus:ring-[#aa8453] outline-none w-full sm:w-64 transition-all text-sm font-medium"
                       />
                     </div>
                   )}
                   {!isSuperAdmin && (
-                    <Link to="/bus" className="px-6 py-2 bg-[#aa8453] text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#8e6d45] transition-all duration-300 shadow-md">
+                    <Link to="/bus" className="px-5 py-2.5 bg-[#aa8453] text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#8e6d45] transition-all duration-300 shadow-md text-center">
                       Book New
                     </Link>
                   )}
                 </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[640px]">
                   <thead>
                     <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-[#fcfaf7]/50">
-                      <th className="px-8 py-5">Record ID</th>
-                      <th className="px-8 py-5">{isSuperAdmin ? 'Passenger' : 'Service'}</th>
-                      <th className="px-8 py-5">Destination / Route</th>
-                      <th className="px-8 py-5">Date</th>
-                      <th className="px-8 py-5">Fare</th>
-                      <th className="px-8 py-5">Status</th>
-                      <th className="px-8 py-5 text-right">Actions</th>
+                      <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Record ID</th>
+                      <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">{isSuperAdmin ? 'Passenger' : 'Service'}</th>
+                      <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Destination / Route</th>
+                      <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Date</th>
+                      <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Fare</th>
+                      <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Status</th>
+                      <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -1287,38 +1320,38 @@ const AdminDashboard = () => {
                       const isBoarded = booking.status === 'Boarded';
                       return (
                         <tr key={booking.id} className="hover:bg-[#fcfaf7]/20 transition-all group">
-                          <td className="px-8 py-6">
-                            <span className="font-bold text-[#aa8453] text-sm tracking-tighter">#{booking.id}</span>
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                            <span className="font-bold text-[#aa8453] text-xs sm:text-sm tracking-tighter">#{booking.id}</span>
                           </td>
-                          <td className="px-8 py-6">
-                            <div className="flex items-center space-x-4">
-                              <div className="w-10 h-10 bg-[#fcfaf7] rounded-2xl flex items-center justify-center text-[#aa8453] font-bold text-lg shadow-inner">
-                                {isSuperAdmin ? booking.userName.charAt(0) : <Bus size={18} />}
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#fcfaf7] rounded-2xl flex items-center justify-center text-[#aa8453] font-bold text-base sm:text-lg shadow-inner shrink-0">
+                                {isSuperAdmin ? booking.userName.charAt(0) : <Bus size={17} />}
                               </div>
                               <div>
-                                <p className="font-bold text-gray-800 text-sm leading-none mb-1">{isSuperAdmin ? booking.userName : booking.bus}</p>
+                                <p className="font-bold text-gray-800 text-xs sm:text-sm leading-none mb-1">{isSuperAdmin ? booking.userName : booking.bus}</p>
                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
                                   {isSuperAdmin ? 'Registered Client' : 'Premium Service'}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-8 py-6">
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
                             <div className="flex flex-col">
-                              <p className="text-sm font-bold text-gray-700 leading-none mb-1">{booking.bus}</p>
+                              <p className="text-xs sm:text-sm font-bold text-gray-700 leading-none mb-1">{booking.bus}</p>
                               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Inter-City Link</p>
                             </div>
                           </td>
-                          <td className="px-8 py-6">
-                            <div className="px-3 py-1 bg-gray-100 rounded-lg w-fit">
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                            <div className="px-2.5 py-1 bg-gray-100 rounded-lg w-fit">
                               <span className="text-[10px] font-bold text-gray-600 uppercase tracking-tighter">{booking.date}</span>
                             </div>
                           </td>
-                          <td className="px-8 py-6">
-                            <span className="font-bold text-gray-800 text-sm tracking-tighter">{booking.amount}</span>
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                            <span className="font-bold text-gray-800 text-xs sm:text-sm tracking-tighter">{booking.amount}</span>
                           </td>
-                          <td className="px-8 py-6">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
+                            <span className={`px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${
                               isCancelled
                                 ? 'bg-red-100 text-red-700 border border-red-200'
                                 : isBoarded
@@ -1328,12 +1361,12 @@ const AdminDashboard = () => {
                               {booking.status || 'Upcoming'}
                             </span>
                           </td>
-                          <td className="px-8 py-6 text-right">
+                          <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-right">
                             <button
                               onClick={() => setSelectedBooking(booking)}
-                              className="p-3 text-[#aa8453] hover:bg-[#aa8453]/10 rounded-2xl transition-all duration-300"
+                              className="p-2 sm:p-3 text-[#aa8453] hover:bg-[#aa8453]/10 rounded-xl sm:rounded-2xl transition-all duration-300 cursor-pointer"
                             >
-                              <Eye size={18} />
+                              <Eye size={17} />
                             </button>
                           </td>
                         </tr>
@@ -1349,106 +1382,106 @@ const AdminDashboard = () => {
 
       {/* Add Bus Modal */}
       {showAddBusModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowAddBusModal(false)}></div>
-          <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#aa8453]/20 animate-in zoom-in duration-300">
-            <div className="bg-[#1b1b1b] p-10 text-white relative border-b border-[#aa8453]/30">
-              <button onClick={() => setShowAddBusModal(false)} className="absolute top-8 right-8 w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300">
-                <X size={20} />
+          <div className="relative bg-white w-full max-w-2xl rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#aa8453]/20 animate-in zoom-in duration-300">
+            <div className="bg-[#1b1b1b] p-5 sm:p-8 md:p-10 text-white relative border-b border-[#aa8453]/30">
+              <button onClick={() => setShowAddBusModal(false)} className="absolute top-4 sm:top-8 right-4 sm:right-8 w-9 h-9 sm:w-10 sm:h-10 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 cursor-pointer">
+                <X size={18} />
               </button>
-              <p className="text-[10px] uppercase font-bold tracking-[0.3em] text-[#aa8453] mb-3">System Configuration</p>
-              <h2 className="text-3xl font-serif tracking-tighter">Register New Route</h2>
+              <p className="text-[10px] uppercase font-bold tracking-[0.3em] text-[#aa8453] mb-2 sm:mb-3">System Configuration</p>
+              <h2 className="text-2xl sm:text-3xl font-serif tracking-tighter">Register New Route</h2>
             </div>
-            <form onSubmit={handleAddBus} className="p-10 space-y-6 bg-white max-h-[60vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
+            <form onSubmit={handleAddBus} className="p-5 sm:p-8 md:p-10 space-y-4 sm:space-y-6 bg-white max-h-[75vh] sm:max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Service Name</label>
                   <input 
                     type="text" 
                     placeholder="e.g. Safar Gold" 
                     value={newBusName}
                     onChange={(e) => setNewBusName(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Route Path</label>
                   <input 
                     type="text" 
                     placeholder="e.g. Lahore - Multan" 
                     value={newBusRoute}
                     onChange={(e) => setNewBusRoute(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Route Image (Homepage)</label>
                   <input 
                     type="file" 
                     accept="image/*"
                     onChange={handleNewBusImageChange}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-3 sm:px-6 py-2.5 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-xs sm:text-sm" 
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Bus Image (Booking Page)</label>
                   <input 
                     type="file" 
                     accept="image/*"
                     onChange={handleNewBusBusImageChange}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-3 sm:px-6 py-2.5 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-xs sm:text-sm" 
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-6">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Fare (Rs.)</label>
                   <input 
                     type="number" 
                     placeholder="1500" 
                     value={newBusFare}
                     onChange={(e) => setNewBusFare(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Capacity</label>
                   <input 
                     type="number" 
                     placeholder="40" 
                     value={newBusCapacity}
                     onChange={(e) => setNewBusCapacity(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Departure Time</label>
                   <input 
                     type="time" 
                     value={newBusTime}
                     onChange={(e) => setNewBusTime(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
               </div>
-              <div className="flex items-center space-x-3 p-4 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-2xl">
+              <div className="flex items-center space-x-3 p-3.5 sm:p-4 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-xl sm:rounded-2xl">
                 <input 
                   type="checkbox" 
                   id="newBusIsPopular" 
                   checked={newBusIsPopular} 
                   onChange={(e) => setNewBusIsPopular(e.target.checked)} 
-                  className="w-5 h-5 accent-[#aa8453] cursor-pointer"
+                  className="w-4 h-4 sm:w-5 sm:h-5 accent-[#aa8453] cursor-pointer"
                 />
-                <label htmlFor="newBusIsPopular" className="cursor-pointer text-xs font-bold text-gray-700 flex items-center space-x-2">
-                  <Star size={15} className="fill-amber-400 text-amber-500" />
+                <label htmlFor="newBusIsPopular" className="cursor-pointer text-[11px] sm:text-xs font-bold text-gray-700 flex items-center space-x-2">
+                  <Star size={14} className="fill-amber-400 text-amber-500 shrink-0" />
                   <span>Feature in Popular Routes (Showcase on Homepage & Bus Popular Routes)</span>
                 </label>
               </div>
               <button 
                 type="submit" 
-                className="w-full py-5 bg-[#1b1b1b] hover:bg-black text-white font-condensed tracking-widest uppercase text-sm border-none rounded-2xl transition duration-300"
+                className="w-full py-4 sm:py-5 bg-[#1b1b1b] hover:bg-black text-white font-condensed tracking-widest uppercase text-xs sm:text-sm border-none rounded-xl sm:rounded-2xl transition duration-300 cursor-pointer shadow-lg"
               >
                 Initialize Route Manifest
               </button>
@@ -1459,102 +1492,102 @@ const AdminDashboard = () => {
 
       {/* Edit Bus Modal */}
       {editingBus && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setEditingBus(null)}></div>
-          <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#aa8453]/20 animate-in zoom-in duration-300">
-            <div className="bg-[#1b1b1b] p-10 text-white relative border-b border-[#aa8453]/30">
-              <button onClick={() => setEditingBus(null)} className="absolute top-8 right-8 w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300">
-                <X size={20} />
+          <div className="relative bg-white w-full max-w-2xl rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#aa8453]/20 animate-in zoom-in duration-300">
+            <div className="bg-[#1b1b1b] p-5 sm:p-8 md:p-10 text-white relative border-b border-[#aa8453]/30">
+              <button onClick={() => setEditingBus(null)} className="absolute top-4 sm:top-8 right-4 sm:right-8 w-9 h-9 sm:w-10 sm:h-10 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 cursor-pointer">
+                <X size={18} />
               </button>
-              <p className="text-[10px] uppercase font-bold tracking-[0.3em] text-[#aa8453] mb-3">System Modification</p>
-              <h2 className="text-3xl font-serif tracking-tighter">Edit Route: {editingBus.name}</h2>
+              <p className="text-[10px] uppercase font-bold tracking-[0.3em] text-[#aa8453] mb-2 sm:mb-3">System Modification</p>
+              <h2 className="text-2xl sm:text-3xl font-serif tracking-tighter truncate max-w-[280px] sm:max-w-none">Edit Route: {editingBus.name}</h2>
             </div>
-            <form onSubmit={handleEditBus} className="p-10 space-y-6 bg-white max-h-[60vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
+            <form onSubmit={handleEditBus} className="p-5 sm:p-8 md:p-10 space-y-4 sm:space-y-6 bg-white max-h-[75vh] sm:max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Service Name</label>
                   <input 
                     type="text" 
                     value={editBusName}
                     onChange={(e) => setEditBusName(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Route Path</label>
                   <input 
                     type="text" 
                     value={editBusRoute}
                     onChange={(e) => setEditBusRoute(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Route Image (Homepage)</label>
                   <input 
                     type="file" 
                     accept="image/*"
                     onChange={handleEditBusImageChange}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-3 sm:px-6 py-2.5 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-xs sm:text-sm" 
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Bus Image (Booking Page)</label>
                   <input 
                     type="file" 
                     accept="image/*"
                     onChange={handleEditBusBusImageChange}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-3 sm:px-6 py-2.5 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-xs sm:text-sm" 
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-6">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Fare (Rs.)</label>
                   <input 
                     type="number" 
                     value={editBusFare}
                     onChange={(e) => setEditBusFare(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Capacity</label>
                   <input 
                     type="number" 
                     value={editBusCapacity}
                     onChange={(e) => setEditBusCapacity(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">Departure Time</label>
                   <input 
                     type="time" 
                     value={editBusTime}
                     onChange={(e) => setEditBusTime(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-1 focus:ring-[#aa8453] focus:border-[#aa8453] outline-none transition-all font-medium text-sm" 
                   />
                 </div>
               </div>
-              <div className="flex items-center space-x-3 p-4 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-2xl">
+              <div className="flex items-center space-x-3 p-3.5 sm:p-4 bg-[#fcfaf7] border border-[#aa8453]/20 rounded-xl sm:rounded-2xl">
                 <input 
                   type="checkbox" 
                   id="editBusIsPopular" 
                   checked={editBusIsPopular} 
                   onChange={(e) => setEditBusIsPopular(e.target.checked)} 
-                  className="w-5 h-5 accent-[#aa8453] cursor-pointer"
+                  className="w-4 h-4 sm:w-5 sm:h-5 accent-[#aa8453] cursor-pointer"
                 />
-                <label htmlFor="editBusIsPopular" className="cursor-pointer text-xs font-bold text-gray-700 flex items-center space-x-2">
-                  <Star size={15} className="fill-amber-400 text-amber-500" />
+                <label htmlFor="editBusIsPopular" className="cursor-pointer text-[11px] sm:text-xs font-bold text-gray-700 flex items-center space-x-2">
+                  <Star size={14} className="fill-amber-400 text-amber-500 shrink-0" />
                   <span>Feature in Popular Routes (Showcase on Homepage & Bus Popular Routes)</span>
                 </label>
               </div>
               <button 
                 type="submit" 
-                className="w-full py-5 bg-[#aa8453] hover:bg-[#8e6d45] text-white font-condensed tracking-widest uppercase text-sm border-none rounded-2xl transition duration-300"
+                className="w-full py-4 sm:py-5 bg-[#aa8453] hover:bg-[#8e6d45] text-white font-condensed tracking-widest uppercase text-xs sm:text-sm border-none rounded-xl sm:rounded-2xl transition duration-300 cursor-pointer shadow-lg"
               >
                 Apply Manifest Modifications
               </button>
@@ -1565,15 +1598,15 @@ const AdminDashboard = () => {
 
       {/* Booking Detail Modal */}
       {selectedBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSelectedBooking(null)}></div>
-          <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#aa8453]/20 animate-in zoom-in duration-300">
-            <div className="bg-[#1b1b1b] p-8 text-white relative border-b border-[#aa8453]/30">
+          <div className="relative bg-white w-full max-w-lg rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#aa8453]/20 animate-in zoom-in duration-300">
+            <div className="bg-[#1b1b1b] p-5 sm:p-8 text-white relative border-b border-[#aa8453]/30">
               <button
                 onClick={() => setSelectedBooking(null)}
-                className="absolute top-8 right-8 w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 backdrop-blur-md"
+                className="absolute top-4 sm:top-8 right-4 sm:right-8 w-9 h-9 sm:w-10 sm:h-10 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 backdrop-blur-md cursor-pointer"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
               <div className="flex items-center space-x-3 mb-2">
                 <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-[#aa8453]">Electronic Manifest</span>
@@ -1587,47 +1620,47 @@ const AdminDashboard = () => {
                   {selectedBooking.status || 'Upcoming'}
                 </span>
               </div>
-              <h2 className="text-3xl font-serif tracking-tighter">{selectedBooking.id}</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif tracking-tighter truncate max-w-[280px] sm:max-w-none">{selectedBooking.id}</h2>
             </div>
-            <div className="p-8 space-y-6 bg-white max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-6">
+            <div className="p-5 sm:p-8 space-y-4 sm:space-y-6 bg-white max-h-[75vh] sm:max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em] mb-1">Passenger</p>
-                  <p className="font-bold text-gray-800 text-base tracking-tight">{isSuperAdmin ? selectedBooking.userName : userName}</p>
+                  <p className="font-bold text-gray-800 text-sm sm:text-base tracking-tight">{isSuperAdmin ? selectedBooking.userName : userName}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em] mb-1">Identifier</p>
-                  <p className="font-bold text-gray-800 text-base tracking-tight">{selectedBooking.cnic}</p>
+                  <p className="font-bold text-gray-800 text-sm sm:text-base tracking-tight">{selectedBooking.cnic}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em] mb-1">Contact</p>
-                  <p className="font-bold text-gray-800 text-base tracking-tight">{selectedBooking.phone}</p>
+                  <p className="font-bold text-gray-800 text-sm sm:text-base tracking-tight">{selectedBooking.phone}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em] mb-1">Total Paid</p>
-                  <p className="font-bold text-[#aa8453] text-lg tracking-tighter">{selectedBooking.amount}</p>
+                  <p className="font-bold text-[#aa8453] text-base sm:text-lg tracking-tighter">{selectedBooking.amount}</p>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100">
+              <div className="pt-3 sm:pt-4 border-t border-gray-100">
                 <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em] mb-2">Journey Parameters</p>
-                <div className="bg-[#fcfaf7] rounded-2xl p-5 flex justify-between items-center shadow-inner border border-[#aa8453]/10">
+                <div className="bg-[#fcfaf7] rounded-xl sm:rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-inner border border-[#aa8453]/10">
                   <div>
-                    <p className="text-base font-bold text-gray-800 tracking-tight leading-none mb-1">{selectedBooking.bus}</p>
+                    <p className="text-sm sm:text-base font-bold text-gray-800 tracking-tight leading-none mb-1">{selectedBooking.bus}</p>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formatVoyageDate(selectedBooking.date)} at {selectedBooking.departureTime || '08:00 AM'}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className="text-[10px] uppercase font-bold text-[#aa8453] tracking-widest mb-1">Seats Allocated</p>
-                    <p className="font-bold text-[#aa8453] text-lg tracking-tighter">{selectedBooking.seats.join(", ")}</p>
+                    <p className="font-bold text-[#aa8453] text-base sm:text-lg tracking-tighter">{selectedBooking.seats.join(", ")}</p>
                   </div>
                 </div>
               </div>
 
               {/* Cancellation & Refund Info if Cancelled */}
               {(selectedBooking.status === 'Cancelled' || selectedBooking.status === 'Refunded') && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-xs space-y-1">
+                <div className="p-3.5 sm:p-4 bg-red-50 border border-red-200 rounded-xl sm:rounded-2xl text-red-800 text-xs space-y-1">
                   <p className="font-bold flex items-center">
-                    <AlertTriangle size={14} className="mr-1.5 text-red-600" />
+                    <AlertTriangle size={14} className="mr-1.5 text-red-600 shrink-0" />
                     Booking Cancelled
                   </p>
                   <p>Refund Processed: <strong>Rs. {selectedBooking.refundAmount?.toLocaleString() || 0}</strong> ({selectedBooking.refundPercentage || 0}% tier).</p>
@@ -1635,11 +1668,11 @@ const AdminDashboard = () => {
               )}
 
               {/* Action Buttons */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-2.5 sm:space-y-3 pt-2">
                 <div className="flex flex-col sm:flex-row gap-2">
                   <button
                     onClick={() => handleDownloadAdminTicket(selectedBooking)}
-                    className="flex-1 py-3.5 px-3 bg-[#aa8453] text-white rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-[#8e6d45] transition-all duration-300 shadow-md flex items-center justify-center gap-2"
+                    className="flex-1 py-3 sm:py-3.5 px-3 bg-[#aa8453] text-white rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-[#8e6d45] transition-all duration-300 shadow-md flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Download size={15} />
                     <span>Download PDF</span>
@@ -1648,7 +1681,7 @@ const AdminDashboard = () => {
                   <Link
                     to={`/verify-ticket?id=${encodeURIComponent(selectedBooking.id)}`}
                     target="_blank"
-                    className="py-3.5 px-4 bg-gray-900 text-white rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-black transition-all duration-300 flex items-center justify-center gap-1.5"
+                    className="py-3 sm:py-3.5 px-4 bg-gray-900 text-white rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-black transition-all duration-300 flex items-center justify-center gap-1.5"
                   >
                     <QrCode size={15} className="text-[#aa8453]" />
                     <span>Verify QR</span>
@@ -1656,7 +1689,7 @@ const AdminDashboard = () => {
 
                   <button
                     onClick={() => handleShareAdminTicket(selectedBooking)}
-                    className="py-3.5 px-4 bg-amber-50 text-[#aa8453] border border-[#aa8453]/30 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-amber-100 transition-all duration-300 flex items-center justify-center gap-1.5"
+                    className="py-3 sm:py-3.5 px-4 bg-amber-50 text-[#aa8453] border border-[#aa8453]/30 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-amber-100 transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Share2 size={15} />
                     <span>Share</span>
@@ -1667,7 +1700,7 @@ const AdminDashboard = () => {
                 {isSuperAdmin && (selectedBooking.status === 'Upcoming' || !selectedBooking.status) && (
                   <button
                     onClick={() => handleAdminCancelBooking(selectedBooking)}
-                    className="w-full py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold uppercase text-xs tracking-wider transition-all flex items-center justify-center space-x-2"
+                    className="w-full py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold uppercase text-xs tracking-wider transition-all flex items-center justify-center space-x-2 cursor-pointer"
                   >
                     <RotateCcw size={14} />
                     <span>Cancel Booking & Process Refund</span>
@@ -1676,7 +1709,7 @@ const AdminDashboard = () => {
 
                 <button
                   onClick={() => setSelectedBooking(null)}
-                  className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-gray-200 transition-all duration-300"
+                  className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-gray-200 transition-all duration-300 cursor-pointer"
                 >
                   Close
                 </button>
