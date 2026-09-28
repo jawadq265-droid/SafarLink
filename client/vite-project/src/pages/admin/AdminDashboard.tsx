@@ -1656,7 +1656,7 @@ const AdminDashboard = () => {
                       <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-[#fcfaf7]/50">
                         <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Name</th>
                         <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Email</th>
-                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Phone</th>
+                        {/* <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Phone</th> */}
                         <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Role</th>
                         <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Date Joined</th>
                         <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5 text-right">Actions</th>
@@ -1673,9 +1673,9 @@ const AdminDashboard = () => {
                             <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">
                               {user.email}
                             </td>
-                            <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">
+                            {/* <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">
                               {user.phone || "—"}
-                            </td>
+                            </td> */}
                             <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
                               <span className={`px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
                                 isSuperAdminAccount 
