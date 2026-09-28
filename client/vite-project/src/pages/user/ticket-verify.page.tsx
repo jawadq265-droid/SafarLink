@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -13,7 +13,6 @@ import {
   Phone,
   CreditCard,
   Download,
-  Camera,
   ShieldCheck,
   RotateCcw,
   X,
@@ -46,26 +45,6 @@ interface BookingDetail {
   qrCodeDataUrl?: string;
 }
 
-const loadHtml5QrcodeScanner = (): Promise<any> => {
-  if (typeof window !== 'undefined' && (window as any).Html5QrcodeScanner) {
-    return Promise.resolve((window as any).Html5QrcodeScanner);
-  }
-  return new Promise((resolve, reject) => {
-    const existing = document.getElementById('html5-qrcode-cdn-script');
-    if (existing) {
-      existing.addEventListener('load', () => resolve((window as any).Html5QrcodeScanner));
-      return;
-    }
-    const script = document.createElement('script');
-    script.id = 'html5-qrcode-cdn-script';
-    script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-    script.async = true;
-    script.onload = () => resolve((window as any).Html5QrcodeScanner);
-    script.onerror = () => reject(new Error('Failed to load QR scanner library'));
-    document.body.appendChild(script);
-  });
-};
-
 const TicketVerifyPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const initialTicketId = searchParams.get('id') || '';
@@ -74,18 +53,15 @@ const TicketVerifyPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [ticketData, setTicketData] = useState<BookingDetail | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [scannerActive, setScannerActive] = useState(false);
   const [isBoarding, setIsBoarding] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("Change of travel plans");
   const [isCancelling, setIsCancelling] = useState(false);
 
-  const scannerRef = useRef<any>(null);
-
   const verifyTicketId = async (idToVerify: string) => {
     const cleanId = idToVerify.trim();
     if (!cleanId) {
-      toast.error("Please enter a Ticket ID or scan a QR code");
+      toast.error("Please enter a Ticket ID");
       return;
     }
 
@@ -119,69 +95,6 @@ const TicketVerifyPage: React.FC = () => {
       verifyTicketId(initialTicketId);
     }
   }, [initialTicketId]);
-
-  // Handle QR Camera Scanner setup
-  useEffect(() => {
-    let isMounted = true;
-
-    if (scannerActive) {
-      loadHtml5QrcodeScanner()
-        .then((ScannerClass) => {
-          if (!isMounted || !ScannerClass) return;
-
-          const scanner = new ScannerClass(
-            "qr-reader",
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 },
-              rememberLastUsedCamera: true
-            },
-            false
-          );
-
-          scannerRef.current = scanner;
-
-          scanner.render(
-            (decodedText: string) => {
-              let extractedId = decodedText;
-              try {
-                if (decodedText.includes('id=')) {
-                  const url = new URL(decodedText);
-                  const urlId = url.searchParams.get('id');
-                  if (urlId) extractedId = urlId;
-                }
-              } catch (e) {
-                // keep raw
-              }
-
-              setInputTicketId(extractedId);
-              setScannerActive(false);
-              try {
-                scanner.clear();
-              } catch (e) {}
-              verifyTicketId(extractedId);
-            },
-            () => {
-              // scanning error ignored
-            }
-          );
-        })
-        .catch((err) => {
-          console.error("Failed to load QR scanner:", err);
-          toast.error("Failed to initialize camera scanner");
-          setScannerActive(false);
-        });
-
-      return () => {
-        isMounted = false;
-        if (scannerRef.current) {
-          try {
-            scannerRef.current.clear();
-          } catch (e) {}
-        }
-      };
-    }
-  }, [scannerActive]);
 
   const handleMarkBoarded = async () => {
     if (!ticketData) return;
@@ -360,11 +273,11 @@ const TicketVerifyPage: React.FC = () => {
             <ShieldCheck size={14} />
             <span>AUTHENTICATION GATEWAY</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-serif text-gray-900 tracking-tight">QR Ticket Verification</h1>
-          <p className="text-gray-500 text-sm mt-2 font-light">Scan digital QR manifest or lookup Ticket ID to verify passenger authenticity.</p>
+          <h1 className="text-3xl md:text-4xl font-serif text-gray-900 tracking-tight">Ticket Verification</h1>
+          <p className="text-gray-500 text-sm mt-2 font-light">Enter Ticket ID to verify passenger authenticity and view ticket details.</p>
         </div>
 
-        {/* Search & Scan Control Bar */}
+        {/* Search Control Bar */}
         <div className="bg-white p-6 rounded-2xl shadow-xl border border-[#aa8453]/20 mb-8">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -382,30 +295,12 @@ const TicketVerifyPage: React.FC = () => {
             <button
               onClick={() => verifyTicketId(inputTicketId)}
               disabled={loading}
-              className="px-6 py-3 bg-[#aa8453] hover:bg-[#8f6d40] text-white font-semibold rounded-xl text-xs uppercase tracking-wider transition-all duration-300 shadow-md flex items-center justify-center space-x-2 disabled:opacity-50"
+              className="px-6 py-3 bg-[#aa8453] hover:bg-[#8f6d40] text-white font-semibold rounded-xl text-xs uppercase tracking-wider transition-all duration-300 shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
             >
               <Search size={16} />
               <span>{loading ? "Verifying..." : "Verify ID"}</span>
             </button>
-
-            <button
-              onClick={() => setScannerActive(!scannerActive)}
-              className={`px-5 py-3 border font-semibold rounded-xl text-xs uppercase tracking-wider transition-all duration-300 flex items-center justify-center space-x-2 ${
-                scannerActive ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-              }`}
-            >
-              <Camera size={16} />
-              <span>{scannerActive ? "Close Cam" : "Scan QR"}</span>
-            </button>
           </div>
-
-          {/* QR Camera Reader Mount */}
-          {scannerActive && (
-            <div className="mt-6 p-4 bg-gray-900 rounded-xl border border-gray-800 text-center">
-              <p className="text-xs text-gray-300 mb-3 uppercase tracking-wider font-semibold">Point camera at digital or printed ticket QR code</p>
-              <div id="qr-reader" className="mx-auto overflow-hidden rounded-lg max-w-sm"></div>
-            </div>
-          )}
         </div>
 
         {/* Results Section */}

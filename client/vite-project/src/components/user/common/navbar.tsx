@@ -84,7 +84,7 @@ const Navbar = () => {
       ref={navRef}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? "bg-[#141414]/95 backdrop-blur-md shadow-2xl py-3 border-b border-[#aa8453]/20"
+          ? "bg-[#141414] shadow-2xl py-3 border-b border-[#aa8453]/20"
           : "bg-[#1b1b1b] shadow-xl py-3.5 sm:py-4"
       }`}
     >

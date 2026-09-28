@@ -1255,7 +1255,7 @@ const AdminDashboard = () => {
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white`}
               >
                 <ShieldCheck size={18} className="text-[#aa8453]" />
-                <span className="font-medium text-sm">QR Ticket Scanner</span>
+                <span className="font-medium text-sm">Ticket Verification</span>
               </Link>
             </>
           ) : (
@@ -1273,7 +1273,7 @@ const AdminDashboard = () => {
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white`}
               >
                 <ShieldCheck size={18} className="text-[#aa8453]" />
-                <span className="font-medium text-sm">Verify Ticket QR</span>
+                <span className="font-medium text-sm">Verify Ticket</span>
               </Link>
               <Link
                 to="/bus"
@@ -1301,7 +1301,7 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">
         {/* Header */}
-        <header className="sticky top-0 bg-[#fcfaf7]/90 backdrop-blur-md border-b border-[#aa8453]/15 z-10 px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex items-center justify-between gap-3">
+        <header className="sticky top-0 bg-[#fcfaf7] border-b border-[#aa8453]/20 shadow-sm z-30 px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex items-center justify-between gap-3">
           <div className="flex items-center space-x-3">
             {/* Mobile hamburger button */}
             <button
