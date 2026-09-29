@@ -380,11 +380,11 @@ export const getBookedSeats = async (req, res) => {
       return res.status(400).json({ success: false, message: "Bus and Date are required query parameters." });
     }
 
-    // Only count active bookings (ignore Cancelled and Refunded bookings)
+    // Only count active bookings (ignore Cancelled, Refunded, and Completed bookings)
     const bookings = await Booking.find({
       bus,
       date,
-      status: { $nin: ["Cancelled", "Refunded"] }
+      status: { $nin: ["Cancelled", "Refunded", "Completed"] }
     });
 
     let bookedSeatsList = [];
