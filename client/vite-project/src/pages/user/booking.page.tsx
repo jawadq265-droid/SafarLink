@@ -410,7 +410,7 @@ const BookingPage = () => {
               const bookedGender = (seat as any).bookedGender;
 
               let buttonClass = 'bg-white border border-gray-200 text-[#1b1b1b] hover:border-[#aa8453] hover:shadow-xl';
-              let badge = null;
+              let badge: React.ReactNode = null;
 
               if (isBooked) {
                 if (bookedGender === 'Female') {
