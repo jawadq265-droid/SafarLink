@@ -55,6 +55,8 @@ const BookingPage = () => {
   const voyageDate = formatVoyageDate(selectedRoute?.date);
 
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
+  const [seatGenders, setSeatGenders] = useState<Record<number, 'Male' | 'Female'>>({});
+  const [pendingGenderSeat, setPendingGenderSeat] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [passengerInfo, setPassengerInfo] = useState(() => ({
     name: localStorage.getItem("userName") || '',
@@ -143,6 +145,7 @@ const BookingPage = () => {
   }, [navigate]);
 
   const [bookedSeats, setBookedSeats] = useState<string[]>([]);
+  const [bookedSeatGenders, setBookedSeatGenders] = useState<Record<string, string>>({});
 
   React.useEffect(() => {
     const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
@@ -154,6 +157,9 @@ const BookingPage = () => {
         .then(data => {
           if (data.success && Array.isArray(data.bookedSeats)) {
             setBookedSeats(data.bookedSeats);
+            if (data.seatGenderMap) {
+              setBookedSeatGenders(data.seatGenderMap);
+            }
           }
         })
         .catch(err => console.error("Error fetching booked seats:", err));
@@ -164,12 +170,16 @@ const BookingPage = () => {
     return Array.from({ length: 40 }, (_, i) => {
       const seatIdStr = String(i + 1);
       const isBooked = bookedSeats.includes(seatIdStr);
+      const bookedGender = isBooked
+        ? (bookedSeatGenders[seatIdStr] || bookedSeatGenders[String(i + 1)] || bookedSeatGenders[i + 1] || 'Male')
+        : undefined;
       return {
         id: i + 1,
-        status: isBooked ? 'booked' : 'available'
+        status: isBooked ? 'booked' : 'available',
+        bookedGender
       };
     });
-  }, [bookedSeats]);
+  }, [bookedSeats, bookedSeatGenders]);
 
   // Formatting functions
   const formatCNIC = (val: string) => {
@@ -205,6 +215,13 @@ const BookingPage = () => {
       toast.error("Please select your seats");
       return;
     }
+    if (step === 2) {
+      const missingGender = selectedSeats.some(s => !seatGenders[s]);
+      if (missingGender) {
+        toast.error("Please select gender (Male/Female) for each selected seat");
+        return;
+      }
+    }
     if (step === 3) {
       if (!passengerInfo.name || passengerInfo.phone.length < 10 || passengerInfo.cnic.length < 15 || !passengerInfo.email) {
         toast.error("Please provide valid passenger details including email");
@@ -221,6 +238,7 @@ const BookingPage = () => {
       const tempBooking = {
         selectedRoute,
         selectedSeats,
+        seatGenders,
         passengerInfo,
         userEmail: localStorage.getItem("userEmail") || passengerInfo.email,
         ticketId,
@@ -317,35 +335,111 @@ const BookingPage = () => {
   const handleSeatClick = (seatId: number, status: string) => {
     if (status === 'booked') return;
     if (selectedSeats.includes(seatId)) {
+      // Deselect: remove seat and its gender
       setSelectedSeats(selectedSeats.filter(id => id !== seatId));
+      setSeatGenders(prev => {
+        const updated = { ...prev };
+        delete updated[seatId];
+        return updated;
+      });
     } else {
-      setSelectedSeats([...selectedSeats, seatId]);
+      // Open gender picker for this seat
+      setPendingGenderSeat(seatId);
     }
+  };
+
+  const handleGenderSelect = (gender: 'Male' | 'Female') => {
+    if (pendingGenderSeat === null) return;
+    setSelectedSeats(prev => [...prev, pendingGenderSeat]);
+    setSeatGenders(prev => ({ ...prev, [pendingGenderSeat]: gender }));
+    setPendingGenderSeat(null);
   };
 
   const renderSeatSelection = () => (
     <motion.div variants={stepVariants as any} initial="hidden" animate="visible" exit="exit" className="space-y-4 p-2 max-w-4xl mx-auto">
       <div className="text-center space-y-1">
         <h2 className="text-3xl font-serif text-gray-900 leading-none">Select your Seats</h2>
+        <p className="text-xs text-[#aa8453] tracking-[0.2em] uppercase font-condensed font-semibold">Tap a seat to select and specify gender</p>
       </div>
 
+      {/* Gender Picker Modal */}
+      {pendingGenderSeat !== null && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-[#aa8453]/30 p-6 max-w-xs w-full text-center space-y-4">
+            <h3 className="text-lg font-serif font-bold text-gray-900">Seat {pendingGenderSeat}</h3>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-condensed font-semibold">Select Passenger Gender</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleGenderSelect('Male')}
+                className="flex-1 py-4 rounded-xl bg-blue-50 border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-100 text-blue-800 font-bold text-sm uppercase tracking-wider transition-all"
+              >
+                ♂ Male
+              </button>
+              <button
+                onClick={() => handleGenderSelect('Female')}
+                className="flex-1 py-4 rounded-xl bg-pink-50 border-2 border-pink-200 hover:border-pink-500 hover:bg-pink-100 text-pink-800 font-bold text-sm uppercase tracking-wider transition-all"
+              >
+                ♀ Female
+              </button>
+            </div>
+            <button
+              onClick={() => setPendingGenderSeat(null)}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-wider"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-xl mx-auto luxury-card p-6 rounded-none relative overflow-hidden">
+        {/* Legend */}
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mb-4 text-xs font-condensed">
+          <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm border border-gray-300 bg-white inline-block"></span> Available</span>
+          <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center inline-block">♂</span> Selected (Male)</span>
+          <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-pink-500 text-white text-[9px] font-bold flex items-center justify-center inline-block">♀</span> Selected (Female)</span>
+          <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-blue-100 border border-blue-300 text-blue-800 text-[9px] font-bold flex items-center justify-center inline-block">♂</span> Booked (Male)</span>
+          <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-pink-100 border border-pink-300 text-pink-800 text-[9px] font-bold flex items-center justify-center inline-block">♀</span> Booked (Female)</span>
+        </div>
         <div className="bg-[#fcfbf9] p-6 rounded-none border border-gray-100">
           <div className="grid grid-cols-5 gap-y-4 gap-x-4">
             {seats.map((seat, index) => {
+              const mySelectedGender = seatGenders[seat.id];
+              const isSelected = selectedSeats.includes(seat.id);
+              const isBooked = seat.status === 'booked';
+              const bookedGender = (seat as any).bookedGender;
+
+              let buttonClass = 'bg-white border border-gray-200 text-[#1b1b1b] hover:border-[#aa8453] hover:shadow-xl';
+              let badge = null;
+
+              if (isBooked) {
+                if (bookedGender === 'Female') {
+                  buttonClass = 'bg-pink-100 border-2 border-pink-400 text-pink-900 cursor-not-allowed shadow-sm';
+                  badge = <span className="text-[10px] font-bold text-pink-700 leading-none mt-0.5">♀ Female</span>;
+                } else {
+                  buttonClass = 'bg-blue-100 border-2 border-blue-400 text-blue-900 cursor-not-allowed shadow-sm';
+                  badge = <span className="text-[10px] font-bold text-blue-700 leading-none mt-0.5">♂ Male</span>;
+                }
+              } else if (isSelected) {
+                if (mySelectedGender === 'Female') {
+                  buttonClass = 'bg-pink-600 text-white shadow-2xl ring-4 ring-pink-300/50';
+                  badge = <span className="text-[10px] font-bold text-white leading-none mt-0.5">♀ Female</span>;
+                } else {
+                  buttonClass = 'bg-blue-600 text-white shadow-2xl ring-4 ring-blue-300/50';
+                  badge = <span className="text-[10px] font-bold text-white leading-none mt-0.5">♂ Male</span>;
+                }
+              }
+
               const seatEl = (
                 <button
                   key={seat.id}
                   onClick={() => handleSeatClick(seat.id, seat.status)}
-                  className={`aspect-square rounded-none flex items-center justify-center font-serif text-base transition-all duration-300 transform hover:scale-105 ${seat.status === 'booked'
-                    ? 'bg-gray-200 text-gray-300 cursor-not-allowed font-sans'
-                    : selectedSeats.includes(seat.id)
-                      ? 'bg-[#aa8453] text-white shadow-2xl ring-4 ring-[#aa8453]/20'
-                      : 'bg-white border border-gray-200 text-[#1b1b1b] hover:border-[#aa8453] hover:shadow-xl'
-                    }`}
-                  disabled={seat.status === 'booked'}
+                  className={`aspect-square rounded-none flex flex-col items-center justify-center font-serif text-sm transition-all duration-300 transform ${!isBooked ? 'hover:scale-105' : ''} ${buttonClass}`}
+                  disabled={isBooked}
+                  title={isBooked ? `Seat ${seat.id} is already booked (${bookedGender ? `Booked by ${bookedGender}` : 'Reserved'})` : `Seat ${seat.id}`}
                 >
-                  {seat.id}
+                  <span className="font-bold">{seat.id}</span>
+                  {badge}
                 </button>
               );
 
@@ -361,6 +455,20 @@ const BookingPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Selected Seats Summary */}
+      {selectedSeats.length > 0 && (
+        <div className="max-w-xl mx-auto bg-[#fcfbf9] border border-[#aa8453]/20 p-3 rounded-none">
+          <p className="text-xs font-condensed uppercase tracking-wider text-gray-500 mb-2 font-semibold">Selected Seats</p>
+          <div className="flex flex-wrap gap-2">
+            {selectedSeats.map(s => (
+              <span key={s} className={`text-xs font-bold px-2.5 py-1 rounded-md ${seatGenders[s] === 'Female' ? 'bg-pink-100 text-pink-800' : 'bg-blue-100 text-blue-800'}`}>
+                Seat {s} — {seatGenders[s] || '⚠ No gender'}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-between mt-6 max-w-xl mx-auto items-center">
         <button onClick={prevStep} className="luxury-button-outline !text-gray-900 !border-gray-300 !px-10 !py-3 uppercase text-xs font-bold tracking-wider hover:bg-gray-100">Back</button>

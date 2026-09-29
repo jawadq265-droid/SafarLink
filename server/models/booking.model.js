@@ -12,6 +12,7 @@ const bookingSchema = new mongoose.Schema(
     date: { type: String, required: true }, // e.g. "2026-07-02"
     amount: { type: String, required: true },
     seats: { type: [String], required: true },
+    seatGenders: { type: [String], default: [] }, // Gender per seat: "Male" or "Female"
     routeFrom: { type: String, required: true },
     routeTo: { type: String, required: true },
     departureTime: { type: String, required: true },

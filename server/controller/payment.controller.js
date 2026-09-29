@@ -150,6 +150,16 @@ export const sendPaymentClearanceEmail = async (req, res) => {
     const totalAmount = bookingData.amount || `Rs. ${finalAmountNum}`;
     const originalAmountStr = reqOriginal || `Rs. ${rawFare}`;
 
+    // Normalize seatGenders from either Array or Object format
+    let normalizedSeatGenders = [];
+    if (Array.isArray(bookingData.seatGenders) && bookingData.seatGenders.length > 0) {
+      normalizedSeatGenders = bookingData.seatGenders;
+    } else if (bookingData.seatGenders && typeof bookingData.seatGenders === 'object') {
+      normalizedSeatGenders = sortedSeats.map(s => bookingData.seatGenders[String(s)] || bookingData.seatGenders[Number(s)] || "Male");
+    } else {
+      normalizedSeatGenders = sortedSeats.map(() => "Male");
+    }
+
     // Save actual booking to database
     try {
       const busName = selectedRoute?.bus || selectedRoute?.name || "N/A";
@@ -172,6 +182,7 @@ export const sendPaymentClearanceEmail = async (req, res) => {
           date: travelDate,
           amount: totalAmount,
           seats: sortedSeats.map(s => String(s)),
+          seatGenders: normalizedSeatGenders,
           routeFrom: routeFrom,
           routeTo: routeTo,
           departureTime: depTime,
@@ -357,12 +368,12 @@ export const getBookings = async (req, res) => {
     }
 
     const bookings = await Booking.find(query).sort({ createdAt: -1 });
-    // Normalize cancelled bookings to 25% policy tier
+    // Normalize cancelled bookings to correct 75% refund policy (25% deduction)
     for (let b of bookings) {
-      if ((b.status === "Cancelled" || b.status === "Refunded") && b.refundPercentage !== 25) {
-        b.refundPercentage = 25;
+      if ((b.status === "Cancelled" || b.status === "Refunded") && b.refundPercentage !== 75) {
+        b.refundPercentage = 75;
         const paidNum = parseInt(String(b.amount).replace(/[^\d]/g, ''), 10) || 0;
-        b.refundAmount = Math.round((paidNum * 25) / 100);
+        b.refundAmount = Math.round((paidNum * 75) / 100);
         await b.save();
       }
     }
@@ -388,13 +399,32 @@ export const getBookedSeats = async (req, res) => {
     });
 
     let bookedSeatsList = [];
+    const seatGenderMap = {}; // { "5": "Male", "12": "Female", ... }
+
     bookings.forEach(b => {
       if (b.seats && Array.isArray(b.seats)) {
         bookedSeatsList = bookedSeatsList.concat(b.seats);
+        // Map each seat number to its gender
+        if (Array.isArray(b.seatGenders) && b.seatGenders.length > 0) {
+          b.seats.forEach((seatNum, idx) => {
+            seatGenderMap[String(seatNum)] = b.seatGenders[idx] || "Male";
+          });
+        } else if (b.seatGenders && typeof b.seatGenders === 'object') {
+          b.seats.forEach((seatNum) => {
+            seatGenderMap[String(seatNum)] = b.seatGenders[String(seatNum)] || b.seatGenders[Number(seatNum)] || "Male";
+          });
+        } else {
+          // Default fallback for any legacy bookings
+          b.seats.forEach((seatNum) => {
+            if (!seatGenderMap[String(seatNum)]) {
+              seatGenderMap[String(seatNum)] = "Male";
+            }
+          });
+        }
       }
     });
 
-    return res.status(200).json({ success: true, bookedSeats: bookedSeatsList });
+    return res.status(200).json({ success: true, bookedSeats: bookedSeatsList, seatGenderMap });
   } catch (error) {
     console.error("Error fetching booked seats:", error);
     return res.status(500).json({ success: false, message: "Server error: " + error.message });
@@ -421,11 +451,11 @@ export const verifyTicket = async (req, res) => {
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
     const verificationUrl = `${clientUrl}/verify-ticket?id=${encodeURIComponent(booking.ticketId)}`;
 
-    // Normalize refund percentage to 25% only for cancelled bookings
-    if ((booking.status === "Cancelled" || booking.status === "Refunded") && booking.refundPercentage !== 25) {
-      booking.refundPercentage = 25;
+    // Normalize refund percentage to 75% (25% deduction) for cancelled bookings
+    if ((booking.status === "Cancelled" || booking.status === "Refunded") && booking.refundPercentage !== 75) {
+      booking.refundPercentage = 75;
       const paidNum = parseInt(String(booking.amount).replace(/[^\d]/g, ''), 10) || 0;
-      booking.refundAmount = Math.round((paidNum * 25) / 100);
+      booking.refundAmount = Math.round((paidNum * 75) / 100);
       await booking.save();
     }
 
@@ -604,12 +634,14 @@ export const cancelBooking = async (req, res) => {
       cancelledByText = `Cancelled by User (${userEmail})`;
     }
 
-    // Determine refund policy percentage: strictly 25% only
-    const refundPercentage = diffMinutes >= 30 ? 25 : 0;
+    // Refund policy: 25% is DEDUCTED as cancellation fee; the remaining 75% is returned to the user
+    const deductionPercentage = diffMinutes >= 30 ? 25 : 100; // 25% deducted if valid, 100% forfeited if past cutoff
+    const refundPercentage = 100 - deductionPercentage;       // 75% refunded if valid, 0% if past cutoff
 
     // Parse numeric paid amount
     const paidAmountNum = parseInt(String(booking.amount).replace(/[^\d]/g, ''), 10) || 0;
-    const refundAmount = Math.round((paidAmountNum * refundPercentage) / 100);
+    const deductionAmount = Math.round((paidAmountNum * deductionPercentage) / 100);
+    const refundAmount = paidAmountNum - deductionAmount;     // Remaining after 25% deduction
 
     // Update booking status & attribution
     booking.status = "Cancelled";
@@ -675,10 +707,11 @@ export const cancelBooking = async (req, res) => {
                   <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px 20px; border-radius: 6px; margin-bottom: 20px;">
                     <h4 style="margin: 0 0 6px 0; color: #166534; font-size: 14px;">💳 Refund Notice</h4>
                     <p style="margin: 0; font-size: 14px; font-weight: bold; color: #15803d;">
-                      Your amount will be refunded within 2-3 working days!
+                      Your refund will be processed within 2-3 working days!
                     </p>
                     <p style="margin: 5px 0 0 0; font-size: 12px; color: #166534;">
-                      Refund Amount: <strong>Rs. ${refundAmount.toLocaleString()}</strong> (${refundPercentage}% policy tier) will be returned to your original payment method.
+                      Cancellation fee (25% deduction): <strong>Rs. ${deductionAmount.toLocaleString()}</strong><br/>
+                      Refund Amount (75% returned): <strong>Rs. ${refundAmount.toLocaleString()}</strong> will be credited back to your original payment method.
                     </p>
                   </div>
 
@@ -718,7 +751,11 @@ export const cancelBooking = async (req, res) => {
                         <td style="padding: 8px 0; font-weight: bold; text-align: right;">Rs. ${paidAmountNum.toLocaleString()}</td>
                       </tr>
                       <tr>
-                        <td style="padding: 6px 0; font-weight: bold; color: #16a34a;">Refund Payable:</td>
+                        <td style="padding: 6px 0; color: #dc2626;">Cancellation Fee (25% deducted):</td>
+                        <td style="padding: 6px 0; font-weight: bold; text-align: right; color: #dc2626;">- Rs. ${deductionAmount.toLocaleString()}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; font-weight: bold; color: #16a34a;">Refund Payable (75% returned):</td>
                         <td style="padding: 6px 0; font-weight: bold; font-size: 15px; text-align: right; color: #16a34a;">Rs. ${refundAmount.toLocaleString()}</td>
                       </tr>
                     </table>
@@ -789,8 +826,12 @@ export const cancelBooking = async (req, res) => {
                       <td style="padding: 5px 0; font-weight: bold; text-align: right;">Rs. ${paidAmountNum.toLocaleString()}</td>
                     </tr>
                     <tr>
-                      <td style="padding: 5px 0; color: #777;">Refund Amount:</td>
-                      <td style="padding: 5px 0; font-weight: bold; text-align: right; color: #16a34a;">Rs. ${refundAmount.toLocaleString()} (${refundPercentage}%)</td>
+                      <td style="padding: 5px 0; color: #dc2626;">Cancellation Fee (25% deducted):</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right; color: #dc2626;">Rs. ${deductionAmount.toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px 0; color: #777;">Refund Amount (75% returned):</td>
+                      <td style="padding: 5px 0; font-weight: bold; text-align: right; color: #16a34a;">Rs. ${refundAmount.toLocaleString()}</td>
                     </tr>
                     <tr>
                       <td style="padding: 5px 0; color: #777;">Cancelled By:</td>

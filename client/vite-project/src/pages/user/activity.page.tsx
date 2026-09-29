@@ -225,7 +225,8 @@ const UserActivityPage = () => {
       const diffMs = departureDateTime.getTime() - now.getTime();
       const hoursRemaining = diffMs / (1000 * 60 * 60);
 
-      const percentage = (hoursRemaining * 60 >= 30) ? 25 : 0;
+      // Refund policy: 25% is DEDUCTED, 75% is RETURNED to the user
+      const percentage = (hoursRemaining * 60 >= 30) ? 75 : 0;
 
       const paidNum = parseInt(String(booking.amount).replace(/[^\d]/g, ''), 10) || 0;
       const refundAmt = Math.round((paidNum * percentage) / 100);
@@ -391,7 +392,7 @@ const UserActivityPage = () => {
                       {isCancelled && (
                         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center justify-between">
                           <span>Cancelled on {booking.cancelledAt ? new Date(booking.cancelledAt).toLocaleDateString() : "record"}.</span>
-                          <span className="font-bold">Refund: Rs. {booking.refundAmount?.toLocaleString() || 0} ({booking.refundPercentage || 0}%)</span>
+                          <span className="font-bold">Refund (75%): Rs. {booking.refundAmount?.toLocaleString() || 0} <span className="font-normal text-red-500">(25% deducted)</span></span>
                         </div>
                       )}
                     </div>
@@ -568,21 +569,24 @@ const UserActivityPage = () => {
               {/* Refund calculation breakdown */}
               {(() => {
                 const estimate = getRefundEstimate(cancellingTicket);
+                const paidNum = parseInt(String(cancellingTicket.amount).replace(/[^\d]/g, ''), 10) || 0;
+                const deductionAmt = Math.round((paidNum * 25) / 100);
+                const refundAmt = paidNum - deductionAmt; // always paidNum × 75%, never 0
                 return (
                   <div className="bg-[#fcfaf7] p-4 rounded-xl border border-[#aa8453]/20 space-y-3">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">Original Amount:</span>
+                      <span className="text-gray-600">Original Amount Paid:</span>
                       <span className="font-bold text-gray-800">{cancellingTicket.amount}</span>
                     </div>
 
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">Refund Policy Tier:</span>
-                      <span className="font-bold text-[#aa8453]">{estimate.percentage}% Refund Tier</span>
+                    <div className="flex justify-between items-center text-sm text-red-600">
+                      <span className="font-semibold">Cancellation Fee (25% deducted):</span>
+                      <span className="font-bold">- Rs. {deductionAmt.toLocaleString()}</span>
                     </div>
 
                     <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                      <span className="text-sm font-bold text-gray-900">Estimated Refund:</span>
-                      <span className="text-xl font-serif font-bold text-emerald-600">Rs. {estimate.refundAmt.toLocaleString()}</span>
+                      <span className="text-sm font-bold text-gray-900">Refund You'll Receive (75%):</span>
+                      <span className="text-xl font-serif font-bold text-emerald-600">Rs. {refundAmt.toLocaleString()}</span>
                     </div>
                   </div>
                 );
@@ -592,13 +596,13 @@ const UserActivityPage = () => {
               <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 space-y-1 text-xs">
                 <p className="font-bold flex items-center">
                   <CheckCircle2 size={15} className="mr-1.5 text-emerald-600" />
-                  Refund Notice
+                  Refund Policy
                 </p>
                 <p className="font-bold text-emerald-800">
-                  Your amount will be refunded within 2-3 working days!
+                  25% cancellation fee is deducted — you receive the remaining 75% back!
                 </p>
                 <p className="text-[11px] text-emerald-700">
-                  Cancellation is valid up to 30 minutes before bus departure timing.
+                  Refund will be credited within 2-3 working days. Cancellation valid up to 30 minutes before departure.
                 </p>
               </div>
 
