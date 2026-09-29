@@ -105,6 +105,9 @@ const sanitizeBusList = async (buses) => {
       b.to = newTo;
       await Bus.findByIdAndUpdate(b._id, { from: newFrom, to: newTo });
     }
+  }
+};
+
 // Helper to parse bus departure time into 24-hour hour & minute
 export const parseServerBusTime = (timeStr) => {
   if (!timeStr) return { hours: 10, minutes: 0 };
