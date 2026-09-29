@@ -98,6 +98,26 @@ export const advanceTime1h = (timeStr?: string) => {
   return formatTime12h(nextHours, minutes);
 };
 
+export const getNextHourlySlot = (timeStr?: string, fromDate?: Date) => {
+  const now = fromDate || new Date();
+  const { hours, minutes } = parseBusTime(timeStr);
+  let target = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    hours,
+    minutes,
+    0,
+    0
+  );
+
+  if (now.getTime() >= target.getTime()) {
+    const elapsedHours = Math.floor((now.getTime() - target.getTime()) / (3600 * 1000));
+    target.setHours(target.getHours() + elapsedHours + 1);
+  }
+  return formatTime12h(target.getHours(), target.getMinutes());
+};
+
 export const toTimeInputValue = (timeStr?: string) => {
   if (!timeStr) return "10:00";
   const { hours, minutes } = parseBusTime(timeStr);
@@ -255,12 +275,12 @@ const AdminDashboard = () => {
   const lastProcessedDepartureRef = React.useRef<{ [busId: string]: string }>({});
 
   // Single bus departure rollover: when remaining time reaches 0, that specific bus departs,
-  // its seats reset to full capacity, and next departure time is scheduled 1 hour later
+  // its seats reset to full capacity (0 bookings), and next departure time is scheduled 1 hour later
   const handleSingleBusDepartureRollover = async (bus: BusType) => {
-    const nextTime = advanceTime1h(bus.time);
+    const nextTime = getNextHourlySlot(bus.time, currentTime);
     const busId = bus._id || bus.id;
 
-    // 1. Immediately update local state so UI updates in real-time
+    // 1. Immediately update buses state so UI updates in real-time
     setBuses((prevBuses) =>
       prevBuses.map((b) =>
         (b._id === busId || b.id === busId)
@@ -273,7 +293,21 @@ const AdminDashboard = () => {
       )
     );
 
-    // 2. Persist to MongoDB backend
+    // 2. Mark existing upcoming bookings for this departed bus as Completed so the new fleet has 0 bookings
+    setBookings((prevBookings) =>
+      prevBookings.map((b) => {
+        const matchesBus = b.bus && (
+          b.bus.trim().toLowerCase().includes(bus.name.trim().toLowerCase()) ||
+          bus.name.trim().toLowerCase().includes(b.bus.trim().toLowerCase())
+        );
+        if (matchesBus && b.status !== 'Cancelled' && b.status !== 'Refunded') {
+          return { ...b, status: 'Completed', type: 'Completed' };
+        }
+        return b;
+      })
+    );
+
+    // 3. Persist to MongoDB backend (resets seatsLeft and marks departed bookings as Completed)
     try {
       const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5005/api/v1/";
       await fetch(`${baseUrl}buses/${busId}`, {
@@ -281,7 +315,8 @@ const AdminDashboard = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           seatsLeft: bus.totalSeats || 40,
-          time: nextTime
+          time: nextTime,
+          resetBookings: true
         })
       });
     } catch (err) {
@@ -313,9 +348,9 @@ const AdminDashboard = () => {
 
       const diffMs = targetDate.getTime() - currentTime.getTime();
 
-      // If departure countdown reached 0 (diff <= 0) within the last 5 minutes, trigger single bus rollover
-      if (diffMs <= 0 && diffMs > -300000) {
-        const departureKey = `${busId}_${bus.time}`;
+      // If departure countdown reached 0 (diff <= 0), trigger single bus rollover
+      if (diffMs <= 0) {
+        const departureKey = `${busId}_${bus.time}_${currentTime.getHours()}`;
         if (lastProcessedDepartureRef.current[busId] !== departureKey) {
           lastProcessedDepartureRef.current[busId] = departureKey;
           handleSingleBusDepartureRollover(bus);
@@ -337,9 +372,9 @@ const AdminDashboard = () => {
       0
     );
 
-    // If scheduled departure passed more than 5 minutes ago (e.g. from earlier today),
+    // If scheduled departure passed (e.g. from earlier today),
     // catch it up to the current active hourly dispatch slot:
-    if (currentTime.getTime() - target.getTime() > 300000) {
+    if (currentTime.getTime() >= target.getTime()) {
       const elapsedHours = Math.floor((currentTime.getTime() - target.getTime()) / (3600 * 1000));
       target.setHours(target.getHours() + elapsedHours + 1);
     }
@@ -761,7 +796,12 @@ const AdminDashboard = () => {
   // Helper to compute dynamic booked seat metrics and load percentage for each bus
   const getBusSeatMetrics = (bus: BusType) => {
     const matchingBookings = bookings.filter(b => 
-      b.bus && (
+      b.bus &&
+      (b.status === 'Upcoming' || !b.status || b.type === 'Upcoming') &&
+      b.status !== 'Completed' &&
+      b.status !== 'Cancelled' &&
+      b.status !== 'Refunded' &&
+      (
         b.bus.trim().toLowerCase().includes(bus.name.trim().toLowerCase()) || 
         bus.name.trim().toLowerCase().includes(b.bus.trim().toLowerCase())
       )
@@ -1656,7 +1696,7 @@ const AdminDashboard = () => {
                       <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-[#fcfaf7]/50">
                         <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Name</th>
                         <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Email</th>
-                        <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Phone</th>
+                        {/* <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Phone</th> */}
                         <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Role</th>
                         <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5">Date Joined</th>
                         <th className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5 text-right">Actions</th>
@@ -1673,9 +1713,9 @@ const AdminDashboard = () => {
                             <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">
                               {user.email}
                             </td>
-                            <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">
+                            {/* <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-xs sm:text-sm text-gray-600">
                               {user.phone || "—"}
-                            </td>
+                            </td> */}
                             <td className="px-4 sm:px-6 md:px-8 py-4 sm:py-6">
                               <span className={`px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
                                 isSuperAdminAccount 
@@ -1795,7 +1835,9 @@ const AdminDashboard = () => {
                                 ? 'bg-red-100 text-red-700 border border-red-200'
                                 : isBoarded
                                   ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                  : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  : booking.status === 'Completed'
+                                    ? 'bg-gray-100 text-gray-700 border border-gray-200'
+                                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                             }`}>
                               {booking.status || 'Upcoming'}
                             </span>

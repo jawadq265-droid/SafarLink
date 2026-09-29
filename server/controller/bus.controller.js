@@ -108,6 +108,50 @@ const sanitizeBusList = async (buses) => {
   }
 };
 
+// Helper to parse bus departure time into 24-hour hour & minute
+export const parseServerBusTime = (timeStr) => {
+  if (!timeStr) return { hours: 10, minutes: 0 };
+  const str = String(timeStr).trim();
+  const match = str.match(/^(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
+  if (!match) return { hours: 10, minutes: 0 };
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const mer = match[3]?.toUpperCase();
+  if (mer === 'PM' && hours < 12) hours += 12;
+  if (mer === 'AM' && hours === 12) hours = 0;
+  return { hours, minutes };
+};
+
+export const formatTime12hServer = (hours, minutes) => {
+  const mer = hours >= 12 ? 'PM' : 'AM';
+  let h = hours % 12;
+  if (h === 0) h = 12;
+  return `${String(h).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${mer}`;
+};
+
+export const calculateNextHourTime = (timeStr) => {
+  if (!timeStr) return "09:00 AM";
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return "09:00 AM";
+  const h = parseInt(match[1], 10);
+  const min = match[2];
+  const mer = match[3].toUpperCase();
+
+  let h24 = h;
+  if (mer === "AM" && h === 12) h24 = 0;
+  else if (mer === "PM" && h !== 12) h24 = h + 12;
+
+  h24 = (h24 + 1) % 24;
+
+  const nextMer = h24 >= 12 ? "PM" : "AM";
+  let nextH = h24 % 12;
+  if (nextH === 0) nextH = 12;
+
+  return `${String(nextH).padStart(2, "0")}:${min} ${nextMer}`;
+};
+
+export const advanceTimeByOneHour = calculateNextHourTime;
+
 export const getBuses = async (req, res) => {
   try {
     await ensureSeedData();
@@ -121,11 +165,54 @@ export const getBuses = async (req, res) => {
     const buses = await Bus.find(filter).sort({ createdAt: -1 });
     await sanitizeBusList(buses);
 
-    // Synchronize seatsLeft with real passenger bookings
+    // Auto-complete past bookings whose travel date has passed
     try {
-      const bookings = await Booking.find({});
+      const todayStr = new Date().toISOString().split("T")[0];
+      await Booking.updateMany(
+        {
+          date: { $lt: todayStr },
+          status: { $nin: ["Cancelled", "Refunded", "Completed"] }
+        },
+        {
+          $set: { status: "Completed", type: "Completed" }
+        }
+      );
+
+      // Check if any bus scheduled departure has passed today; if so, advance time and reset seats
+      const now = new Date();
       for (const bus of buses) {
-        const matchingBookings = bookings.filter(b => 
+        const { hours, minutes } = parseServerBusTime(bus.time);
+        const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
+        if (now.getTime() >= target.getTime()) {
+          const elapsedHours = Math.floor((now.getTime() - target.getTime()) / (3600 * 1000));
+          target.setHours(target.getHours() + elapsedHours + 1);
+          const nextTime = calculateNextHourTime(formatTime12hServer(target.getHours() - 1, target.getMinutes()));
+          bus.time = nextTime;
+          bus.seatsLeft = bus.totalSeats || 40;
+          await Bus.findByIdAndUpdate(bus._id, { time: bus.time, seatsLeft: bus.seatsLeft });
+
+          const baseName = bus.name.split("(")[0].trim();
+          await Booking.updateMany(
+            {
+              $or: [
+                { bus: new RegExp(`^${bus.name.trim()}$`, "i") },
+                { bus: new RegExp(baseName, "i") }
+              ],
+              status: { $nin: ["Cancelled", "Refunded", "Completed"] }
+            },
+            {
+              $set: { status: "Completed", type: "Completed" }
+            }
+          );
+        }
+      }
+
+      // Synchronize seatsLeft with active upcoming bookings only
+      const activeBookings = await Booking.find({
+        status: { $nin: ["Cancelled", "Refunded", "Completed"] }
+      });
+      for (const bus of buses) {
+        const matchingBookings = activeBookings.filter(b => 
           b.bus && (
             b.bus.trim().toLowerCase().includes(bus.name.trim().toLowerCase()) || 
             bus.name.trim().toLowerCase().includes(b.bus.trim().toLowerCase())
@@ -139,12 +226,10 @@ export const getBuses = async (req, res) => {
           }
         });
 
-        if (bookedSet.size > 0) {
-          const calculatedSeatsLeft = Math.max(0, (bus.totalSeats || 40) - bookedSet.size);
-          if (bus.seatsLeft !== calculatedSeatsLeft) {
-            bus.seatsLeft = calculatedSeatsLeft;
-            await Bus.findByIdAndUpdate(bus._id, { seatsLeft: calculatedSeatsLeft });
-          }
+        const calculatedSeatsLeft = Math.max(0, (bus.totalSeats || 40) - bookedSet.size);
+        if (bus.seatsLeft !== calculatedSeatsLeft) {
+          bus.seatsLeft = calculatedSeatsLeft;
+          await Bus.findByIdAndUpdate(bus._id, { seatsLeft: calculatedSeatsLeft });
         }
       }
     } catch (syncErr) {
@@ -239,6 +324,22 @@ export const updateBus = async (req, res) => {
       return res.status(404).json({ success: false, message: "Route not found" });
     }
 
+    if (req.body.resetBookings || (updateData.seatsLeft && updateData.seatsLeft === updatedBus.totalSeats)) {
+      const baseName = updatedBus.name.split("(")[0].trim();
+      await Booking.updateMany(
+        {
+          $or: [
+            { bus: new RegExp(`^${updatedBus.name.trim()}$`, "i") },
+            { bus: new RegExp(baseName, "i") }
+          ],
+          status: { $nin: ["Cancelled", "Refunded", "Completed"] }
+        },
+        {
+          $set: { status: "Completed", type: "Completed" }
+        }
+      );
+    }
+
     return res.status(200).json({ success: true, bus: updatedBus });
   } catch (error) {
     console.error("Error updating route:", error);
@@ -285,30 +386,6 @@ export const togglePopularRoute = async (req, res) => {
 };
 
 /**
- * Calculates the time 1 hour after the given time string (e.g. "08:00 AM" -> "09:00 AM")
- */
-export const calculateNextHourTime = (timeStr) => {
-  if (!timeStr) return "09:00 AM";
-  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!match) return "09:00 AM";
-  const h = parseInt(match[1], 10);
-  const min = match[2];
-  const mer = match[3].toUpperCase();
-
-  let h24 = h;
-  if (mer === "AM" && h === 12) h24 = 0;
-  else if (mer === "PM" && h !== 12) h24 = h + 12;
-
-  h24 = (h24 + 1) % 24;
-
-  const nextMer = h24 >= 12 ? "PM" : "AM";
-  let nextH = h24 % 12;
-  if (nextH === 0) nextH = 12;
-
-  return `${String(nextH).padStart(2, "0")}:${min} ${nextMer}`;
-};
-
-/**
  * Update bus operational status.
  */
 export const updateBusStatus = async (req, res) => {
@@ -347,6 +424,11 @@ export const resetAllBusSeats = async (req, res) => {
       bus.status = "Active";
       await bus.save();
     }
+    // Also mark active upcoming bookings as Completed so 0 bookings remain on departed fleet
+    await Booking.updateMany(
+      { status: { $nin: ["Cancelled", "Refunded", "Completed"] } },
+      { $set: { status: "Completed", type: "Completed" } }
+    );
     console.log(`[Hourly Fleet Cycle] All bus seats reset to full capacity at ${new Date().toLocaleTimeString()}.`);
     return res.status(200).json({
       success: true,
@@ -357,20 +439,6 @@ export const resetAllBusSeats = async (req, res) => {
     console.error("Error resetting all bus seats:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
-};
-
-// Helper to parse bus departure time into 24-hour hour & minute
-const parseServerBusTime = (timeStr) => {
-  if (!timeStr) return { hours: 10, minutes: 0 };
-  const str = String(timeStr).trim();
-  const match = str.match(/^(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
-  if (!match) return { hours: 10, minutes: 0 };
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const mer = match[3]?.toUpperCase();
-  if (mer === 'PM' && hours < 12) hours += 12;
-  if (mer === 'AM' && hours === 12) hours = 0;
-  return { hours, minutes };
 };
 
 const serverProcessedDepartures = new Set();
@@ -391,9 +459,24 @@ setInterval(async () => {
         if (!serverProcessedDepartures.has(depKey)) {
           serverProcessedDepartures.add(depKey);
           bus.seatsLeft = bus.totalSeats || 40;
-          bus.time = advanceTimeByOneHour(bus.time);
+          bus.time = calculateNextHourTime(bus.time);
           await bus.save();
-          console.log(`[Bus Departed]: ${bus.name} departed! Reset seats to ${bus.totalSeats} and advanced next departure to ${bus.time}.`);
+
+          const baseName = bus.name.split("(")[0].trim();
+          await Booking.updateMany(
+            {
+              $or: [
+                { bus: new RegExp(`^${bus.name.trim()}$`, "i") },
+                { bus: new RegExp(baseName, "i") }
+              ],
+              status: { $nin: ["Cancelled", "Refunded", "Completed"] }
+            },
+            {
+              $set: { status: "Completed", type: "Completed" }
+            }
+          );
+
+          console.log(`[Bus Departed]: ${bus.name} departed! Reset seats to ${bus.totalSeats} (0 bookings) and advanced next departure to ${bus.time}.`);
         }
       }
     }
